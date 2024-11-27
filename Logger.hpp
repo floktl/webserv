@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 12:39:04 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/27 16:14:28 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/27 17:08:58 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,45 +27,45 @@
 #define RESET "\033[0m"
 
 class Logger {
-    public:
-        static void red(const std::string &message, bool newline = true);
-        static void green(const std::string &message, bool newline = true);
-        static void blue(const std::string &message, bool newline = true);
-        static void yellow(const std::string &message, bool newline = true);
-        static void cyan(const std::string &message, bool newline = true);
-        static void magenta(const std::string &message, bool newline = true);
-        static void white(const std::string &message, bool newline = true);
-        static void error(const std::string &message, bool newline = true);
+	public:
+		static void red(const std::string &message, bool newline = true);
+		static void green(const std::string &message, bool newline = true);
+		static void blue(const std::string &message, bool newline = true);
+		static void yellow(const std::string &message, bool newline = true);
+		static void cyan(const std::string &message, bool newline = true);
+		static void magenta(const std::string &message, bool newline = true);
+		static void white(const std::string &message, bool newline = true);
+		static void error(const std::string &message, bool newline = true);
 
-        static void log(const std::string &message, const std::string &color, bool newline = true);
+		static void log(const std::string &message, const std::string &color, bool newline = true);
 
-        class StreamLogger {
-            public:
-                StreamLogger(const std::string &color, bool newline = true, bool useCerr = false);
-                ~StreamLogger();
-                template <typename T>
-                StreamLogger &operator<<(const T &data) {
-                    buffer << data;
-                    return *this;
-                }
-                void flush();
-            private:
-                std::ostringstream buffer;
-                std::string color;
-                bool newline;
-                bool useCerr;
-                StreamLogger(const StreamLogger &);
-                StreamLogger &operator=(const StreamLogger &);
-        };
+		class StreamLogger {
+			public:
+				StreamLogger(const std::string &color, bool newline = true, bool useCerr = false);
+				~StreamLogger();
+				template <typename T>
+				StreamLogger &operator<<(const T &data) {
+					buffer << data;
+					return *this;
+				}
+				void flush();
+			private:
+				std::ostringstream buffer;
+				std::string color;
+				bool newline;
+				bool useCerr;
+				StreamLogger(const StreamLogger &);
+				StreamLogger &operator=(const StreamLogger &);
+		};
 
-        static StreamLogger &red();
-        static StreamLogger &green();
-        static StreamLogger &blue();
-        static StreamLogger &yellow();
-        static StreamLogger &cyan();
-        static StreamLogger &magenta();
-        static StreamLogger &white();
-        static StreamLogger &error();
+		static StreamLogger &red();
+		static StreamLogger &green();
+		static StreamLogger &blue();
+		static StreamLogger &yellow();
+		static StreamLogger &cyan();
+		static StreamLogger &magenta();
+		static StreamLogger &white();
+		static StreamLogger &error();
 };
 
 #endif

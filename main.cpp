@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/26 12:58:21 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/27 16:17:55 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/27 17:25:57 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,9 @@ int main(int argc, char **argv)
 	Utils utils;
 
 	utils.parseArgs(argc, argv);
-	Logger::yellow() << "WEBSERV starting ...";
-	return 0;
+	if (utils.getconfigFileValid())
+	{
+		Logger::yellow() << "WEBSERV starting ...";
+	}
+	return (0);
 }
