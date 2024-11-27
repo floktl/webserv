@@ -6,45 +6,107 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/27 16:16:40 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/27 17:52:37 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./Utils.hpp"
 
-Utils::Utils() {};
-Utils::~Utils() {};
+Utils::Utils() { configFileValid = false; };
+Utils::~Utils() { configFileValid = false; };
+
+std::string trim(const std::string& str) {
+	size_t first = str.find_first_not_of(" \t");
+	if (first == std::string::npos) return "";
+	size_t last = str.find_last_not_of(" \t");
+	return str.substr(first, last - first + 1);
+}
+
+bool Utils::parseConfigContent(std::string filename) {
+	std::ifstream configFile(filename);
+	if (!configFile.is_open()) {
+		Logger::error("Could not open config file");
+		return false;
+	}
+
+	std::string line;
+	ConfLocations currentLocation;
+	bool inLocationBlock = false;
+
+	while (std::getline(configFile, line)) {
+		line = trim(line);
+
+		if (line.find("location") == 0) {
+			inLocationBlock = true;
+			currentLocation = ConfLocations();
+			size_t pos = line.find(" ");
+			if (pos != std::string::npos) {
+				currentLocation.port = std::stoi(line.substr(pos + 1)); // Beispielhaft
+			}
+			continue;
+		}
+
+		if (inLocationBlock && line.find("redirect") == 0) {
+			size_t pos = line.find(" ");
+			if (pos != std::string::npos) {
+				currentLocation.redirect = line.substr(pos + 1);
+			}
+			continue;
+		}
+
+		if (inLocationBlock && line == "}") {
+			registeredConfs.back().locations.push_back(currentLocation);
+			inLocationBlock = false;
+			continue;
+		}
+
+		if (inLocationBlock && line.find("methods") == 0) {
+			size_t pos = line.find(" ");
+			if (pos != std::string::npos) {
+				currentLocation.methods = line.substr(pos + 1);
+			}
+		}
+	}
+
+	configFile.close();
+	return true;
+}
 
 bool Utils::isConfigFile(const std::string& filepath) {
 	std::ifstream file(filepath.c_str());
-	return file.good();
-}
-
-bool Utils::addConfig(const FileConfData& fileInfo) {
-	for (std::vector<FileConfData>::const_iterator it = registeredConfs.begin(); it != registeredConfs.end(); ++it) {
-		if (it->path == fileInfo.path) {
-			std::cerr << "Duplicate config file: " << fileInfo.path << std::endl;
-			return false;
-		}
+	if (!file.good())
+	{
+		Logger::error("File does not exist");
+		return false;
 	}
-	registeredConfs.push_back(fileInfo);
+	if (filepath.size() >= 5 && filepath.substr(filepath.size() - 5) != ".conf")
+	{
+		Logger::error("File has to be of type .conf");
+		return false;
+	}
+	if (!this->parseConfigContent(filepath))
+	{
+		Logger::error("Config file contains incorrect configurations");
+		return false;
+	}
 	return true;
 }
 
 void Utils::parseArgs(int argc, char **argv) {
-	for (int i = 1; i < argc; ++i) {
-		std::string filepath(argv[i]);
+	if (argc == 2) {
+		std::string filepath(argv[1]);
 		if (isConfigFile(filepath)) {
-			FileConfData fileData = {filepath};
-			if (addConfig(fileData)) {
-				Logger::green() << "Config added: " << filepath;
-			} else {
-				Logger::error() << "Failed to add config: " << filepath;
-			}
+			Logger::green() << "Config " << filepath << " added successfully!";
 		} else {
 			Logger::error() << "Invalid config file: " << filepath;
 		}
+	} else {
+		Logger::error() << "Usage: ./webserv [CONFIG_PATH]";
 	}
+}
+
+bool Utils::getconfigFileValid(void) const {
+	return configFileValid;
 }
 
 const char* Utils::InvalidFileNameException::what() const throw() {
