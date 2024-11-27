@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/27 12:16:40 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/27 16:05:29 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,10 +16,12 @@
 # include <string>
 # include <vector>
 # include <stdexcept>
+# include <fstream>
+# include "./Logger.hpp"
 
 struct FileConfData {
-	std:string path;
-}
+	std::string path;
+};
 
 class Utils {
 	private:
@@ -27,15 +29,19 @@ class Utils {
 	public:
 		Utils();
 		~Utils();
+		void parseArgs(int argc, char **argv);
 		bool isConfigFile(const std::string& filepath);
 		bool addConfig(const FileConfData& fileInfo);
 
-		const char *Utils::InvalidFileNameException::what() const throw() {
-			return "Invalid config file name";
-		}
+		class InvalidFileNameException : public std::exception {
+			public:
+				const char* what() const throw(); // Exception-Methode korrekt deklariert
+		};
 
-		const char *Utils::InvalidFileContentException::what() const throw() {
-			return "Invalid file content";
-		}
+		class InvalidFileContentException : public std::exception {
+			public:
+				const char* what() const throw();
+		};
+};
 
 #endif
