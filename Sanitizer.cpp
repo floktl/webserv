@@ -6,20 +6,18 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:33:15 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 15:33:50 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/28 16:58:39 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./Sanitizer.hpp"
-#include "./Logger.hpp"
 
 Sanitizer::Sanitizer() {}
 Sanitizer::~Sanitizer() {}
 
-bool Sanitizer::sanitize_portNr(std::string portNr) {
+bool Sanitizer::sanitize_portNr(int portNr) {
 	try {
-		int port = std::stoi(portNr);
-		if (port < 1 || port > 65535) {
+		if (portNr < 1 || portNr > 65535) {
 			Logger::error("Port number must be between 1 and 65535");
 			return false;
 		}
@@ -31,16 +29,61 @@ bool Sanitizer::sanitize_portNr(std::string portNr) {
 }
 
 bool Sanitizer::sanitize_serverName(std::string serverName) {
+	std::string lowerName = serverName;
+	std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+
 	if (serverName.empty() || serverName.length() > 255) {
 		Logger::error("Server name must be between 1 and 255 characters");
 		return false;
 	}
-	for (char c : serverName) {
-		if (!isalnum(c) && c != '.' && c != '-') {
-			Logger::error("Server name contains invalid characters");
+
+	if (TODO)
+		Logger::white("TODO: We might check if some host names shall be forbidden");
+	// const std::vector<std::string> blockedHosts = {
+	// 	"localhost",
+	// 	"127.",
+	// 	"0.0.0.0",
+	// 	"::1",
+	// 	"0:0:0:0:0:0:0:1"
+	// };
+
+	// for (const auto& blocked : blockedHosts) {
+	// 	if (lowerName.find(blocked) != std::string::npos) {
+	// 		Logger::error("Blocked hostname detected");
+	// 		return false;
+	// 	}
+	// }
+
+	std::vector<std::string> segments;
+	std::string segment;
+	std::istringstream segmentStream(serverName);
+
+	while (std::getline(segmentStream, segment, '.')) {
+		if (segment.empty() || segment.length() > 63) {
+			Logger::error("Invalid hostname segment length");
 			return false;
 		}
+
+		if (!isalnum(segment.front()) || !isalnum(segment.back())) {
+			Logger::error("Segments must start and end with alphanumeric characters");
+			return false;
+		}
+
+		for (char c : segment) {
+			if (!isalnum(c) && c != '-') {
+				Logger::error("Invalid character in hostname");
+				return false;
+			}
+		}
+
+		segments.push_back(segment);
 	}
+
+	if (segments.empty()) {
+		Logger::error("No valid hostname segments found");
+		return false;
+	}
+
 	return true;
 }
 
@@ -49,6 +92,35 @@ bool Sanitizer::sanitize_root(std::string root) {
 		Logger::error("Root path must be absolute");
 		return false;
 	}
+
+	// const std::vector<std::string> blockedPaths = {
+	// 	"/../", "/etc/", "/var/", "/root/", "/home/",
+	// 	"/proc/", "/sys/", "/dev/", "/bin/", "/sbin/"
+	// };
+
+	// for (const auto& blocked : blockedPaths) {
+	// 	if (root.find(blocked) != std::string::npos) {
+	// 		Logger::error("Access to system directory blocked");
+	// 		return false;
+	// 	}
+	// }
+	if (TODO)
+		Logger::white("TODO: We might check if some paths shall be forbidden");
+	if (TODO)
+		Logger::white("TODO: We might check if access to root path must be necessary");
+
+	for (char c : root) {
+		if (!isalnum(c) && c != '/' && c != '_' && c != '-' && c != '.') {
+			Logger::error("Invalid character in path");
+			return false;
+		}
+	}
+
+	if (root.find("..") != std::string::npos) {
+		Logger::error("Directory traversal not allowed");
+		return false;
+	}
+
 	return true;
 }
 

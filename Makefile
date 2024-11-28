@@ -6,7 +6,7 @@
 #    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/11/28 15:34:16 by jeberle          ###   ########.fr        #
+#    Updated: 2024/11/28 16:20:44 by jeberle          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -46,7 +46,7 @@ NAME=webserv
 #------------------------------------------------------------------------------#
 
 CC=c++
-CFLAGS=-Wall -Wextra -Werror -Wshadow -std=c++98
+CFLAGS=-Wall -Wextra -Werror -Wshadow -std=c++11
 LDFLAGS=
 
 ifeq ($(DEBUG), 1)
