@@ -6,12 +6,12 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 15:38:19 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/28 16:46:32 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./Utils.hpp"
-
+#include "./Sanitizer.hpp"
 
 Utils::Utils() {
 	configFileValid = false;
@@ -128,7 +128,15 @@ void Utils::parseLine(std::string line) {
 			return;
 		}
 		if (keyword == "listen")
-			registeredConfs.back().port = std::stoi(value);
+		{
+			try {
+				registeredConfs.back().port = std::stoi(value);
+			} catch (const std::out_of_range& e) {
+				Logger::error("Error: '" + keyword + "' value at line " + std::to_string(linecount) + " cannot be interpreted as a valid port");
+				parsingErr = true;
+				return;
+			}
+		}
 		else if (keyword == "server_name")
 			registeredConfs.back().name = value;
 		else if (keyword == "root")
@@ -203,10 +211,51 @@ bool Utils::parseConfigContent(std::string filename) {
 // };
 
 bool Utils::sanitizeConfData(void) {
-	for (size_t i = 0; i < registeredConfs.size(); ++i) {
+	std::set<int> usedPorts;
+	for (size_t i = 0; i < registeredConfs.size(); ++i)
+	{
+		// port
+		if (Sanitizer::sanitize_portNr(registeredConfs[i].port))
+		{
+			if (usedPorts.find(registeredConfs[i].port) == usedPorts.end())
+			{
+				usedPorts.insert(registeredConfs[i].port);
+			}
+			else
+			{
+				Logger::magenta("Server Block " + std::to_string((i + 1)) + " ignored, because Port " + std::to_string(registeredConfs[i].port) + " already used.");
+				registeredConfs.erase(registeredConfs.begin() + i);
+				--i;
+			}
+		}
+		else
+			return false;
 
+		// name
+		if (!Sanitizer::sanitize_serverName(registeredConfs[i].name))
+		{
+			return false;
+		}
+
+		// root
+		if (!Sanitizer::sanitize_root(registeredConfs[i].root))
+		{
+			return false;
+		}
+
+		// index
+		if (!Sanitizer::sanitize_index(registeredConfs[i].index))
+		{
+			return false;
+		}
+
+		// error_page
+		if (!Sanitizer::sanitize_errorPage(registeredConfs[i].error_page))
+		{
+			return false;
+		}
 	}
-	return false;
+	return true;
 }
 
 bool Utils::isConfigFile(const std::string& filepath) {
@@ -228,10 +277,6 @@ bool Utils::isConfigFile(const std::string& filepath) {
 	}
 	if (!this->sanitizeConfData())
 	{
-
-			printRegisteredConfs(filepath);
-
-
 		Logger::error("Config file contains logical errors");
 		return false;
 	}
