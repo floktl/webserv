@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 12:54:53 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/28 15:22:44 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@
 
 struct ConfLocations {
 	int port;
+	std::string path;
 	std::string methods;
 	std::string cgi;
 	std::string cgi_param;
@@ -56,6 +57,7 @@ class Utils {
 		void parseLine(std::string line);
 		void parseArgs(int argc, char **argv);
 		bool isConfigFile(const std::string& filepath);
+		bool sanitizeConfData(void);
 		bool parseConfigContent(std::string filename);
 		bool getconfigFileValid(void) const;
 		void printRegisteredConfs(std::string filename);
