@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/27 17:51:33 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/28 12:54:53 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,11 @@
 # include <stdexcept>
 # include <fstream>
 # include "./Logger.hpp"
+# include "./main.hpp"
+# include <set>
+# include <sstream>
+# include <algorithm>
+# include <fstream>
 
 struct ConfLocations {
 	int port;
@@ -38,15 +43,22 @@ struct FileConfData {
 
 class Utils {
 	private:
+		int linecount;
 		bool configFileValid;
+		bool inServerBlock;
+		bool inLocationBlock;
+		bool parsingErr;
+		std::string locBlockTar;
 		std::vector<FileConfData> registeredConfs;
 	public:
 		Utils();
 		~Utils();
+		void parseLine(std::string line);
 		void parseArgs(int argc, char **argv);
 		bool isConfigFile(const std::string& filepath);
 		bool parseConfigContent(std::string filename);
 		bool getconfigFileValid(void) const;
+		void printRegisteredConfs(std::string filename);
 
 		class InvalidFileNameException : public std::exception {
 			public:

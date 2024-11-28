@@ -1,26 +1,23 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
+/*   main.hpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/11/26 12:58:21 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 12:59:25 by jeberle          ###   ########.fr       */
+/*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
+/*   Updated: 2024/11/28 12:03:13 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "./Utils.hpp"
-#include "./Logger.hpp"
+# ifndef DEBUG
+#  define DEBUG 1
+# endif
 
-int main(int argc, char **argv)
-{
-	Utils utils;
+# ifndef CONFIG_OPTS
+#  define CONFIG_OPTS "server,listen,server_name,root,index,error_page,location"
+# endif
 
-	utils.parseArgs(argc, argv);
-	if (utils.getconfigFileValid())
-	{
-		Logger::white() << "WEBSERV starting ...";
-	}
-	return (0);
-}
+# ifndef LOCATION_OPTS
+#  define LOCATION_OPTS "methods,autoindex,default_file,cgi,cgi_param"
+# endif

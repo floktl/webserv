@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 12:39:04 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/27 17:08:58 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/28 13:16:11 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,14 +27,17 @@
 #define RESET "\033[0m"
 
 class Logger {
+	private:
+		static std::string formatMessage(const std::string &message, size_t length);
+
 	public:
-		static void red(const std::string &message, bool newline = true);
-		static void green(const std::string &message, bool newline = true);
-		static void blue(const std::string &message, bool newline = true);
-		static void yellow(const std::string &message, bool newline = true);
-		static void cyan(const std::string &message, bool newline = true);
-		static void magenta(const std::string &message, bool newline = true);
-		static void white(const std::string &message, bool newline = true);
+		static void red(const std::string &message, bool newline = true, size_t length = 0);
+		static void green(const std::string &message, bool newline = true, size_t length = 0);
+		static void blue(const std::string &message, bool newline = true, size_t length = 0);
+		static void yellow(const std::string &message, bool newline = true, size_t length = 0);
+		static void cyan(const std::string &message, bool newline = true, size_t length = 0);
+		static void magenta(const std::string &message, bool newline = true, size_t length = 0);
+		static void white(const std::string &message, bool newline = true, size_t length = 0);
 		static void error(const std::string &message, bool newline = true);
 
 		static void log(const std::string &message, const std::string &color, bool newline = true);
