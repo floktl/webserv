@@ -6,38 +6,45 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 12:39:19 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/27 17:09:46 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/28 13:13:00 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./Logger.hpp"
 
-void Logger::red(const std::string &message, bool newline) {
-	log(message, RED, newline);
+void Logger::red(const std::string &message, bool newline, size_t length) {
+	log(formatMessage(message, length), RED, newline);
 }
 
-void Logger::green(const std::string &message, bool newline) {
-	log(message, GREEN, newline);
+void Logger::green(const std::string &message, bool newline, size_t length) {
+	log(formatMessage(message, length), GREEN, newline);
 }
 
-void Logger::blue(const std::string &message, bool newline) {
-	log(message, BLUE, newline);
+void Logger::blue(const std::string &message, bool newline, size_t length) {
+	log(formatMessage(message, length), BLUE, newline);
 }
 
-void Logger::yellow(const std::string &message, bool newline) {
-	log(message, YELLOW, newline);
+void Logger::yellow(const std::string &message, bool newline, size_t length) {
+	log(formatMessage(message, length), YELLOW, newline);
 }
 
-void Logger::cyan(const std::string &message, bool newline) {
-	log(message, CYAN, newline);
+void Logger::cyan(const std::string &message, bool newline, size_t length) {
+	log(formatMessage(message, length), CYAN, newline);
 }
 
-void Logger::magenta(const std::string &message, bool newline) {
-	log(message, MAGENTA, newline);
+void Logger::magenta(const std::string &message, bool newline, size_t length) {
+	log(formatMessage(message, length), MAGENTA, newline);
 }
 
-void Logger::white(const std::string &message, bool newline) {
-	log(message, WHITE, newline);
+void Logger::white(const std::string &message, bool newline, size_t length) {
+	log(formatMessage(message, length), WHITE, newline);
+}
+
+std::string Logger::formatMessage(const std::string &message, size_t length) {
+	if (message.length() >= length) {
+		return message;
+	}
+	return message + std::string(length - message.length(), ' ');
 }
 
 void Logger::log(const std::string &message, const std::string &color, bool newline) {
