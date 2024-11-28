@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 13:18:09 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/28 15:38:19 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,82 +31,125 @@ std::string trim(const std::string& str) {
 	return str.substr(first, last - first + 1);
 }
 
+std::vector<std::string> parseOptionsToVector(const std::string& opts) {
+	std::vector<std::string> result;
+	std::istringstream stream(opts);
+	std::string opt;
+	while (std::getline(stream, opt, ',')) {
+		result.push_back(trim(opt));
+	}
+	return result;
+}
+
 void Utils::parseLine(std::string line) {
+	static const std::vector<std::string> serverOpts = parseOptionsToVector(CONFIG_OPTS);
+	static const std::vector<std::string> locationOpts = parseOptionsToVector(LOCATION_OPTS);
+
 	std::istringstream stream(line);
 	std::string keyword, value;
 
 	stream >> keyword;
 	keyword = trim(keyword);
 
-	if (keyword == "server" && line.find("{") != std::string::npos) {
-		inServerBlock = true;
-		registeredConfs.push_back(FileConfData());
-		return;
-	}
+	if (line.find("{") != std::string::npos) {
+		if (line.find("}") != std::string::npos) {
+			Logger::error("Error: at line " + std::to_string(linecount) + " Only one scope per line allowed");
+			parsingErr = true;
+			return;
+		}
+		if (keyword == "server") {
+			if (inServerBlock) {
+				Logger::error("Error: Nested server block at line " + std::to_string(linecount));
+				parsingErr = true;
+				return;
+			}
+			inServerBlock = true;
+			registeredConfs.push_back(FileConfData());
+			return;
+		} else if (keyword == "location") {
+			if (!inServerBlock || inLocationBlock) {
+				Logger::error("Error: Invalid location block at line " + std::to_string(linecount));
+				parsingErr = true;
+				return;
+			}
+			std::string location_path;
+			stream >> location_path;
 
-	if (keyword == "location") {
-		if (!inServerBlock) {
-			Logger::error("Error: Location block outside server block at line " + std::to_string(linecount));
-			parsingErr = true;
+			std::string rest;
+			std::getline(stream, rest);
+			rest = trim(rest);
+
+			if (rest != "{") {
+				Logger::error("Error: Location definition must be followed by its path and { on same line at line " + std::to_string(linecount));
+				parsingErr = true;
+				return;
+			}
+
+			inLocationBlock = true;
+			registeredConfs.back().locations.push_back(ConfLocations());
+			registeredConfs.back().locations.back().path = location_path;
 			return;
 		}
-		inLocationBlock = true;
-		std::string location_path;
-		stream >> location_path;
-		if (line.find("{") == std::string::npos) {
-			Logger::error("Error: Missing { in location block at line " + std::to_string(linecount));
-			parsingErr = true;
-			return;
-		}
-		registeredConfs.back().locations.push_back(ConfLocations());
-		locBlockTar = location_path;
-		return;
 	}
 
 	if (keyword == "}") {
-		if (inLocationBlock) {
-			inLocationBlock = false;
-			locBlockTar = "";
-		} else if (inServerBlock) {
-			inServerBlock = false;
+		if (!inServerBlock && !inLocationBlock) {
+			Logger::error("Error: Unexpected } at line " + std::to_string(linecount));
+			parsingErr = true;
+			return;
 		}
+		if (inLocationBlock)
+			inLocationBlock = false;
+		else
+			inServerBlock = false;
+		return;
+	}
+
+	if (!inServerBlock) {
+		Logger::error("Error: Configuration outside server block at line " + std::to_string(linecount));
+		parsingErr = true;
 		return;
 	}
 
 	std::getline(stream, value);
 	value = trim(value);
-	if (!value.empty() && value.back() == ';') {
-		value.pop_back();
-		value = trim(value);
-	} else {
+	if (value.empty() || value.back() != ';') {
 		Logger::error("Error: Missing semicolon at line " + std::to_string(linecount));
 		parsingErr = true;
 		return;
 	}
+	value.pop_back();
+	value = trim(value);
 
-	if (inServerBlock && !inLocationBlock) {
-		if (keyword == "listen") {
+	if (!inLocationBlock) {
+		if (std::find(serverOpts.begin(), serverOpts.end(), keyword) == serverOpts.end() || keyword == "server") {
+			Logger::error("Error: Invalid server directive '" + keyword + "' at line " + std::to_string(linecount));
+			parsingErr = true;
+			return;
+		}
+		if (keyword == "listen")
 			registeredConfs.back().port = std::stoi(value);
-		} else if (keyword == "server_name") {
+		else if (keyword == "server_name")
 			registeredConfs.back().name = value;
-		} else if (keyword == "root") {
+		else if (keyword == "root")
 			registeredConfs.back().root = value;
-		} else if (keyword == "index") {
+		else if (keyword == "index")
 			registeredConfs.back().index = value;
-		} else if (keyword == "error_page") {
+		else if (keyword == "error_page")
 			registeredConfs.back().error_page = value;
+	} else {
+		if (std::find(locationOpts.begin(), locationOpts.end(), keyword) == locationOpts.end()) {
+			Logger::error("Error: Invalid location directive '" + keyword + "' at line " + std::to_string(linecount));
+			parsingErr = true;
+			return;
 		}
-	} else if (inLocationBlock) {
 		ConfLocations& currentLocation = registeredConfs.back().locations.back();
-		if (keyword == "methods") {
+		if (keyword == "methods")
 			currentLocation.methods = value;
-		} else if (keyword == "cgi") {
+		else if (keyword == "cgi")
 			currentLocation.cgi = value;
-		} else if (keyword == "cgi_param") {
+		else if (keyword == "cgi_param")
 			currentLocation.cgi_param = value;
-		} else if (keyword == "redirect") {
-			currentLocation.redirect = value;
-		}
 	}
 }
 
@@ -141,6 +184,31 @@ bool Utils::parseConfigContent(std::string filename) {
 	return true;
 }
 
+// struct ConfLocations {
+// 	int port;
+// 	std::string path;
+// 	std::string methods;
+// 	std::string cgi;
+// 	std::string cgi_param;
+// 	std::string redirect;
+// };
+
+// struct FileConfData {
+// 	int port;
+// 	std::string name;
+// 	std::string root;
+// 	std::string index;
+// 	std::string error_page;
+// 	std::vector<ConfLocations> locations;
+// };
+
+bool Utils::sanitizeConfData(void) {
+	for (size_t i = 0; i < registeredConfs.size(); ++i) {
+
+	}
+	return false;
+}
+
 bool Utils::isConfigFile(const std::string& filepath) {
 	std::ifstream file(filepath.c_str());
 	if (!file.good())
@@ -158,6 +226,15 @@ bool Utils::isConfigFile(const std::string& filepath) {
 		Logger::error("Config file contains incorrect configurations");
 		return false;
 	}
+	if (!this->sanitizeConfData())
+	{
+
+			printRegisteredConfs(filepath);
+
+
+		Logger::error("Config file contains logical errors");
+		return false;
+	}
 	return true;
 }
 
@@ -167,8 +244,6 @@ void Utils::parseArgs(int argc, char **argv) {
 		if (isConfigFile(filepath)) {
 			Logger::green("\nConfig " + filepath + " registered successfully!\n");
 			printRegisteredConfs(filepath);
-		} else {
-			Logger::error() << "Invalid config file: " << filepath;
 		}
 	} else {
 		Logger::error() << "Usage: ./webserv [CONFIG_PATH]";
@@ -207,7 +282,7 @@ void Utils::printRegisteredConfs(std::string filename) {
 		} else {
 			for (size_t j = 0; j < conf.locations.size(); ++j) {
 				const ConfLocations& location = conf.locations[j];
-				Logger::cyan("\n    Location [" + std::to_string(j + 1) + "]:\n");
+				Logger::cyan("\n    Location [" + std::to_string(j + 1) + "]:   " + location.path + "");
 				Logger::white("      Methods: ", false, 20);
 				Logger::yellow(location.methods);
 				Logger::white("      CGI: ", false, 20);
