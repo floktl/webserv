@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 15:22:44 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/01 08:47:26 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,14 +18,16 @@
 # include <stdexcept>
 # include <fstream>
 # include "./Logger.hpp"
-# include "./main.hpp"
+# include "./../main.hpp"
+# include "./../server/Server.hpp"
+# include "./../client/ClientHandler.hpp"
 # include <set>
 # include <sstream>
 # include <algorithm>
 # include <fstream>
 
 struct ConfLocations {
-	int port;
+	int			port;
 	std::string path;
 	std::string methods;
 	std::string cgi;
@@ -34,7 +36,8 @@ struct ConfLocations {
 };
 
 struct FileConfData {
-	int port;
+	int			port;
+	int			server_fd;
 	std::string name;
 	std::string root;
 	std::string index;
@@ -61,6 +64,7 @@ class Utils {
 		bool parseConfigContent(std::string filename);
 		bool getconfigFileValid(void) const;
 		void printRegisteredConfs(std::string filename);
+		std::vector<FileConfData> get_registeredConfs(void) const;
 
 		class InvalidFileNameException : public std::exception {
 			public:

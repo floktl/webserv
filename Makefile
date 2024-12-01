@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
+#    By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/11/28 16:20:44 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/01 10:35:00 by fkeitel          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -72,10 +72,13 @@ vpath %.d $(DEP_DIR)
 #--------------                        SRC                        -------------#
 #------------------------------------------------------------------------------#
 
-SRCS=	main.cpp \
-		Logger.cpp \
-		Utils.cpp \
-		Sanitizer.cpp
+SRCS=	src/main.cpp \
+		src/utils/Logger.cpp \
+		src/utils/Utils.cpp \
+		src/utils/Sanitizer.cpp \
+		src/server/Server.cpp \
+		src/client/ClientHandler.cpp \
+		src/helpers/helper.cpp
 
 #------------------------------------------------------------------------------#
 #--------------                      OBJECTS                      -------------#
