@@ -1,0 +1,87 @@
+[0;97mTODO: We might check if some host names shall be forbidden[0m
+[0;97mTODO: We might check if some paths shall be forbidden[0m
+[0;97mTODO: We might check if access to root path must be necessary[0m
+[0;97mTODO: We might check if some host names shall be forbidden[0m
+[0;97mTODO: We might check if some paths shall be forbidden[0m
+[0;97mTODO: We might check if access to root path must be necessary[0m
+[0;32m
+Config config/test.conf registered successfully!
+[0m
+[0;32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[0;93m Configurations by config/test.conf[0m
+[0;32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[0;34m
+  Server Block [1]:
+[0m
+[0;97m    Port:           [0m[0;93m8080[0m
+[0;97m    Server Name:    [0m[0;93mlocalhost[0m
+[0;97m    Root:           [0m[0;93m/var/www/html[0m
+[0;97m    Index:          [0m[0;93mindex.html[0m
+[0;97m    Error Page:     [0m[0;93m404 /404.html[0m
+[0;36m
+    Location [1]:   /[0m
+[0;97m      Methods:      [0m[0;93mGET POST DELETE[0m
+[0;97m      CGI:          [0m[0;93m[0m
+[0;97m      CGI Param:    [0m[0;93m[0m
+[0;97m      Redirect:     [0m[0;93m[0m
+[0;34m
+  Server Block [2]:
+[0m
+[0;97m    Port:           [0m[0;93m9090[0m
+[0;97m    Server Name:    [0m[0;93mmy-second-server.local[0m
+[0;97m    Root:           [0m[0;93m/var/www/second[0m
+[0;97m    Index:          [0m[0;93mhome.html[0m
+[0;97m    Error Page:     [0m[0;93m500 /500.html[0m
+[0;36m
+    Location [1]:   /[0m
+[0;97m      Methods:      [0m[0;93mGET[0m
+[0;97m      CGI:          [0m[0;93m[0m
+[0;97m      CGI Param:    [0m[0;93m[0m
+[0;97m      Redirect:     [0m[0;93m[0m
+[0;36m
+    Location [2]:   /api[0m
+[0;97m      Methods:      [0m[0;93mGET POST[0m
+[0;97m      CGI:          [0m[0;93m/usr/bin/php[0m
+[0;97m      CGI Param:    [0m[0;93mSCRIPT_FILENAME $document_root$fastcgi_script_name[0m
+[0;97m      Redirect:     [0m[0;93m[0m
+[0;32m
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m
+FD added to kqueue: 3 (Port: 8080)
+FD added to kqueue: 4 (Port: 9090)
+FD created: 6
+New client connected on FD: 6 (Server Port: 8080)
+FD removed from kqueue: 6
+FD closed: 6
+FD created: 6
+New client connected on FD: 6 (Server Port: 8080)
+FD removed from kqueue: 6
+FD closed: 6
+FD created: 6
+New client connected on FD: 6 (Server Port: 8080)
+FD created: 7
+New client connected on FD: 7 (Server Port: 8080)
+FD removed from kqueue: 6
+FD closed: 6
+FD created: 6
+New client connected on FD: 6 (Server Port: 8080)
+FD created: 8
+New client connected on FD: 8 (Server Port: 9090)
+FD removed from kqueue: 8
+FD closed: 8
+FD created: 8
+New client connected on FD: 8 (Server Port: 9090)
+FD removed from kqueue: 7
+FD closed: 7
+FD removed from kqueue: 8
+FD closed: 8
+FD created: 7
+New client connected on FD: 7 (Server Port: 9090)
+FD created: 8
+New client connected on FD: 8 (Server Port: 9090)
+FD removed from kqueue: 6
+FD closed: 6
+FD removed from kqueue: 7
+FD closed: 7
+FD removed from kqueue: 8
+FD closed: 8
