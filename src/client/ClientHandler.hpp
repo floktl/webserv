@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:13 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/01 10:39:01 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 12:46:15 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,8 @@
 #include <cstring>   // For memset
 #include <unistd.h>  // For close
 #include <iostream>  // For error output
-#include <sys/event.h>
+#include <poll.h> // For poll
+#include <sys/epoll.h> // For epoll
 
 struct FileConfData;
 

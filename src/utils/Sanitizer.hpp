@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:27:25 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/01 08:49:21 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 12:48:04 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 # include <set>
 # include <vector>
 # include <sstream>
+#include <algorithm> // For std::transform
 
 class Sanitizer {
 	private:
