@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 16:46:32 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/11/28 17:06:00 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -211,6 +211,8 @@ bool Utils::parseConfigContent(std::string filename) {
 // };
 
 bool Utils::sanitizeConfData(void) {
+	if (TODO)
+		Logger::white("TODO: add autoindex to locations");
 	std::set<int> usedPorts;
 	for (size_t i = 0; i < registeredConfs.size(); ++i)
 	{
