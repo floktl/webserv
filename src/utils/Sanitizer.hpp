@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Sanitizer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:27:25 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 16:58:06 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/01 08:49:21 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 #ifndef SANITIZER_HPP
 # define SANITIZER_HPP
 
-# include "./main.hpp"
+# include "./../main.hpp"
 # include "./Logger.hpp"
 # include <set>
 # include <vector>
