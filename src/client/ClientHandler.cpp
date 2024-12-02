@@ -3,14 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   ClientHandler.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/02 14:34:37 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 16:08:26 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ClientHandler.hpp"
+#include "./../utils/Logger.hpp"
 
 #include <sys/epoll.h>   // For epoll functions
 #include <cstring>       // For memset
@@ -47,12 +48,13 @@ void ClientHandler::handle_client(int client_fd, const FileConfData& config,
 	{
 		requestedPath = request.substr(start, end - start);
 	}
-
+	Logger::red(config.root);
 	std::string root = config.root;
 	std::string indexFile = config.index;
 
 	// Map the request to a file
-	std::string absoluteRoot = getAbsolutePath(config.root);
+	std::string absoluteRoot = config.root;
+	//std::string absoluteRoot = getAbsolutePath(config.root);
 	std::string filePath = absoluteRoot + (requestedPath == "/" ? "/" + indexFile : requestedPath);
 
 	// Try to open the file

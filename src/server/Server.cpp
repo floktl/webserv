@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/02 14:35:01 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 16:09:26 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -169,7 +169,6 @@ void Server::start(const std::vector<FileConfData>& configs_files)
     while (true)
     {
         int num_events = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-		std::cout << "test" << std::endl;
         if (num_events < 0)
         {
             perror("epoll_wait");

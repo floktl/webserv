@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/02 12:35:07 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/02 15:55:02 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,7 @@ struct FileConfData {
 
 class ConfigHandler {
 	private:
+		char **env;
 		int linecount;
 		bool configFileValid;
 		bool inServerBlock;
@@ -58,7 +59,7 @@ class ConfigHandler {
 		ConfigHandler();
 		~ConfigHandler();
 		void parseLine(std::string line);
-		void parseArgs(int argc, char **argv);
+		void parseArgs(int argc, char **argv, char **envp);
 		bool isConfigFile(const std::string& filepath);
 		bool sanitizeConfData(void);
 		bool parseConfigContent(std::string filename);

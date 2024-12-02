@@ -6,7 +6,7 @@
 #    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/02 12:30:49 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/02 15:49:07 by jeberle          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -92,6 +92,7 @@ OBJECTS := $(addprefix $(OBJ_DIR)/, $(SRCS:%.cpp=%.o))
 
 .PHONY: all clean fclean re
 
+
 all: $(NAME)
 
 -include $(OBJECTS:.o=.d)
@@ -103,6 +104,15 @@ $(OBJ_DIR)/%.o: %.cpp
 $(NAME): $(OBJECTS)
 	@$(CC) -o $@ $^ $(LDFLAGS)
 	@echo "$(SUCCESS)"
+
+container:
+	@if ! docker ps | grep -q webserv; then \
+		echo "$(YELLOW)container not up, build environment$(X)"; \
+		docker-compose up --build -d; \
+	else \
+		echo "$(YELLOW)container already running.. skip it's creation and try build webserv...$(X)"; \
+	fi
+	@docker exec -it webserv bash
 
 clean:
 	@rm -rf $(OBJ_DIR)
