@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/26 12:58:21 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/02 14:32:57 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 16:03:36 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ void closeServerSockets( std::vector<FileConfData> configs)
 		}
 }
 
-int main(int argc, char **argv)
+int main(int argc, char **argv, char **envp)
 {
 	ConfigHandler utils;
 	Server server;
@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 	try
 	{
 		// Parse command-line arguments and validate configuration file
-		utils.parseArgs(argc, argv);
+		utils.parseArgs(argc, argv, envp);
 		if (!utils.getconfigFileValid())
 		{
 			Logger::red() << "Invalid configuration file!";
