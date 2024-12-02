@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ClientHandler.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:13 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/01 10:39:01 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 12:30:49 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 #define CLIENTHANDLER_HPP
 
 #include <vector>          // For std::vector
-#include "../utils/Utils.hpp"       // Include the definition of FileConfData and ConfLocations
+#include "../utils/ConfigHandler.hpp"       // Include the definition of FileConfData and ConfLocations
 #include "../server/Server.hpp" // Include the Server class
 #include "../helpers/helper.hpp"
 #include <fstream>   // For std::ifstream
@@ -30,7 +30,7 @@ struct FileConfData;
 class ClientHandler
 {
 public:
-    static void handle_client(int client_fd, const FileConfData& config,
+	static void handle_client(int client_fd, const FileConfData& config,
 		int kq, std::set<int>& activeFds,
 		std::map<int, const FileConfData*>& clientConfigMap);
 };
