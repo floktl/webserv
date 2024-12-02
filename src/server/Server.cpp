@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/01 10:42:01 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 12:28:12 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,28 +78,28 @@ int Server::create_server_socket(int port)
 //	helper function to handle the event on the server
 int Server::handleServerEvent(int serv_fd, const FileConfData& servConfig)
 {
-    // Accept the client connection
-    this->client_fd = accept(serv_fd, nullptr, nullptr);
-    if (this->client_fd < 0)
-    {
-        perror("accept");
-        return -1; // Signal failure
-    }
-    setNonBlocking(this->client_fd);
+	// Accept the client connection
+	this->client_fd = accept(serv_fd, nullptr, nullptr);
+	if (this->client_fd < 0)
+	{
+		perror("accept");
+		return -1; // Signal failure
+	}
+	setNonBlocking(this->client_fd);
 
-    // Add client FD to kqueue
-    EV_SET(&this->change, this->client_fd, EVFILT_READ,
+	// Add client FD to kqueue
+	EV_SET(&this->change, this->client_fd, EVFILT_READ,
 		EV_ADD | EV_ENABLE, 0, 0, nullptr);
-    if (kevent(this->kq, &this->change, 1, nullptr, 0, nullptr) < 0)
-    {
-        perror("kevent (EV_ADD)");
-        close(this->client_fd);
-        return -1;
-    }
-    this->activeFds.insert(this->client_fd);
+	if (kevent(this->kq, &this->change, 1, nullptr, 0, nullptr) < 0)
+	{
+		perror("kevent (EV_ADD)");
+		close(this->client_fd);
+		return -1;
+	}
+	this->activeFds.insert(this->client_fd);
 	// Map client FD to its config
-    this->clientConfigMap[this->client_fd] = &servConfig;
-    return 0;
+	this->clientConfigMap[this->client_fd] = &servConfig;
+	return 0;
 }
 
 // Registers server sockets for monitoring read events in kqueue.
@@ -109,21 +109,21 @@ int Server::handleServerEvent(int serv_fd, const FileConfData& servConfig)
 // - @param activeFds: A set to track active file descriptors.
 // - @param numFds: A pointer to the number of file descriptors currently registered.
 void register_for_monitoring(const std::vector<FileConfData>& configs,
-    struct kevent* changes, std::set<int>& activeFds, int* numFds)
+	struct kevent* changes, std::set<int>& activeFds, int* numFds)
 {
-    // Iterate over each server configuration in the configs vector.
+	// Iterate over each server configuration in the configs vector.
 
-    for (const auto& conf : configs)
-    {
-        //	Register the server socket for monitoring read events
+	for (const auto& conf : configs)
+	{
+		//	Register the server socket for monitoring read events
 		//	EVFILT_READ: Monitor the server_fd for read events.
 		//	EV_ADD: Add the event to the kqueue.
 		//	EV_ENABLE: Enable the event for monitoring.
-        EV_SET(&changes[(*numFds)++], conf.server_fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, nullptr);
+		EV_SET(&changes[(*numFds)++], conf.server_fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, nullptr);
 
-        // Add the server file descriptor to the active file descriptors set.
-        activeFds.insert(conf.server_fd);
-    }
+		// Add the server file descriptor to the active file descriptors set.
+		activeFds.insert(conf.server_fd);
+	}
 }
 
 // Identifies the server configuration associated with a given event.
@@ -133,33 +133,33 @@ void register_for_monitoring(const std::vector<FileConfData>& configs,
 // Returns:
 // - An iterator pointing to the corresponding server configuration or configs.end() if not found.
 std::vector<FileConfData>::const_iterator define_config(struct kevent event,
-    const std::vector<FileConfData>& configs)
+	const std::vector<FileConfData>& configs)
 {
-    // Check if the event contains an error flag.
-    if (event.flags & EV_ERROR)
-    {
-        return configs.end(); // Return configs.end() to indicate an error.
-    }
+	// Check if the event contains an error flag.
+	if (event.flags & EV_ERROR)
+	{
+		return configs.end(); // Return configs.end() to indicate an error.
+	}
 
-    // Find the configuration that matches the file descriptor in the event.
-    auto confIt = std::find_if(configs.begin(), configs.end(),
-        [&](const FileConfData& conf) {
-            return conf.server_fd == (int)event.ident; // Compare file descriptors.
-        });
+	// Find the configuration that matches the file descriptor in the event.
+	auto confIt = std::find_if(configs.begin(), configs.end(),
+		[&](const FileConfData& conf) {
+			return conf.server_fd == (int)event.ident; // Compare file descriptors.
+		});
 
-    return confIt; // Return the iterator to the matching configuration.
+	return confIt; // Return the iterator to the matching configuration.
 }
 
 // Cleans up all resources by closing active file descriptors and the kqueue instance.
 // This ensures proper resource deallocation at the end of the program.
 void Server::close_everything(void)
 {
-    // Iterate over all active file descriptors.
-    for (int fd : activeFds)
-    {
-        close(fd); // Close each file descriptor.
-    }
-    close(kq); // Close the kqueue instance.
+	// Iterate over all active file descriptors.
+	for (int fd : activeFds)
+	{
+		close(fd); // Close each file descriptor.
+	}
+	close(kq); // Close the kqueue instance.
 }
 
 // Processes triggered events returned by kqueue.
@@ -167,23 +167,23 @@ void Server::close_everything(void)
 // - @param num_events: The number of events triggered.
 void Server::process_events(int num_events)
 {
-    // Loop through each triggered event.
-    for (int i = 0; i < num_events; ++i)
-    {
-        // Identify the server configuration associated with the event.
-        auto confIt = define_config(events[i], *configs);
+	// Loop through each triggered event.
+	for (int i = 0; i < num_events; ++i)
+	{
+		// Identify the server configuration associated with the event.
+		auto confIt = define_config(events[i], *configs);
 
-        // If the event is associated with a server socket, handle it.
-        if (confIt != configs->end() &&
-            handleServerEvent(events[i].ident, *confIt) == -1)
-            continue; // Skip further processing if handling fails.
+		// If the event is associated with a server socket, handle it.
+		if (confIt != configs->end() &&
+			handleServerEvent(events[i].ident, *confIt) == -1)
+			continue; // Skip further processing if handling fails.
 
-        // If event is not associated withserver socket, handle it as client request.
-        if (confIt == configs->end())
-            ClientHandler::handle_client(events[i].ident,
-                *(clientConfigMap[events[i].ident]),
-                this->kq, activeFds, clientConfigMap);
-    }
+		// If event is not associated withserver socket, handle it as client request.
+		if (confIt == configs->end())
+			ClientHandler::handle_client(events[i].ident,
+				*(clientConfigMap[events[i].ident]),
+				this->kq, activeFds, clientConfigMap);
+	}
 }
 
 
@@ -192,20 +192,20 @@ void Server::process_events(int num_events)
 // - @param configs_files: A vector of server configuration data.
 void Server::start(const std::vector<FileConfData>& configs_files)
 {
-    this->configs = &configs_files; // Store a pointer to the server configurations.
+	this->configs = &configs_files; // Store a pointer to the server configurations.
 
-    // Initialize the kqueue instance.
-    kq = kqueue();
-    if (kq < 0)
-    {
-        perror("kqueue"); // Print an error message if kqueue initialization fails.
-        return;
-    }
+	// Initialize the kqueue instance.
+	kq = kqueue();
+	if (kq < 0)
+	{
+		perror("kqueue"); // Print an error message if kqueue initialization fails.
+		return;
+	}
 
-    // Register all server sockets for monitoring read events.
-    register_for_monitoring(*this->configs, changes, activeFds, &num_fds);
+	// Register all server sockets for monitoring read events.
+	register_for_monitoring(*this->configs, changes, activeFds, &num_fds);
 
-   	//	The program enters an event loop with kevent:
+	//	The program enters an event loop with kevent:
 	//		The program waits for one or more events to be triggered.
 	//		When an event occurs (e.g., a new client connects to server_fd), -
 	//			the details of the event are stored in the events array.
@@ -214,22 +214,22 @@ void Server::start(const std::vector<FileConfData>& configs_files)
 	//	eventlist: No triggered events are being retrieved in this call.
 	//	nevents: No space is alloc. for triggered events, as eventlist = nullptr.
 	//	timeout: No timeout is set, as the call is non-blocking for event regist.
-    while (true)
-    {
-        // Wait for events to be triggered and store them in the events array.
-        num_fds = kevent(kq, changes, num_fds, events, MAX_EVENTS, nullptr);
+	while (true)
+	{
+		// Wait for events to be triggered and store them in the events array.
+		num_fds = kevent(kq, changes, num_fds, events, MAX_EVENTS, nullptr);
 
-        // If kevent fails, print an error message and break the loop.
-        if (num_fds < 0)
-        {
-            perror("kevent");
-            break;
-        }
+		// If kevent fails, print an error message and break the loop.
+		if (num_fds < 0)
+		{
+			perror("kevent");
+			break;
+		}
 
-        // Process the triggered events.
-        process_events(num_fds);
-    }
+		// Process the triggered events.
+		process_events(num_fds);
+	}
 
-    // Cleanup all resources before exiting.
-    close_everything();
+	// Cleanup all resources before exiting.
+	close_everything();
 }
