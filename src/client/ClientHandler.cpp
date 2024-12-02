@@ -6,15 +6,21 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/01 10:39:36 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 12:53:51 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ClientHandler.hpp"
 
+#include <sys/epoll.h>   // For epoll functions
+#include <cstring>       // For memset
+#include <iostream>      // For cerr
+#include <fstream>       // For file handling
+#include <sstream>       // For stringstream
+
 void ClientHandler::handle_client(int client_fd, const FileConfData& config,
-		int kq, std::set<int>& activeFds,
-		std::map<int, const FileConfData*>& clientConfigMap)
+        int epoll_fd, std::set<int>& activeFds,
+        std::map<int, const FileConfData*>& clientConfigMap)
 {
     char buffer[4096];
     memset(buffer, 0, sizeof(buffer));
@@ -70,13 +76,12 @@ void ClientHandler::handle_client(int client_fd, const FileConfData& config,
     // Send the response to the client
     send(client_fd, response.c_str(), response.size(), 0);
 
-    // Remove the client FD from kqueue
-    struct kevent ev_remove;
-    EV_SET(&ev_remove, client_fd, EVFILT_READ, EV_DELETE, 0, 0, nullptr);
-    if (kevent(kq, &ev_remove, 1, nullptr, 0, nullptr) < 0)
+    // Remove the client FD from epoll
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, nullptr) < 0)
     {
-        perror("kevent (EV_DELETE)");
+        perror("epoll_ctl (EPOLL_CTL_DEL)");
     }
+
     // Clean up FD
     activeFds.erase(client_fd);
     clientConfigMap.erase(client_fd);
