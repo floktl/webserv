@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   helper.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/01 10:32:07 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/01 10:41:33 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 12:28:17 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,27 +30,27 @@ void setNonBlocking(int fd)
 
 void printCurrentWorkingDirectory(void)
 {
-    char cwd[PATH_MAX]; // Buffer to store the current working directory
-    if (getcwd(cwd, sizeof(cwd)) != nullptr)
-    {
-        std::cout << "Current working directory: " << cwd << std::endl;
-    }
-    else
-    {
-        perror("getcwd"); // Print error if getcwd fails
-    }
+	char cwd[PATH_MAX]; // Buffer to store the current working directory
+	if (getcwd(cwd, sizeof(cwd)) != nullptr)
+	{
+		std::cout << "Current working directory: " << cwd << std::endl;
+	}
+	else
+	{
+		perror("getcwd"); // Print error if getcwd fails
+	}
 }
 
 std::string getAbsolutePath(const std::string& root)
 {
-    char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)) != nullptr)
-    {
-        return std::string(cwd) + "/" + root;
-    }
-    else
-    {
-        perror("getcwd");
-        return root; // Fallback to the relative root
-    }
+	char cwd[PATH_MAX];
+	if (getcwd(cwd, sizeof(cwd)) != nullptr)
+	{
+		return std::string(cwd) + "/" + root;
+	}
+	else
+	{
+		perror("getcwd");
+		return root; // Fallback to the relative root
+	}
 }

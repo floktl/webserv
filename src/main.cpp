@@ -6,11 +6,11 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/26 12:58:21 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/02 13:33:16 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 14:32:57 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "./utils/Utils.hpp"
+#include "./utils/ConfigHandler.hpp"
 #include "./utils/Logger.hpp"
 
 void closeServerSockets( std::vector<FileConfData> configs)
@@ -30,59 +30,59 @@ void closeServerSockets( std::vector<FileConfData> configs)
 
 int main(int argc, char **argv)
 {
-    Utils utils;
-    Server server;
+	ConfigHandler utils;
+	Server server;
 
-    try
+	try
 	{
-        // Parse command-line arguments and validate configuration file
-        utils.parseArgs(argc, argv);
-        if (!utils.getconfigFileValid())
+		// Parse command-line arguments and validate configuration file
+		utils.parseArgs(argc, argv);
+		if (!utils.getconfigFileValid())
 		{
-            Logger::red() << "Invalid configuration file!";
-            return EXIT_FAILURE;
-        }
+			Logger::red() << "Invalid configuration file!";
+			return EXIT_FAILURE;
+		}
 
-        Logger::white() << "WEBSERV starting ...";
-        // Retrieve and validate configurations
-        std::vector<FileConfData> configs = utils.get_registeredConfs();
-        if (configs.empty())
+		Logger::white() << "WEBSERV starting ...";
+		// Retrieve and validate configurations
+		std::vector<FileConfData> configs = utils.get_registeredConfs();
+		if (configs.empty())
 		{
-            Logger::red() << "No configurations found!";
-            return EXIT_FAILURE;
-        }
+			Logger::red() << "No configurations found!";
+			return EXIT_FAILURE;
+		}
 
-        // Create server sockets for each configuration
-        for (auto& conf : configs) {
-            conf.server_fd = server.create_server_socket(conf.port);
-            if (conf.server_fd < 0)
+		// Create server sockets for each configuration
+		for (auto& conf : configs) {
+			conf.server_fd = server.create_server_socket(conf.port);
+			if (conf.server_fd < 0)
 			{
-                Logger::red() << "Failed to create socket on port: " << conf.port;
-                closeServerSockets(configs);
-                return EXIT_FAILURE;
-            }
-            Logger::green() << "Server listening on port: " << conf.port;
-        }
+				Logger::red() << "Failed to create socket on port: " << conf.port;
+				closeServerSockets(configs);
+				return EXIT_FAILURE;
+			}
+			Logger::green() << "Server listening on port: " << conf.port;
+		}
 
-        // Start server
-        server.start(configs);
+		// Start server
+		server.start(configs);
 
-        // Clean up server sockets
-        closeServerSockets(configs);
-    }
+		// Clean up server sockets
+		closeServerSockets(configs);
+	}
 	catch (const std::exception &e)
 	{
-        Logger::red() << "Error: " << e.what();
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
+		Logger::red() << "Error: " << e.what();
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
 }
 
 
 
 //int main(int argc, char **argv)
 //{
-//    Utils	utils;
+//    ConfigHandler	utils;
 //    Server	server;
 
 //    try

@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Utils.hpp                                          :+:      :+:    :+:   */
+/*   ConfigHandler.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/01 08:47:26 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/02 12:35:07 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ struct FileConfData {
 	std::vector<ConfLocations> locations;
 };
 
-class Utils {
+class ConfigHandler {
 	private:
 		int linecount;
 		bool configFileValid;
@@ -55,8 +55,8 @@ class Utils {
 		std::string locBlockTar;
 		std::vector<FileConfData> registeredConfs;
 	public:
-		Utils();
-		~Utils();
+		ConfigHandler();
+		~ConfigHandler();
 		void parseLine(std::string line);
 		void parseArgs(int argc, char **argv);
 		bool isConfigFile(const std::string& filepath);

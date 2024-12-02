@@ -1,19 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Utils.cpp                                          :+:      :+:    :+:   */
+/*   ConfigHandler.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/02 11:37:02 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/02 13:29:11 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "./Utils.hpp"
+#include "./ConfigHandler.hpp"
 #include "./Sanitizer.hpp"
 
-Utils::Utils() {
+ConfigHandler::ConfigHandler() {
 	configFileValid = false;
 	inServerBlock = false;
 	inLocationBlock = false;
@@ -22,7 +22,7 @@ Utils::Utils() {
 	locBlockTar = "";
 };
 
-Utils::~Utils() {};
+ConfigHandler::~ConfigHandler() {};
 
 std::string trim(const std::string& str) {
 	size_t first = str.find_first_not_of(" \t");
@@ -41,7 +41,7 @@ std::vector<std::string> parseOptionsToVector(const std::string& opts) {
 	return result;
 }
 
-void Utils::parseLine(std::string line) {
+void ConfigHandler::parseLine(std::string line) {
 	static const std::vector<std::string> serverOpts =
 		parseOptionsToVector(CONFIG_OPTS);
 	static const std::vector<std::string> locationOpts =
@@ -176,7 +176,7 @@ void Utils::parseLine(std::string line) {
 	}
 }
 
-bool Utils::parseConfigContent(std::string filename) {
+bool ConfigHandler::parseConfigContent(std::string filename) {
 	std::ifstream configFile(filename);
 	if (!configFile.is_open()) {
 		Logger::error("Could not open config file");
@@ -225,9 +225,7 @@ bool Utils::parseConfigContent(std::string filename) {
 // 	std::vector<ConfLocations> locations;
 // };
 
-bool Utils::sanitizeConfData(void) {
-	if (TODO)
-		Logger::white("TODO: add autoindex to locations");
+bool ConfigHandler::sanitizeConfData(void) {
 	std::set<int> usedPorts;
 	for (size_t i = 0; i < registeredConfs.size(); ++i)
 	{
@@ -276,7 +274,7 @@ bool Utils::sanitizeConfData(void) {
 	return true;
 }
 
-bool Utils::isConfigFile(const std::string& filepath) {
+bool ConfigHandler::isConfigFile(const std::string& filepath) {
 	std::ifstream file(filepath.c_str());
 	if (!file.good())
 	{
@@ -301,7 +299,7 @@ bool Utils::isConfigFile(const std::string& filepath) {
 	return true;
 }
 
-void Utils::parseArgs(int argc, char **argv) {
+void ConfigHandler::parseArgs(int argc, char **argv) {
 	if (argc == 2) {
 		std::string filepath(argv[1]);
 		if (isConfigFile(filepath)) {
@@ -313,11 +311,11 @@ void Utils::parseArgs(int argc, char **argv) {
 	}
 }
 
-bool Utils::getconfigFileValid(void) const {
+bool ConfigHandler::getconfigFileValid(void) const {
 	return configFileValid;
 }
 
-void Utils::printRegisteredConfs(std::string filename) {
+void ConfigHandler::printRegisteredConfs(std::string filename) {
 	if (registeredConfs.empty()) {
 		Logger::yellow("No configurations registered.");
 		return;
@@ -360,14 +358,14 @@ void Utils::printRegisteredConfs(std::string filename) {
 	Logger::green("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 }
 
-std::vector<FileConfData> Utils::get_registeredConfs(void) const
+std::vector<FileConfData> ConfigHandler::get_registeredConfs(void) const
 {
-    // Ensure there are registered configurations before returning
-    if (registeredConfs.empty())
-    {
-        throw std::runtime_error("No registered configurations found!");
-    }
+	// Ensure there are registered configurations before returning
+	if (registeredConfs.empty())
+	{
+		throw std::runtime_error("No registered configurations found!");
+	}
 
-    return registeredConfs; // Return all registered configurations
+	return registeredConfs; // Return all registered configurations
 }
 

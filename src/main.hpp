@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 16:56:22 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/02 12:46:37 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,9 +19,9 @@
 # endif
 
 # ifndef CONFIG_OPTS
-#  define CONFIG_OPTS "server,listen,server_name,root,index,error_page,location"
+#  define CONFIG_OPTS "server,listen,server_name,root,index,error_page,location,client_max_body_size"
 # endif
 
 # ifndef LOCATION_OPTS
-#  define LOCATION_OPTS "methods,autoindex,default_file,cgi,cgi_param"
+#  define LOCATION_OPTS "methods,return,root,autoindex,default_file,cgi,cgi_param,upload_store,client_max_body_size"
 # endif
