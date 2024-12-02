@@ -1,26 +1,16 @@
+# Nutze das Basis-Image Ubuntu
 FROM ubuntu:latest
 
-# Install Valgrind
+# Aktualisiere Paketliste und installiere Valgrind
 RUN apt-get update && \
-    apt-get install -y valgrind && \
+    apt-get install -y valgrind make gcc g++ bash && \
     apt-get clean
 
-# Set up environment variables (optional)
-ENV DEBIAN_FRONTEND=noninteractive
+# Setze das Arbeitsverzeichnis
+WORKDIR /app
 
-# Open the necessary ports
-# Default to making ports available, for instance, port 8080.
-# This line is a placeholder for your actual service configuration.
-EXPOSE 8080
+# Kopiere alle Dateien ins Image
+COPY ./ /app
 
-# Map all ports as needed. To achieve dynamic forwarding between host and container:
-# Use docker run with the -P flag to publish all exposed ports to random ports on the host.
-# Example: docker run -P my_container
-
-# Use -p 8080:8080 during 'docker run' to map port 8080 from host to container as per your requirement.
-
-# Define volume to mount current directory to /app
-VOLUME ["/app"]
-
-# Start with a base command (can be replaced by your own application command)
-CMD ["/bin/bash"]
+# Setze bash als Standardbefehl
+CMD ["bash"]

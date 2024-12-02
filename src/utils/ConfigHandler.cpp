@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/02 13:29:11 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/02 16:03:08 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@ ConfigHandler::ConfigHandler() {
 	linecount = 1;
 	parsingErr = false;
 	locBlockTar = "";
+	env = NULL;
 };
 
 ConfigHandler::~ConfigHandler() {};
@@ -38,6 +39,52 @@ std::vector<std::string> parseOptionsToVector(const std::string& opts) {
 	while (std::getline(stream, opt, ',')) {
 		result.push_back(trim(opt));
 	}
+	return result;
+}
+
+std::string expandEnvironmentVariables(const std::string& value, char** env) {
+	if (!env) return value;
+
+	std::string result = value;
+	size_t pos = 0;
+
+	while ((pos = result.find('$', pos)) != std::string::npos) {
+		// Check if we have a valid variable name after $
+		if (pos + 1 >= result.length()) break;
+
+		// Find the end of the variable name
+		size_t end = pos + 1;
+		while (end < result.length() &&
+			(std::isalnum(result[end]) || result[end] == '_')) {
+			end++;
+		}
+
+		// Extract the variable name
+		std::string varName = result.substr(pos + 1, end - (pos + 1));
+
+		// Search for the variable in environment
+		bool found = false;
+		for (char** envVar = env; *envVar != nullptr; envVar++) {
+			std::string envStr(*envVar);
+			size_t equalPos = envStr.find('=');
+			if (equalPos != std::string::npos) {
+				std::string name = envStr.substr(0, equalPos);
+				if (name == varName) {
+					std::string replacer = envStr.substr(equalPos + 1);
+					result.replace(pos, end - pos, replacer);
+					pos += replacer.length();
+					found = true;
+					break;
+				}
+			}
+		}
+
+		// If variable not found, leave it unchanged and move past it
+		if (!found) {
+			pos = end;
+		}
+	}
+
 	return result;
 }
 
@@ -129,6 +176,7 @@ void ConfigHandler::parseLine(std::string line) {
 	}
 	value.pop_back();
 	value = trim(value);
+	value = expandEnvironmentVariables(value, env);
 
 	if (!inLocationBlock) {
 		if (std::find(serverOpts.begin(), serverOpts.end(), keyword)
@@ -245,29 +293,36 @@ bool ConfigHandler::sanitizeConfData(void) {
 			}
 		}
 		else
+		{
+			configFileValid = false;
 			return false;
+		}
 
 		// name
 		if (!Sanitizer::sanitize_serverName(registeredConfs[i].name))
 		{
+			configFileValid = false;
 			return false;
 		}
 
 		// root
 		if (!Sanitizer::sanitize_root(registeredConfs[i].root))
 		{
+			configFileValid = false;
 			return false;
 		}
 
 		// index
 		if (!Sanitizer::sanitize_index(registeredConfs[i].index))
 		{
+			configFileValid = false;
 			return false;
 		}
 
 		// error_page
 		if (!Sanitizer::sanitize_errorPage(registeredConfs[i].error_page))
 		{
+			configFileValid = false;
 			return false;
 		}
 	}
@@ -299,8 +354,9 @@ bool ConfigHandler::isConfigFile(const std::string& filepath) {
 	return true;
 }
 
-void ConfigHandler::parseArgs(int argc, char **argv) {
+void ConfigHandler::parseArgs(int argc, char **argv, char **envp) {
 	if (argc == 2) {
+		env = envp;
 		std::string filepath(argv[1]);
 		if (isConfigFile(filepath)) {
 			Logger::green("\nConfig " + filepath + " registered successfully!\n");
