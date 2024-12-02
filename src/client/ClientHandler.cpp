@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/02 16:08:26 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/02 16:13:46 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,7 +48,6 @@ void ClientHandler::handle_client(int client_fd, const FileConfData& config,
 	{
 		requestedPath = request.substr(start, end - start);
 	}
-	Logger::red(config.root);
 	std::string root = config.root;
 	std::string indexFile = config.index;
 
