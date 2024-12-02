@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 17:06:00 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/02 11:37:02 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,8 +42,10 @@ std::vector<std::string> parseOptionsToVector(const std::string& opts) {
 }
 
 void Utils::parseLine(std::string line) {
-	static const std::vector<std::string> serverOpts = parseOptionsToVector(CONFIG_OPTS);
-	static const std::vector<std::string> locationOpts = parseOptionsToVector(LOCATION_OPTS);
+	static const std::vector<std::string> serverOpts =
+		parseOptionsToVector(CONFIG_OPTS);
+	static const std::vector<std::string> locationOpts =
+		parseOptionsToVector(LOCATION_OPTS);
 
 	std::istringstream stream(line);
 	std::string keyword, value;
@@ -53,13 +55,15 @@ void Utils::parseLine(std::string line) {
 
 	if (line.find("{") != std::string::npos) {
 		if (line.find("}") != std::string::npos) {
-			Logger::error("Error: at line " + std::to_string(linecount) + " Only one scope per line allowed");
+			Logger::error("Error: at line " + std::to_string(linecount)
+				+ " Only one scope per line allowed");
 			parsingErr = true;
 			return;
 		}
 		if (keyword == "server") {
 			if (inServerBlock) {
-				Logger::error("Error: Nested server block at line " + std::to_string(linecount));
+				Logger::error("Error: Nested server block at line "
+					+ std::to_string(linecount));
 				parsingErr = true;
 				return;
 			}
@@ -68,7 +72,8 @@ void Utils::parseLine(std::string line) {
 			return;
 		} else if (keyword == "location") {
 			if (!inServerBlock || inLocationBlock) {
-				Logger::error("Error: Invalid location block at line " + std::to_string(linecount));
+				Logger::error("Error: Invalid location block at line "
+					+ std::to_string(linecount));
 				parsingErr = true;
 				return;
 			}
@@ -80,7 +85,8 @@ void Utils::parseLine(std::string line) {
 			rest = trim(rest);
 
 			if (rest != "{") {
-				Logger::error("Error: Location definition must be followed by its path and { on same line at line " + std::to_string(linecount));
+				Logger::error("Error: Location definition must be followed by \
+					its path and { on same line at line " + std::to_string(linecount));
 				parsingErr = true;
 				return;
 			}
@@ -94,7 +100,8 @@ void Utils::parseLine(std::string line) {
 
 	if (keyword == "}") {
 		if (!inServerBlock && !inLocationBlock) {
-			Logger::error("Error: Unexpected } at line " + std::to_string(linecount));
+			Logger::error("Error: Unexpected } at line "
+				+ std::to_string(linecount));
 			parsingErr = true;
 			return;
 		}
@@ -106,7 +113,8 @@ void Utils::parseLine(std::string line) {
 	}
 
 	if (!inServerBlock) {
-		Logger::error("Error: Configuration outside server block at line " + std::to_string(linecount));
+		Logger::error("Error: Configuration outside server block at line "
+			+ std::to_string(linecount));
 		parsingErr = true;
 		return;
 	}
@@ -114,7 +122,8 @@ void Utils::parseLine(std::string line) {
 	std::getline(stream, value);
 	value = trim(value);
 	if (value.empty() || value.back() != ';') {
-		Logger::error("Error: Missing semicolon at line " + std::to_string(linecount));
+		Logger::error("Error: Missing semicolon at line "
+			+ std::to_string(linecount));
 		parsingErr = true;
 		return;
 	}
@@ -122,8 +131,10 @@ void Utils::parseLine(std::string line) {
 	value = trim(value);
 
 	if (!inLocationBlock) {
-		if (std::find(serverOpts.begin(), serverOpts.end(), keyword) == serverOpts.end() || keyword == "server") {
-			Logger::error("Error: Invalid server directive '" + keyword + "' at line " + std::to_string(linecount));
+		if (std::find(serverOpts.begin(), serverOpts.end(), keyword)
+			== serverOpts.end() || keyword == "server") {
+			Logger::error("Error: Invalid server directive '"
+				+ keyword + "' at line " + std::to_string(linecount));
 			parsingErr = true;
 			return;
 		}
@@ -132,7 +143,9 @@ void Utils::parseLine(std::string line) {
 			try {
 				registeredConfs.back().port = std::stoi(value);
 			} catch (const std::out_of_range& e) {
-				Logger::error("Error: '" + keyword + "' value at line " + std::to_string(linecount) + " cannot be interpreted as a valid port");
+				Logger::error("Error: '" + keyword + "' value at line "
+				+ std::to_string(linecount)
+				+ " cannot be interpreted as a valid port");
 				parsingErr = true;
 				return;
 			}
@@ -146,8 +159,10 @@ void Utils::parseLine(std::string line) {
 		else if (keyword == "error_page")
 			registeredConfs.back().error_page = value;
 	} else {
-		if (std::find(locationOpts.begin(), locationOpts.end(), keyword) == locationOpts.end()) {
-			Logger::error("Error: Invalid location directive '" + keyword + "' at line " + std::to_string(linecount));
+		if (std::find(locationOpts.begin(), locationOpts.end(), keyword)
+			== locationOpts.end()) {
+			Logger::error("Error: Invalid location directive '" + keyword
+				+ "' at line " + std::to_string(linecount));
 			parsingErr = true;
 			return;
 		}
@@ -225,7 +240,8 @@ bool Utils::sanitizeConfData(void) {
 			}
 			else
 			{
-				Logger::magenta("Server Block " + std::to_string((i + 1)) + " ignored, because Port " + std::to_string(registeredConfs[i].port) + " already used.");
+				Logger::magenta("Server Block " + std::to_string((i + 1))
+					+ " ignored, because Port " + std::to_string(registeredConfs[i].port) + " already used.");
 				registeredConfs.erase(registeredConfs.begin() + i);
 				--i;
 			}
@@ -343,3 +359,15 @@ void Utils::printRegisteredConfs(std::string filename) {
 	}
 	Logger::green("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 }
+
+std::vector<FileConfData> Utils::get_registeredConfs(void) const
+{
+    // Ensure there are registered configurations before returning
+    if (registeredConfs.empty())
+    {
+        throw std::runtime_error("No registered configurations found!");
+    }
+
+    return registeredConfs; // Return all registered configurations
+}
+
