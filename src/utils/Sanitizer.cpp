@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:33:15 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/02 13:22:20 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 09:31:48 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -163,9 +163,6 @@ bool Sanitizer::sanitize_serverName(std::string serverName) {
 		Logger::error("Server name must be between 1 and 255 characters");
 		return false;
 	}
-
-	if (TODO)
-		Logger::white("TODO: We might check if some host names shall be forbidden");
 
 	std::vector<std::string> segments;
 	std::string segment;
