@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/02 16:03:08 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 09:41:50 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,7 +99,11 @@ void ConfigHandler::parseLine(std::string line) {
 
 	stream >> keyword;
 	keyword = trim(keyword);
+	line = trim(line);
 
+	if (line.find("#") == 0) {
+		return;
+	}
 	if (line.find("{") != std::string::npos) {
 		if (line.find("}") != std::string::npos) {
 			Logger::error("Error: at line " + std::to_string(linecount)
