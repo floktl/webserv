@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/02 16:13:46 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 10:21:11 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,9 +19,9 @@
 #include <fstream>       // For file handling
 #include <sstream>       // For stringstream
 
-void ClientHandler::handle_client(int client_fd, const FileConfData& config,
-        int epoll_fd, std::set<int>& activeFds,
-        std::map<int, const FileConfData*>& clientConfigMap)
+void ClientHandler::handle_client(int client_fd, const ServerBlock& config,
+		int epoll_fd, std::set<int>& activeFds,
+		std::map<int, const ServerBlock*>& clientConfigMap)
 {
 	char buffer[4096];
 	memset(buffer, 0, sizeof(buffer));
@@ -77,14 +77,14 @@ void ClientHandler::handle_client(int client_fd, const FileConfData& config,
 	// Send the response to the client
 	send(client_fd, response.c_str(), response.size(), 0);
 
-    // Remove the client FD from epoll
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, nullptr) < 0)
-    {
-        perror("epoll_ctl (EPOLL_CTL_DEL)");
-    }
+	// Remove the client FD from epoll
+	if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, nullptr) < 0)
+	{
+		perror("epoll_ctl (EPOLL_CTL_DEL)");
+	}
 
-    // Clean up FD
-    activeFds.erase(client_fd);
-    clientConfigMap.erase(client_fd);
-    close(client_fd);
+	// Clean up FD
+	activeFds.erase(client_fd);
+	clientConfigMap.erase(client_fd);
+	close(client_fd);
 }

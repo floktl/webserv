@@ -6,16 +6,16 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/26 12:58:21 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/02 16:03:36 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 10:08:50 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./utils/ConfigHandler.hpp"
 #include "./utils/Logger.hpp"
 
-void closeServerSockets( std::vector<FileConfData> configs)
+void closeServerSockets( std::vector<ServerBlock> configs)
 {
-	for (auto& conf : configs) // Use a reference to modify each FileConfData
+	for (auto& conf : configs) // Use a reference to modify each ServerBlock
 		{
 			if (close(conf.server_fd) < 0)
 			{
@@ -45,7 +45,7 @@ int main(int argc, char **argv, char **envp)
 
 		Logger::white() << "WEBSERV starting ...";
 		// Retrieve and validate configurations
-		std::vector<FileConfData> configs = utils.get_registeredConfs();
+		std::vector<ServerBlock> configs = utils.get_registeredServerConfs();
 		if (configs.empty())
 		{
 			Logger::red() << "No configurations found!";
@@ -94,7 +94,7 @@ int main(int argc, char **argv, char **envp)
 //        }
 
 //        // Retrieve all registered configurations
-//        std::vector<FileConfData> configs = utils.get_registeredConfs();
+//        std::vector<ServerBlock> configs = utils.get_registeredServerConfs();
 
 //        // Check if there are any configurations
 //        if (configs.empty())

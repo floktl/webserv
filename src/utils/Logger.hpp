@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 12:39:04 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 13:16:11 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 10:13:19 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@
 #define CYAN "\033[0;36m"
 #define MAGENTA "\033[0;35m"
 #define WHITE "\033[0;97m"
+#define BLACK "\033[0;90m"
 #define RESET "\033[0m"
 
 class Logger {
@@ -38,6 +39,7 @@ class Logger {
 		static void cyan(const std::string &message, bool newline = true, size_t length = 0);
 		static void magenta(const std::string &message, bool newline = true, size_t length = 0);
 		static void white(const std::string &message, bool newline = true, size_t length = 0);
+		static void black(const std::string &message, bool newline = true, size_t length = 0);
 		static void error(const std::string &message, bool newline = true);
 
 		static void log(const std::string &message, const std::string &color, bool newline = true);
@@ -68,6 +70,7 @@ class Logger {
 		static StreamLogger &cyan();
 		static StreamLogger &magenta();
 		static StreamLogger &white();
+		static StreamLogger &black();
 		static StreamLogger &error();
 };
 
