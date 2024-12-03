@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 12:39:19 by jeberle           #+#    #+#             */
-/*   Updated: 2024/11/28 13:13:00 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 10:12:26 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,6 +38,10 @@ void Logger::magenta(const std::string &message, bool newline, size_t length) {
 
 void Logger::white(const std::string &message, bool newline, size_t length) {
 	log(formatMessage(message, length), WHITE, newline);
+}
+
+void Logger::black(const std::string &message, bool newline, size_t length) {
+	log(formatMessage(message, length), BLACK, newline);
 }
 
 std::string Logger::formatMessage(const std::string &message, size_t length) {
@@ -112,6 +116,11 @@ Logger::StreamLogger &Logger::magenta() {
 
 Logger::StreamLogger &Logger::white() {
 	static StreamLogger logger(WHITE);
+	return logger;
+}
+
+Logger::StreamLogger &Logger::black() {
+	static StreamLogger logger(BLACK);
 	return logger;
 }
 

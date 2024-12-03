@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/03 09:41:50 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 10:21:36 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -119,7 +119,7 @@ void ConfigHandler::parseLine(std::string line) {
 				return;
 			}
 			inServerBlock = true;
-			registeredConfs.push_back(FileConfData());
+			registeredServerConfs.push_back(ServerBlock());
 			return;
 		} else if (keyword == "location") {
 			if (!inServerBlock || inLocationBlock) {
@@ -143,8 +143,8 @@ void ConfigHandler::parseLine(std::string line) {
 			}
 
 			inLocationBlock = true;
-			registeredConfs.back().locations.push_back(ConfLocations());
-			registeredConfs.back().locations.back().path = location_path;
+			registeredServerConfs.back().locations.push_back(Location());
+			registeredServerConfs.back().locations.back().path = location_path;
 			return;
 		}
 	}
@@ -193,7 +193,7 @@ void ConfigHandler::parseLine(std::string line) {
 		if (keyword == "listen")
 		{
 			try {
-				registeredConfs.back().port = std::stoi(value);
+				registeredServerConfs.back().port = std::stoi(value);
 			} catch (const std::out_of_range& e) {
 				Logger::error("Error: '" + keyword + "' value at line "
 				+ std::to_string(linecount)
@@ -203,13 +203,13 @@ void ConfigHandler::parseLine(std::string line) {
 			}
 		}
 		else if (keyword == "server_name")
-			registeredConfs.back().name = value;
+			registeredServerConfs.back().name = value;
 		else if (keyword == "root")
-			registeredConfs.back().root = value;
+			registeredServerConfs.back().root = value;
 		else if (keyword == "index")
-			registeredConfs.back().index = value;
+			registeredServerConfs.back().index = value;
 		else if (keyword == "error_page")
-			registeredConfs.back().error_page = value;
+			registeredServerConfs.back().error_page = value;
 	} else {
 		if (std::find(locationOpts.begin(), locationOpts.end(), keyword)
 			== locationOpts.end()) {
@@ -218,7 +218,7 @@ void ConfigHandler::parseLine(std::string line) {
 			parsingErr = true;
 			return;
 		}
-		ConfLocations& currentLocation = registeredConfs.back().locations.back();
+		Location& currentLocation = registeredServerConfs.back().locations.back();
 		if (keyword == "methods")
 			currentLocation.methods = value;
 		else if (keyword == "cgi")
@@ -259,7 +259,7 @@ bool ConfigHandler::parseConfigContent(std::string filename) {
 	return true;
 }
 
-// struct ConfLocations {
+// struct Location {
 // 	int port;
 // 	std::string path;
 // 	std::string methods;
@@ -268,66 +268,143 @@ bool ConfigHandler::parseConfigContent(std::string filename) {
 // 	std::string redirect;
 // };
 
-// struct FileConfData {
+// struct ServerBlock {
 // 	int port;
 // 	std::string name;
 // 	std::string root;
 // 	std::string index;
 // 	std::string error_page;
-// 	std::vector<ConfLocations> locations;
+// 	std::vector<Location> locations;
 // };
 
 bool ConfigHandler::sanitizeConfData(void) {
 	std::set<int> usedPorts;
-	for (size_t i = 0; i < registeredConfs.size(); ++i)
-	{
-		// port
-		if (Sanitizer::sanitize_portNr(registeredConfs[i].port))
-		{
-			if (usedPorts.find(registeredConfs[i].port) == usedPorts.end())
-			{
-				usedPorts.insert(registeredConfs[i].port);
-			}
-			else
-			{
+	for (size_t i = 0; i < registeredServerConfs.size(); ++i) {
+		// Mandatory checks
+		if (registeredServerConfs[i].port == 0) {  // Add this check
+			Logger::error("Port number is mandatory for server block " + std::to_string(i + 1));
+			configFileValid = false;
+			return false;
+		}
+		// port - mandatory
+		if (Sanitizer::sanitize_portNr(registeredServerConfs[i].port)) {
+			if (usedPorts.find(registeredServerConfs[i].port) == usedPorts.end()) {
+				usedPorts.insert(registeredServerConfs[i].port);
+			} else {
 				Logger::magenta("Server Block " + std::to_string((i + 1))
-					+ " ignored, because Port " + std::to_string(registeredConfs[i].port) + " already used.");
-				registeredConfs.erase(registeredConfs.begin() + i);
+					+ " ignored, because Port " + std::to_string(registeredServerConfs[i].port) + " already used.");
+				registeredServerConfs.erase(registeredServerConfs.begin() + i);
 				--i;
+				continue;
 			}
-		}
-		else
-		{
+		} else {
 			configFileValid = false;
 			return false;
 		}
 
-		// name
-		if (!Sanitizer::sanitize_serverName(registeredConfs[i].name))
-		{
+		// root - mandatory
+		if (!Sanitizer::sanitize_root(registeredServerConfs[i].root)) {
 			configFileValid = false;
 			return false;
 		}
 
-		// root
-		if (!Sanitizer::sanitize_root(registeredConfs[i].root))
-		{
+		// Optional server block checks
+		// server_name - optional
+		if (!registeredServerConfs[i].name.empty() &&
+			!Sanitizer::sanitize_serverName(registeredServerConfs[i].name)) {
 			configFileValid = false;
 			return false;
 		}
 
-		// index
-		if (!Sanitizer::sanitize_index(registeredConfs[i].index))
-		{
+		// index - optional
+		if (!registeredServerConfs[i].index.empty() &&
+			!Sanitizer::sanitize_index(registeredServerConfs[i].index)) {
 			configFileValid = false;
 			return false;
 		}
 
-		// error_page
-		if (!Sanitizer::sanitize_errorPage(registeredConfs[i].error_page))
-		{
+		// error_page - optional
+		if (!registeredServerConfs[i].error_page.empty() &&
+			!Sanitizer::sanitize_errorPage(registeredServerConfs[i].error_page)) {
 			configFileValid = false;
 			return false;
+		}
+
+		// client_max_body_size - optional
+		if (!registeredServerConfs[i].client_max_body_size.empty() &&
+			!Sanitizer::sanitize_clMaxBodSize(registeredServerConfs[i].client_max_body_size)) {
+			configFileValid = false;
+			return false;
+		}
+		if (registeredServerConfs[i].locations.empty()) {
+			Logger::error("Server block " + std::to_string(i + 1) + " must have at least one location block");
+			configFileValid = false;
+			return false;
+		}
+		// Location blocks validation
+		for (size_t j = 0; j < registeredServerConfs[i].locations.size(); ++j) {
+			Location& loc = registeredServerConfs[i].locations[j];
+
+			// location path - mandatory for location block
+			if (!Sanitizer::sanitize_locationPath(loc.path)) {
+				configFileValid = false;
+				return false;
+			}
+
+			// Optional location block checks
+			if (!loc.methods.empty() &&
+				!Sanitizer::sanitize_locationMethods(loc.methods)) {
+				configFileValid = false;
+				return false;
+			}
+
+			if (!loc.return_directive.empty() &&
+				!Sanitizer::sanitize_locationReturn(loc.return_directive)) {
+				configFileValid = false;
+				return false;
+			}
+
+			if (!loc.root.empty() &&
+				!Sanitizer::sanitize_locationRoot(loc.root)) {
+				configFileValid = false;
+				return false;
+			}
+
+			if (!loc.autoindex.empty() &&
+				!Sanitizer::sanitize_locationAutoindex(loc.autoindex)) {
+				configFileValid = false;
+				return false;
+			}
+
+			if (!loc.default_file.empty() &&
+				!Sanitizer::sanitize_locationDefaultFile(loc.default_file)) {
+				configFileValid = false;
+				return false;
+			}
+
+			if (!loc.upload_store.empty() &&
+				!Sanitizer::sanitize_locationUploadStore(loc.upload_store)) {
+				configFileValid = false;
+				return false;
+			}
+
+			if (!loc.client_max_body_size.empty() &&
+				!Sanitizer::sanitize_locationClMaxBodSize(loc.client_max_body_size)) {
+				configFileValid = false;
+				return false;
+			}
+
+			if (!loc.cgi.empty() &&
+				!Sanitizer::sanitize_locationCgi(loc.cgi)) {
+				configFileValid = false;
+				return false;
+			}
+
+			if (!loc.cgi_param.empty() &&
+				!Sanitizer::sanitize_locationCgiParam(loc.cgi_param)) {
+				configFileValid = false;
+				return false;
+			}
 		}
 	}
 	return true;
@@ -376,7 +453,7 @@ bool ConfigHandler::getconfigFileValid(void) const {
 }
 
 void ConfigHandler::printRegisteredConfs(std::string filename) {
-	if (registeredConfs.empty()) {
+	if (registeredServerConfs.empty()) {
 		Logger::yellow("No configurations registered.");
 		return;
 	}
@@ -384,48 +461,65 @@ void ConfigHandler::printRegisteredConfs(std::string filename) {
 	Logger::green("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	Logger::yellow(" Configurations by " + filename);
 	Logger::green("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-	for (size_t i = 0; i < registeredConfs.size(); ++i) {
-		const FileConfData& conf = registeredConfs[i];
+
+	auto printValue = [](const std::string& label, const std::string& value, int padding = 20) {
+		Logger::white(label, false, padding);
+		if (value.empty()) {
+			Logger::black("[undefined]");
+		} else {
+			Logger::yellow(value);
+		}
+	};
+
+	auto printIntValue = [](const std::string& label, int value, int padding = 20) {
+		Logger::white(label, false, padding);
+		if (value == 0) {
+			Logger::black("[undefined]");
+		} else {
+			Logger::yellow(std::to_string(value));
+		}
+	};
+
+	for (size_t i = 0; i < registeredServerConfs.size(); ++i) {
+		const ServerBlock& conf = registeredServerConfs[i];
 		Logger::blue("\n  Server Block [" + std::to_string(i + 1) + "]:\n");
-		Logger::white("    Port: ", false, 20);
-		Logger::yellow(std::to_string(conf.port));
-		Logger::white("    Server Name: ", false, 20);
-		Logger::yellow(conf.name);
-		Logger::white("    Root: ", false, 20);
-		Logger::yellow(conf.root);
-		Logger::white("    Index: ", false, 20);
-		Logger::yellow(conf.index);
-		Logger::white("    Error Page: ", false, 20);
-		Logger::yellow(conf.error_page);
+
+		printIntValue("    Port: ", conf.port);
+		printValue("    Server Name: ", conf.name);
+		printValue("    Root: ", conf.root);
+		printValue("    Index: ", conf.index);
+		printValue("    Error Page: ", conf.error_page);
 
 		if (conf.locations.empty()) {
 			Logger::yellow("  No Location Blocks.");
 		} else {
 			for (size_t j = 0; j < conf.locations.size(); ++j) {
-				const ConfLocations& location = conf.locations[j];
-				Logger::cyan("\n    Location [" + std::to_string(j + 1) + "]:   " + location.path + "");
-				Logger::white("      Methods: ", false, 20);
-				Logger::yellow(location.methods);
-				Logger::white("      CGI: ", false, 20);
-				Logger::yellow(location.cgi);
-				Logger::white("      CGI Param: ", false, 20);
-				Logger::yellow(location.cgi_param);
-				Logger::white("      Redirect: ", false, 20);
-				Logger::yellow(location.redirect);
+				const Location& location = conf.locations[j];
+				Logger::cyan("\n    Location [" + std::to_string(j + 1) + "]:   " + location.path);
+				printValue("      Methods: ", location.methods);
+				printValue("      CGI: ", location.cgi);
+				printValue("      CGI Param: ", location.cgi_param);
+				printValue("      Redirect: ", location.redirect);
+				printValue("      Autoindex: ", location.autoindex);
+				printValue("      Return: ", location.return_directive);
+				printValue("      Default File: ", location.default_file);
+				printValue("      Upload Store: ", location.upload_store);
+				printValue("      Root: ", location.root);
+				printValue("      Client Max Body Size: ", location.client_max_body_size);
 			}
 		}
 	}
 	Logger::green("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 }
 
-std::vector<FileConfData> ConfigHandler::get_registeredConfs(void) const
+std::vector<ServerBlock> ConfigHandler::get_registeredServerConfs(void) const
 {
 	// Ensure there are registered configurations before returning
-	if (registeredConfs.empty())
+	if (registeredServerConfs.empty())
 	{
 		throw std::runtime_error("No registered configurations found!");
 	}
 
-	return registeredConfs; // Return all registered configurations
+	return registeredServerConfs; // Return all registered configurations
 }
 

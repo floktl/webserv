@@ -14,24 +14,24 @@ Webserv is a project to build a fully functional HTTP server in C++98. It suppor
 - No external libraries allowed, except for the standard C++ library and specified system calls.
 - Default error pages must be served if none are provided.
 - Should support:
-  - Multiple ports.
-  - HTTP methods: GET, POST, DELETE.
-  - File uploads.
-  - Serving static websites.
-  - Default configuration and custom configuration files.
+- Multiple ports.
+- HTTP methods: GET, POST, DELETE.
+- File uploads.
+- Serving static websites.
+- Default configuration and custom configuration files.
 
 ### Configuration File
 - Specify ports and hosts for each server.
 - Define server names and default error pages.
 - Set client body size limits.
 - Configure routes:
-  - Define allowed HTTP methods.
-  - Set HTTP redirections.
-  - Serve specific files or directories.
-  - Enable or disable directory listing.
-  - Set default files for directory requests.
-  - Execute CGI scripts for specific file extensions.
-  - Handle file uploads and configure save locations.
+- Define allowed HTTP methods.
+- Set HTTP redirections.
+- Serve specific files or directories.
+- Enable or disable directory listing.
+- Set default files for directory requests.
+- Execute CGI scripts for specific file extensions.
+- Handle file uploads and configure save locations.
 
 ### Resilience
 - Must not crash under any circumstances.
@@ -47,10 +47,10 @@ Webserv is a project to build a fully functional HTTP server in C++98. It suppor
 
 ### Compilation
 - Provide a `Makefile` with the following rules:
-  - `all`: Compile the project.
-  - `clean`: Remove object files.
-  - `fclean`: Remove all generated files.
-  - `re`: Recompile the project.
+- `all`: Compile the project.
+- `clean`: Remove object files.
+- `fclean`: Remove all generated files.
+- `re`: Recompile the project.
 - Compile with:
 ```bash
 c++ -Wall -Wextra -Werror -std=c++98
@@ -117,10 +117,10 @@ Let your server handle the web like a pro!
 
 ```nginx
 server {
-    listen 80;
-    root /path/to/root;
+	listen 80;
+	root /path/to/root;
 
-    location / {
-        # Minimal location block
-    }
+	location / {
+		# Minimal location block
+	}
 }
