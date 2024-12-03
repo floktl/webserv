@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   helper.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/01 10:35:42 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/02 12:56:14 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/03 14:03:40 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,5 @@
 
 void setNonBlocking(int fd);
 void printCurrentWorkingDirectory(void);
-std::string getAbsolutePath(const std::string& root);
 
 #endif

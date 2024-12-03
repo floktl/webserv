@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:33:15 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/03 10:21:41 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 10:47:16 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,6 @@ Sanitizer::~Sanitizer() {}
 
 // Private helper methods
 bool Sanitizer::isValidPath(const std::string& path, const std::string& context) {
-	// Mandatory checks for all paths
 	if (path.empty() || path[0] != '/') {
 		Logger::error(context + " path must be absolute");
 		return false;
