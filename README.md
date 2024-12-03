@@ -83,3 +83,44 @@ Submit all source files, configuration files, and a comprehensive Makefile in yo
 Ensure every feature works perfectly before attempting the bonus part.
 
 Let your server handle the web like a pro!
+
+## Server Block Configuring Options
+
+### Main Block (Server) Directives
+
+| Directive | Mandatory? | Default if not defined | Explanation |
+|-----------|------------|------------------------------|------------|
+| server | ✅ Yes | - | Container for server configuration |
+| listen | ✅ Yes | 80 | Port on which the server is listening |
+| server_name | ❌ No | “” (empty string) | Hostname for virtual hosts |
+| root | ✅ Yes | - | Root directory for file requests |
+| index | ❌ No | index.html | Default file for directories |
+| error_page | ❌ No | NGINX Standard Error Pages | Custom Error Pages |
+| client_max_body_size | ❌ No | 1m | Maximum size of client requests |
+
+### Location Block Directives
+
+| Directive | Mandatory? | Default if not defined | Explanation |
+|-----------|------------|------------------------------|------------|
+| location | ✅ Yes | - | Definition of a URL path block |
+| methods | ❌ No | All HTTP methods allowed | Allowed HTTP methods |
+| return | ❌ No | - | Direct response with status code |
+| root | ❌ No | Server root is used | Specific root directory for location |
+| autoindex | ❌ No | off | directory listing |
+| default_file | ❌ No | value of index directive | default file for this location block |
+| cgi | ❌ No | - | Enable CGI processing |
+| cgi_param | ❌ No | - | Set CGI parameters |
+| upload_store | ❌ No | - | Storage location for file uploads |
+| client_max_body_size | ❌ No | Server block value | Maximum request size for location |
+
+### Absolutely necessary minimum settings:
+
+```nginx
+server {
+    listen 80;
+    root /path/to/root;
+
+    location / {
+        # Minimal location block
+    }
+}
