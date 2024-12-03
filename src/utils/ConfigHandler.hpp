@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/03 10:08:50 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 14:03:22 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@
 # include "./Logger.hpp"
 # include "./../main.hpp"
 # include "./../server/Server.hpp"
-# include "./../client/ClientHandler.hpp"
+# include "./../client/RequestHandler.hpp"
 # include <set>
 # include <sstream>
 # include <algorithm>

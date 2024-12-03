@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ClientHandler.cpp                                  :+:      :+:    :+:   */
+/*   RequestHandler.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ClientHandler.hpp"
+#include "RequestHandler.hpp"
 #include "./../utils/Logger.hpp"
 
 #include <sys/epoll.h>   // For epoll functions
@@ -19,7 +19,7 @@
 #include <fstream>       // For file handling
 #include <sstream>       // For stringstream
 
-void ClientHandler::handle_client(int client_fd, const ServerBlock& config,
+void RequestHandler::handle_client(int client_fd, const ServerBlock& config,
 		int epoll_fd, std::set<int>& activeFds,
 		std::map<int, const ServerBlock*>& clientConfigMap)
 {

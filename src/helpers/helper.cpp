@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/01 10:32:07 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/02 12:28:17 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 14:03:49 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,19 +38,5 @@ void printCurrentWorkingDirectory(void)
 	else
 	{
 		perror("getcwd"); // Print error if getcwd fails
-	}
-}
-
-std::string getAbsolutePath(const std::string& root)
-{
-	char cwd[PATH_MAX];
-	if (getcwd(cwd, sizeof(cwd)) != nullptr)
-	{
-		return std::string(cwd) + "/" + root;
-	}
-	else
-	{
-		perror("getcwd");
-		return root; // Fallback to the relative root
 	}
 }
