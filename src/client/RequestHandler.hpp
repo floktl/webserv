@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ClientHandler.hpp                                  :+:      :+:    :+:   */
+/*   RequestHandler.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -28,7 +28,7 @@
 
 struct ServerBlock;
 
-class ClientHandler
+class RequestHandler
 {
 public:
 	static void handle_client(int client_fd, const ServerBlock& config,

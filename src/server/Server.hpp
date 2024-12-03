@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:21 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/03 10:21:31 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 14:03:22 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@
 #include <vector>
 #include <sys/epoll.h>     // For epoll
 #include <fcntl.h>         // For fcntl (to set non-blocking mode)
-#include "../client/ClientHandler.hpp"
+#include "../client/RequestHandler.hpp"
 #include "../utils/ConfigHandler.hpp"
 #include <fcntl.h>         // For fcntl (to set non-blocking mode)
 
