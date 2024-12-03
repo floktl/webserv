@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/03 09:45:00 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 10:08:50 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,23 +34,30 @@
 # include <algorithm>
 # include <fstream>
 
-struct ConfLocations {
+struct Location {
 	int			port;
 	std::string path;
 	std::string methods;
+	std::string autoindex;
+	std::string return_directive;
+	std::string default_file;
+	std::string upload_store;
+	std::string client_max_body_size;
+	std::string root;
 	std::string cgi;
 	std::string cgi_param;
 	std::string redirect;
 };
 
-struct FileConfData {
+struct ServerBlock {
 	int			port;
 	int			server_fd;
 	std::string name;
 	std::string root;
 	std::string index;
 	std::string error_page;
-	std::vector<ConfLocations> locations;
+	std::string client_max_body_size;
+	std::vector<Location> locations;
 };
 
 class ConfigHandler {
@@ -62,7 +69,7 @@ class ConfigHandler {
 		bool inLocationBlock;
 		bool parsingErr;
 		std::string locBlockTar;
-		std::vector<FileConfData> registeredConfs;
+		std::vector<ServerBlock> registeredServerConfs;
 	public:
 		ConfigHandler();
 		~ConfigHandler();
@@ -73,7 +80,7 @@ class ConfigHandler {
 		bool parseConfigContent(std::string filename);
 		bool getconfigFileValid(void) const;
 		void printRegisteredConfs(std::string filename);
-		std::vector<FileConfData> get_registeredConfs(void) const;
+		std::vector<ServerBlock> get_registeredServerConfs(void) const;
 
 		class InvalidFileNameException : public std::exception {
 			public:

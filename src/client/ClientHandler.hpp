@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ClientHandler.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:13 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/02 14:33:02 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/03 10:08:25 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 #define CLIENTHANDLER_HPP
 
 #include <vector>          // For std::vector
-#include "../utils/ConfigHandler.hpp"       // Include the definition of FileConfData and ConfLocations
+#include "../utils/ConfigHandler.hpp"       // Include the definition of ServerBlock and Location
 #include "../server/Server.hpp" // Include the Server class
 #include "../helpers/helper.hpp"
 #include <fstream>   // For std::ifstream
@@ -26,14 +26,14 @@
 #include <poll.h> // For poll
 #include <sys/epoll.h> // For epoll
 
-struct FileConfData;
+struct ServerBlock;
 
 class ClientHandler
 {
 public:
-	static void handle_client(int client_fd, const FileConfData& config,
+	static void handle_client(int client_fd, const ServerBlock& config,
 		int kq, std::set<int>& activeFds,
-		std::map<int, const FileConfData*>& clientConfigMap);
+		std::map<int, const ServerBlock*>& clientConfigMap);
 };
 
 #endif
