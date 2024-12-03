@@ -6,13 +6,9 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/02 12:46:37 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 09:31:56 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
-# ifndef TODO
-#  define TODO 1
-# endif
 
 # ifndef DEBUG
 #  define DEBUG 1
