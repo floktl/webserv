@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/03 10:21:36 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/03 10:33:23 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -462,50 +462,67 @@ void ConfigHandler::printRegisteredConfs(std::string filename) {
 	Logger::yellow(" Configurations by " + filename);
 	Logger::green("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
-	auto printValue = [](const std::string& label, const std::string& value, int padding = 20) {
+	// Since we're modifying values, we need to work with non-const references
+	auto printValue = [](std::string& value, const std::string& label,
+						const std::string& default_value = "", int padding = 20) {
 		Logger::white(label, false, padding);
 		if (value.empty()) {
-			Logger::black("[undefined]");
+			if (default_value.empty()) {
+				Logger::black("[undefined]");
+			} else {
+				value = default_value;  // Set the default value
+				Logger::black("[undefined (default: " + default_value + ")]");
+			}
 		} else {
 			Logger::yellow(value);
 		}
 	};
 
-	auto printIntValue = [](const std::string& label, int value, int padding = 20) {
+	auto printIntValue = [](int& value, const std::string& label,
+						int default_value = 0, int padding = 20) {
 		Logger::white(label, false, padding);
 		if (value == 0) {
-			Logger::black("[undefined]");
+			if (default_value == 0) {
+				Logger::black("[undefined]");
+			} else {
+				value = default_value;  // Set the default value
+				Logger::black("[undefined (default: " + std::to_string(default_value) + ")]");
+			}
 		} else {
 			Logger::yellow(std::to_string(value));
 		}
 	};
 
+	// Need to use non-const reference to modify the vector
 	for (size_t i = 0; i < registeredServerConfs.size(); ++i) {
-		const ServerBlock& conf = registeredServerConfs[i];
+		ServerBlock& conf = registeredServerConfs[i];  // Note: non-const reference
 		Logger::blue("\n  Server Block [" + std::to_string(i + 1) + "]:\n");
 
-		printIntValue("    Port: ", conf.port);
-		printValue("    Server Name: ", conf.name);
-		printValue("    Root: ", conf.root);
-		printValue("    Index: ", conf.index);
-		printValue("    Error Page: ", conf.error_page);
+		// Server block defaults based on nginx
+		printIntValue(conf.port, "    Port: ", 80);
+		printValue(conf.name, "    Server Name: ", "localhost");
+		printValue(conf.root, "    Root: ", "/usr/share/nginx/html");
+		printValue(conf.index, "    Index: ", "index.html index.htm");
+		printValue(conf.error_page, "    Error Page: ", "500 502 503 504 /50x.html");
 
 		if (conf.locations.empty()) {
 			Logger::yellow("  No Location Blocks.");
 		} else {
 			for (size_t j = 0; j < conf.locations.size(); ++j) {
-				const Location& location = conf.locations[j];
+				Location& location = conf.locations[j];  // Note: non-const reference
 				Logger::cyan("\n    Location [" + std::to_string(j + 1) + "]:   " + location.path);
-				printValue("      Methods: ", location.methods);
-				printValue("      CGI: ", location.cgi);
-				printValue("      CGI Param: ", location.cgi_param);
-				printValue("      Redirect: ", location.redirect);
-				printValue("      Autoindex: ", location.autoindex);
-				printValue("      Return: ", location.return_directive);
-				printValue("      Default File: ", location.default_file);
-				printValue("      Upload Store: ", location.upload_store);
-				printValue("      Root: ", location.root);
-				printValue("      Client Max Body Size: ", location.client_max_body_size);
+
+				// Location block defaults based on nginx
+				printValue(location.methods, "      Methods: ", "GET HEAD POST");
+				printValue(location.cgi, "      CGI: ");
+				printValue(location.cgi_param, "      CGI Param: ");
+				printValue(location.redirect, "      Redirect: ");
+				printValue(location.autoindex, "      Autoindex: ", "off");
+				printValue(location.return_directive, "      Return: ");
+				printValue(location.default_file, "      Default File: ");
+				printValue(location.upload_store, "      Upload Store: ");
+				printValue(location.root, "      Root: ", conf.root);
+				printValue(location.client_max_body_size, "      Client Max Body Size: ", "1m");
 			}
 		}
 	}
