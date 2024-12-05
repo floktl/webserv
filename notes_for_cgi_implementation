@@ -1,0 +1,260 @@
+
+#include "CGIHandler.hpp"
+
+class CGIHandler {
+private:
+    static std::map<std::string, std::string> cgiInterpreters;
+
+    static void initInterpreters() {
+        cgiInterpreters[".php"] = "/usr/bin/php-cgi";
+        cgiInterpreters[".py"] = "/usr/bin/python3";
+        cgiInterpreters[".go"] = "/usr/bin/go run";
+    }
+
+    static bool isCGIRequest(const std::string& path, const Location& location) {
+        std::string ext = path.substr(path.find_last_of("."));
+        return !location.cgi.empty() && cgiInterpreters.find(ext) != cgiInterpreters.end();
+    }
+
+public:
+    static void handleCGIRequest(int client_fd, const std::string& requestPath,
+                               const Location& location, const std::string& requestMethod,
+                               const std::string& queryString) {
+        if (!isCGIRequest(requestPath, location)) {
+            return;
+        }
+
+        std::string ext = requestPath.substr(requestPath.find_last_of("."));
+        std::string interpreter = cgiInterpreters[ext];
+
+        // Create pipes for communication
+        int input_pipe[2], output_pipe[2];
+        if (pipe(input_pipe) < 0 || pipe(output_pipe) < 0) {
+            sendError(client_fd, "500 Internal Server Error");
+            return;
+        }
+
+        pid_t pid = fork();
+        if (pid == 0) {
+            // Child process
+            close(input_pipe[1]);
+            close(output_pipe[0]);
+
+            // Set up environment variables
+            setenv("QUERY_STRING", queryString.c_str(), 1);
+            setenv("REQUEST_METHOD", requestMethod.c_str(), 1);
+            setenv("SCRIPT_FILENAME", requestPath.c_str(), 1);
+
+            // Redirect stdin/stdout
+            dup2(input_pipe[0], STDIN_FILENO);
+            dup2(output_pipe[1], STDOUT_FILENO);
+
+            // Execute CGI script
+            std::string scriptPath = location.root + requestPath;
+            execl(interpreter.c_str(), interpreter.c_str(), scriptPath.c_str(), NULL);
+            exit(1);
+        }
+        else if (pid > 0) {
+            // Parent process
+            close(input_pipe[0]);
+            close(output_pipe[1]);
+
+            // Read CGI output
+            char buffer[4096];
+            std::string response = "HTTP/1.1 200 OK\r\n";
+            ssize_t bytes_read;
+
+            while ((bytes_read = read(output_pipe[0], buffer, sizeof(buffer))) > 0) {
+                response.append(buffer, bytes_read);
+            }
+
+            send(client_fd, response.c_str(), response.length(), 0);
+
+            // Clean up
+            close(input_pipe[1]);
+            close(output_pipe[0]);
+            waitpid(pid, NULL, 0);
+        }
+        else {
+            sendError(client_fd, "500 Internal Server Error");
+        }
+    }
+
+    static void sendError(int client_fd, const std::string& error) {
+        std::string response = "HTTP/1.1 " + error + "\r\n\r\n";
+        send(client_fd, response.c_str(), response.length(), 0);
+    }
+};
+
+// Initialize static member
+std::map<std::string, std::string> CGIHandler::cgiInterpreters;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "RequestHandler.hpp"
+
+class HTTPRequest {
+private:
+    std::string method;
+    std::string path;
+    std::string query;
+    std::map<std::string, std::string> headers;
+    std::string body;
+
+public:
+    HTTPRequest(const std::string& raw_request) {
+        parse(raw_request);
+    }
+
+    void parse(const std::string& raw_request) {
+        std::istringstream request_stream(raw_request);
+        std::string request_line;
+        std::getline(request_stream, request_line);
+
+        // Parse request line
+        std::istringstream line_stream(request_line);
+        line_stream >> method >> path;
+
+        // Split path and query
+        size_t query_pos = path.find('?');
+        if (query_pos != std::string::npos) {
+            query = path.substr(query_pos + 1);
+            path = path.substr(0, query_pos);
+        }
+
+        // Parse headers
+        std::string header_line;
+        while (std::getline(request_stream, header_line) && header_line != "\r") {
+            size_t colon_pos = header_line.find(':');
+            if (colon_pos != std::string::npos) {
+                std::string key = header_line.substr(0, colon_pos);
+                std::string value = header_line.substr(colon_pos + 2);
+                headers[key] = value;
+            }
+        }
+    }
+
+    const std::string& getMethod() const { return method; }
+    const std::string& getPath() const { return path; }
+    const std::string& getQuery() const { return query; }
+};
+
+void RequestHandler::handle_client(int client_fd, const ServerBlock& config,
+    int epoll_fd, std::set<int>& activeFds,
+    std::map<int, const ServerBlock*>& clientConfigMap) {
+
+    char buffer[4096];
+    memset(buffer, 0, sizeof(buffer));
+
+    // Read request with timeout
+    struct timeval tv;
+    tv.tv_sec = 30;  // 30 second timeout
+    tv.tv_usec = 0;
+    setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+    int bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+    if (bytes_read <= 0) {
+        cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+        return;
+    }
+
+    try {
+        // Parse HTTP request
+        HTTPRequest request(buffer);
+
+        // Find matching location block
+        const Location* location = find_matching_location(request.getPath(), config);
+
+        // Validate request method
+        if (!is_method_allowed(request.getMethod(), location)) {
+            send_error_response(client_fd, 405, "Method Not Allowed");
+            cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+            return;
+        }
+
+        // Handle CGI if applicable
+        if (is_cgi_request(request.getPath(), location)) {
+            CGIHandler::handleCGIRequest(client_fd, request.getPath(), *location,
+                request.getMethod(), request.getQuery());
+            cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+            return;
+        }
+
+        // Handle regular file request
+        std::string file_path = construct_file_path(request.getPath(), location, config);
+
+        if (!file_exists(file_path)) {
+            send_error_response(client_fd, 404, "Not Found");
+            cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+            return;
+        }
+
+        // Handle directory listing if applicable
+        if (is_directory(file_path) && location && location->autoindex == "on") {
+            send_directory_listing(client_fd, file_path);
+            cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+            return;
+        }
+
+        // Send file content
+        send_file_response(client_fd, file_path);
+
+    } catch (const std::exception& e) {
+        send_error_response(client_fd, 500, "Internal Server Error");
+    }
+
+    cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+}
+
+private:
+    static void cleanup_client(int client_fd, int epoll_fd,
+        std::set<int>& activeFds,
+        std::map<int, const ServerBlock*>& clientConfigMap) {
+
+        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, nullptr);
+        activeFds.erase(client_fd);
+        clientConfigMap.erase(client_fd);
+        close(client_fd);
+    }
+
+    static void send_error_response(int client_fd, int status_code,
+        const std::string& message) {
+        std::string response = "HTTP/1.1 " + std::to_string(status_code) +
+            " " + message + "\r\n\r\n";
+        send(client_fd, response.c_str(), response.length(), 0);
+    }
+
+    static const Location* find_matching_location(const std::string& path,
+        const ServerBlock& config) {
+        for (const auto& loc : config.locations) {
+            if (path.find(loc.path) == 0) {
+                return &loc;
+            }
+        }
+        return nullptr;
+    }
+
+    static std::string construct_file_path(const std::string& request_path,
+        const Location* location, const ServerBlock& config) {
+        std::string base_path = location ? location->root : config.root;
+        return base_path + request_path;
+    }
+};
