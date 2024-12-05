@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/03 10:53:11 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/05 15:21:26 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -306,7 +306,7 @@ bool ConfigHandler::sanitizeConfData(void) {
 		}
 
 		// root - mandatory
-		if (!Sanitizer::sanitize_root(registeredServerConfs[i].root)) {
+		if (!Sanitizer::sanitize_root(registeredServerConfs[i].root, expandEnvironmentVariables("$PWD", env))) {
 			configFileValid = false;
 			return false;
 		}
@@ -328,7 +328,7 @@ bool ConfigHandler::sanitizeConfData(void) {
 
 		// error_page - optional
 		if (!registeredServerConfs[i].error_page.empty() &&
-			!Sanitizer::sanitize_errorPage(registeredServerConfs[i].error_page)) {
+			!Sanitizer::sanitize_errorPage(registeredServerConfs[i].error_page, expandEnvironmentVariables("$PWD", env))) {
 			configFileValid = false;
 			return false;
 		}
@@ -349,7 +349,7 @@ bool ConfigHandler::sanitizeConfData(void) {
 			Location& loc = registeredServerConfs[i].locations[j];
 
 			// location path - mandatory for location block
-			if (!Sanitizer::sanitize_locationPath(loc.path)) {
+			if (!Sanitizer::sanitize_locationPath(loc.path, expandEnvironmentVariables("$PWD", env))) {
 				configFileValid = false;
 				return false;
 			}
@@ -368,7 +368,7 @@ bool ConfigHandler::sanitizeConfData(void) {
 			}
 
 			if (!loc.root.empty() &&
-				!Sanitizer::sanitize_locationRoot(loc.root)) {
+				!Sanitizer::sanitize_locationRoot(loc.root, expandEnvironmentVariables("$PWD", env))) {
 				configFileValid = false;
 				return false;
 			}
@@ -386,7 +386,7 @@ bool ConfigHandler::sanitizeConfData(void) {
 			}
 
 			if (!loc.upload_store.empty() &&
-				!Sanitizer::sanitize_locationUploadStore(loc.upload_store)) {
+				!Sanitizer::sanitize_locationUploadStore(loc.upload_store, expandEnvironmentVariables("$PWD", env))) {
 				configFileValid = false;
 				return false;
 			}
@@ -398,7 +398,7 @@ bool ConfigHandler::sanitizeConfData(void) {
 			}
 
 			if (!loc.cgi.empty() &&
-				!Sanitizer::sanitize_locationCgi(loc.cgi)) {
+				!Sanitizer::sanitize_locationCgi(loc.cgi, expandEnvironmentVariables("$PWD", env))) {
 				configFileValid = false;
 				return false;
 			}
