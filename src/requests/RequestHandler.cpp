@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/06 15:11:23 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/06 16:25:28 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 #include <sstream>       // For stringstream
 #include <sys/wait.h>    // for waitpid
 #include <dirent.h>      // for opendir/closedir
+
 
 std::string getFileExtension(const std::string& filePath)
 {
@@ -33,6 +34,13 @@ std::string getFileExtension(const std::string& filePath)
 	Logger::green("File extension found: " + ext);
 	return ext;
 }
+
+// std::string handleCGIResponse(const std::string& output) {
+//     if (output.find("Content-Type:") == std::string::npos) {
+//         return "Content-Type: text/html\r\n\r\n" + output;
+//     }
+//     return output;
+// }
 
 void sendErrorResponse(int client_fd, int statusCode, const std::string& message)
 {
@@ -76,9 +84,7 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 		std::vector<char*> env;
 		for (const auto& param : cgiParams)
 		{
-			const std::string& key = param.first;
-			const std::string& value = param.second;
-			std::string envVar = key + "=" + value;
+			std::string envVar = param.first + "=" + param.second;
 			env.push_back(strdup(envVar.c_str()));
 		}
 		env.push_back(nullptr);
@@ -92,20 +98,46 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 	{
 		Logger::blue("Parent process handling CGI output.");
 		close(pipefd[1]);
+
+		// Read CGI output
+		std::string cgi_output;
 		char buffer[4096];
 		int bytes;
 		while ((bytes = read(pipefd[0], buffer, sizeof(buffer))) > 0)
 		{
-			int sent = send(client_fd, buffer, bytes, 0);
-			if (sent < 0)
-			{
-				Logger::red("Error sending CGI output: " + std::string(strerror(errno)));
-				break;
-			}
+			cgi_output.append(buffer, bytes);
 		}
+
+		// Separate headers from body
+		std::string headers;
+		std::string body;
+		size_t header_end = cgi_output.find("\r\n\r\n");
+
+		if (header_end != std::string::npos)
+		{
+			headers = cgi_output.substr(0, header_end);
+			body = cgi_output.substr(header_end + 4);
+		}
+		else
+		{
+			// No headers found, treat entire output as body
+			body = cgi_output;
+			headers = "Content-Type: text/html; charset=UTF-8";
+		}
+
+		// Construct and send HTTP response
+		std::string response = "HTTP/1.1 200 OK\r\n" + headers + "\r\n\r\n" + body;
+		int sent = send(client_fd, response.c_str(), response.length(), 0);
+
+		if (sent < 0)
+		{
+			Logger::red("Failed to send CGI response: " + std::string(strerror(errno)));
+		}
+
 		close(pipefd[0]);
-		waitpid(pid, nullptr, 0);
-		Logger::green("CGI process completed.");
+		int status;
+		waitpid(pid, &status, 0);
+		Logger::green("CGI process completed with status: " + std::to_string(status));
 	}
 }
 
@@ -161,17 +193,13 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 	std::string filePath = root + requestedPath;
 	Logger::green("Resolved file path: " + filePath);
 
-	// Check directory using opendir, since we cannot use stat
 	DIR* dir = opendir(filePath.c_str());
 	if (dir != nullptr) {
-		// It's a directory, try to serve index file
 		closedir(dir);
 		Logger::blue("Requested path is a directory, attempting to serve index file.");
 
-		// index only from config.index (no location index)
 		std::string indexFiles = config.index;
 		if (indexFiles.empty()) {
-			// No index specified, return 403 or handle autoindex
 			sendErrorResponse(client_fd, 403, "Forbidden");
 			activeFds.erase(client_fd);
 			serverBlockConfigs.erase(client_fd);
@@ -188,7 +216,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 				tryPath += "/";
 			tryPath += singleIndex;
 
-			// Try open the index file
 			std::ifstream testFile(tryPath);
 			if (testFile.is_open()) {
 				filePath = tryPath;
@@ -220,6 +247,16 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 			cgiParams["SCRIPT_FILENAME"] = filePath;
 			cgiParams["DOCUMENT_ROOT"] = root;
 			cgiParams["QUERY_STRING"] = "";
+			cgiParams["REQUEST_METHOD"] = "GET";
+			cgiParams["SERVER_PROTOCOL"] = "HTTP/1.1";
+			cgiParams["GATEWAY_INTERFACE"] = "CGI/1.1";
+			cgiParams["SERVER_SOFTWARE"] = "my-cpp-server/1.0";
+			cgiParams["REDIRECT_STATUS"] = "200";
+			cgiParams["SERVER_NAME"] = "localhost";
+			cgiParams["SERVER_PORT"] = "8001";
+			cgiParams["REMOTE_ADDR"] = "127.0.0.1";
+			cgiParams["REQUEST_URI"] = requestedPath;
+			cgiParams["SCRIPT_NAME"] = requestedPath;
 			executeCGI(location->cgi, filePath, cgiParams, client_fd);
 
 			Logger::yellow("Closing client connection.");
