@@ -52,7 +52,7 @@ public:
             // Execute CGI script
             std::string scriptPath = location.root + requestPath;
             execl(interpreter.c_str(), interpreter.c_str(), scriptPath.c_str(), NULL);
-            exit(1);
+            std::exit(1);
         }
         else if (pid > 0) {
             // Parent process
@@ -157,12 +157,12 @@ public:
     const std::string& getQuery() const { return query; }
 };
 
-void RequestHandler::handle_client(int client_fd, const ServerBlock& config,
+void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
     int epoll_fd, std::set<int>& activeFds,
-    std::map<int, const ServerBlock*>& clientConfigMap) {
+    std::map<int, const ServerBlock*>& serverBlockConfigs) {
 
     char buffer[4096];
-    memset(buffer, 0, sizeof(buffer));
+    std::memset(buffer, 0, sizeof(buffer));
 
     // Read request with timeout
     struct timeval tv;
@@ -172,7 +172,7 @@ void RequestHandler::handle_client(int client_fd, const ServerBlock& config,
 
     int bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
     if (bytes_read <= 0) {
-        cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+        cleanup_req_data(client_fd, epoll_fd, activeFds, serverBlockConfigs);
         return;
     }
 
@@ -186,7 +186,7 @@ void RequestHandler::handle_client(int client_fd, const ServerBlock& config,
         // Validate request method
         if (!is_method_allowed(request.getMethod(), location)) {
             send_error_response(client_fd, 405, "Method Not Allowed");
-            cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+            cleanup_req_data(client_fd, epoll_fd, activeFds, serverBlockConfigs);
             return;
         }
 
@@ -194,7 +194,7 @@ void RequestHandler::handle_client(int client_fd, const ServerBlock& config,
         if (is_cgi_request(request.getPath(), location)) {
             CGIHandler::handleCGIRequest(client_fd, request.getPath(), *location,
                 request.getMethod(), request.getQuery());
-            cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+            cleanup_req_data(client_fd, epoll_fd, activeFds, serverBlockConfigs);
             return;
         }
 
@@ -203,14 +203,14 @@ void RequestHandler::handle_client(int client_fd, const ServerBlock& config,
 
         if (!file_exists(file_path)) {
             send_error_response(client_fd, 404, "Not Found");
-            cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+            cleanup_req_data(client_fd, epoll_fd, activeFds, serverBlockConfigs);
             return;
         }
 
         // Handle directory listing if applicable
         if (is_directory(file_path) && location && location->autoindex == "on") {
             send_directory_listing(client_fd, file_path);
-            cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+            cleanup_req_data(client_fd, epoll_fd, activeFds, serverBlockConfigs);
             return;
         }
 
@@ -221,17 +221,17 @@ void RequestHandler::handle_client(int client_fd, const ServerBlock& config,
         send_error_response(client_fd, 500, "Internal Server Error");
     }
 
-    cleanup_client(client_fd, epoll_fd, activeFds, clientConfigMap);
+    cleanup_req_data(client_fd, epoll_fd, activeFds, serverBlockConfigs);
 }
 
 private:
-    static void cleanup_client(int client_fd, int epoll_fd,
+    static void cleanup_req_data(int client_fd, int epoll_fd,
         std::set<int>& activeFds,
-        std::map<int, const ServerBlock*>& clientConfigMap) {
+        std::map<int, const ServerBlock*>& serverBlockConfigs) {
 
         epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, nullptr);
         activeFds.erase(client_fd);
-        clientConfigMap.erase(client_fd);
+        serverBlockConfigs.erase(client_fd);
         close(client_fd);
     }
 

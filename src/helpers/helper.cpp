@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/01 10:32:07 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/03 14:03:49 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/06 08:41:40 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,6 @@ void printCurrentWorkingDirectory(void)
 	}
 	else
 	{
-		perror("getcwd"); // Print error if getcwd fails
+		std::perror("getcwd"); // Print error if getcwd fails
 	}
 }

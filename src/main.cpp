@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/26 12:58:21 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/03 11:04:47 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/06 08:41:40 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ void closeServerSockets( std::vector<ServerBlock> configs)
 		{
 			if (close(conf.server_fd) < 0)
 			{
-				perror("Error closing server socket");
+				std::perror("Error closing server socket");
 			}
 			else
 			{
