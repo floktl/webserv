@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/03 14:03:22 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/06 09:13:48 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,20 +26,20 @@ int Server::create_server_socket(int port)
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_fd < 0)
 	{
-		perror("socket");
-		exit(EXIT_FAILURE);
+		std::perror("socket could not be created");
+		std::exit(EXIT_FAILURE);
 	}
 
 	// Set socket options to reuse address
 	opt = 1; // Enable option
 	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 	{
-		perror("setsockopt");
-		exit(EXIT_FAILURE);
+		std::perror("setsockopt");
+		std::exit(EXIT_FAILURE);
 	}
 
 	// Initialize address structure to zero
-	memset(&addr, 0, sizeof(addr));
+	std::memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;           // Use IPv4
 	addr.sin_addr.s_addr = INADDR_ANY;   // Accept connections on any IP address
 	addr.sin_port = htons(port);         // Set port number (network byte order)
@@ -47,15 +47,15 @@ int Server::create_server_socket(int port)
 	// Bind the server socket to the address and port
 	if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 	{
-		perror("bind");
-		exit(EXIT_FAILURE);
+		std::perror("bind");
+		std::exit(EXIT_FAILURE);
 	}
 
 	// Set up the server socket to listen for incoming connections
 	if (listen(server_fd, 128) < 0)
 	{
-		perror("listen");
-		exit(EXIT_FAILURE);
+		std::perror("listen");
+		std::exit(EXIT_FAILURE);
 	}
 
 	// Set the server socket to non-blocking mode
@@ -70,7 +70,7 @@ int Server::handleServerEvent(int serv_fd, const ServerBlock& servConfig)
 	this->client_fd = accept(serv_fd, nullptr, nullptr);
 	if (this->client_fd < 0)
 	{
-		perror("accept");
+		std::perror("accept");
 		return -1; // Signal failure
 	}
 
@@ -84,7 +84,7 @@ int Server::handleServerEvent(int serv_fd, const ServerBlock& servConfig)
 
 	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, this->client_fd, &ev) < 0)
 	{
-		perror("epoll_ctl (EPOLL_CTL_ADD)");
+		std::perror("epoll_ctl (EPOLL_CTL_ADD)");
 		close(this->client_fd);
 		return -1;
 	}
@@ -93,7 +93,7 @@ int Server::handleServerEvent(int serv_fd, const ServerBlock& servConfig)
 	this->activeFds.insert(this->client_fd);
 
 	// Map the client FD to its configuration
-	this->clientConfigMap[this->client_fd] = &servConfig;
+	this->serverBlockConfigs[this->client_fd] = &servConfig;
 
 	return 0; // Success
 }
@@ -111,8 +111,8 @@ void register_for_monitoring(const std::vector<ServerBlock>& configs,
 		// Use the valid epoll_fd directly
 		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, conf.server_fd, &ev) < 0)
 		{
-			perror("epoll_ctl");
-			exit(EXIT_FAILURE);
+			std::perror("epoll_ctl");
+			std::exit(EXIT_FAILURE);
 		}
 		activeFds.insert(conf.server_fd);
 	}
@@ -145,9 +145,9 @@ void Server::process_events(int num_events)
 			}
 			else
 			{
-				RequestHandler::handle_client(fd,
-					*(clientConfigMap[fd]),
-					this->epoll_fd, activeFds, clientConfigMap);
+				RequestHandler::handle_request(fd,
+					*(serverBlockConfigs[fd]),
+					this->epoll_fd, activeFds, serverBlockConfigs);
 			}
 		}
 	}
@@ -160,7 +160,7 @@ void Server::start(const std::vector<ServerBlock>& configs_files)
 	epoll_fd = epoll_create(1);
 	if (epoll_fd < 0)
 	{
-		perror("epoll_create");
+		std::perror("epoll_create");
 		return;
 	}
 
@@ -171,7 +171,7 @@ void Server::start(const std::vector<ServerBlock>& configs_files)
 		int num_events = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
 		if (num_events < 0)
 		{
-			perror("epoll_wait");
+			std::perror("epoll_wait");
 			break;
 		}
 		process_events(num_events);

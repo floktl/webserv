@@ -14,26 +14,25 @@
 #include "./../utils/Logger.hpp"
 
 #include <sys/epoll.h>   // For epoll functions
-#include <cstring>       // For memset
 #include <iostream>      // For cerr
 #include <fstream>       // For file handling
 #include <sstream>       // For stringstream
 
-void RequestHandler::handle_client(int client_fd, const ServerBlock& config,
+void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 		int epoll_fd, std::set<int>& activeFds,
-		std::map<int, const ServerBlock*>& clientConfigMap)
+		std::map<int, const ServerBlock*>& serverBlockConfigs)
 {
 	char buffer[4096];
-	memset(buffer, 0, sizeof(buffer));
+	std::memset(buffer, 0, sizeof(buffer));
 
 	// Read the request from the client
 	int bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (bytes_read < 0)
 	{
-		perror("recv");
+		std::perror("recv");
 		close(client_fd);
 		activeFds.erase(client_fd);
-		clientConfigMap.erase(client_fd);
+		serverBlockConfigs.erase(client_fd);
 		return;
 	}
 
@@ -80,11 +79,11 @@ void RequestHandler::handle_client(int client_fd, const ServerBlock& config,
 	// Remove the client FD from epoll
 	if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, nullptr) < 0)
 	{
-		perror("epoll_ctl (EPOLL_CTL_DEL)");
+		std::perror("epoll_ctl (EPOLL_CTL_DEL)");
 	}
 
 	// Clean up FD
 	activeFds.erase(client_fd);
-	clientConfigMap.erase(client_fd);
+	serverBlockConfigs.erase(client_fd);
 	close(client_fd);
 }

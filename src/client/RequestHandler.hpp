@@ -20,7 +20,6 @@
 #include <fstream>   // For std::ifstream
 #include <sstream>   // For std::stringstream
 #include <sys/socket.h> // For recv and send
-#include <cstring>   // For memset
 #include <unistd.h>  // For close
 #include <iostream>  // For error output
 #include <poll.h> // For poll
@@ -31,9 +30,9 @@ struct ServerBlock;
 class RequestHandler
 {
 public:
-	static void handle_client(int client_fd, const ServerBlock& config,
+	static void handle_request(int client_fd, const ServerBlock& config,
 		int kq, std::set<int>& activeFds,
-		std::map<int, const ServerBlock*>& clientConfigMap);
+		std::map<int, const ServerBlock*>& serverBlockConfigs);
 };
 
 #endif
