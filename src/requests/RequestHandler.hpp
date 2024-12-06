@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:13 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/06 09:46:50 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/06 12:48:09 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,8 +31,8 @@ class RequestHandler
 {
 public:
 	static void handle_request(int client_fd, const ServerBlock& config,
-		int kq, std::set<int>& activeFds,
-		std::map<int, const ServerBlock*>& serverBlockConfigs);
+							std::set<int>& activeFds,
+							std::map<int, const ServerBlock*>& serverBlockConfigs);
 };
 
 #endif

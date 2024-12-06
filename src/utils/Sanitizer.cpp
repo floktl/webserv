@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:33:15 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/05 15:27:50 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/06 15:11:27 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,53 +15,72 @@
 Sanitizer::Sanitizer() {}
 Sanitizer::~Sanitizer() {}
 
-// Private helper methods
-bool Sanitizer::isValidPath(const std::string& path, const std::string& context, const std::string& pwd) {
-	if (path.empty()) return false;
-
-	std::string normalizedPath = path;
-	if (path[0] != '/') {
-		normalizedPath = pwd + "/" + path;
+bool Sanitizer::isValidPath(std::string& path, const std::string& context, const std::string& pwd) {
+	if (path.empty()) {
+		Logger::error("[" + context + "] Path is empty.");
+		return false;
 	}
 
-	// Check for directory traversal
+	// If the path does not start with '/', prepend the current working directory (pwd)
+	std::string normalizedPath = path;
+	if (normalizedPath[0] != '/') {
+		normalizedPath = pwd + "/" + normalizedPath;
+	}
+
+	// Validate the path by splitting and checking for directory traversal attempts
 	std::stringstream ss(normalizedPath);
 	std::string segment;
 	std::vector<std::string> segments;
 
 	while (std::getline(ss, segment, '/')) {
-		if (segment == "..") return false;
+		if (segment == "..") {
+			Logger::error("[" + context + "] Directory traversal attempt detected ('..') in path: " + normalizedPath);
+			return false;
+		}
 		if (segment == "." || segment.empty()) continue;
 		segments.push_back(segment);
 	}
 
-	// Rebuild clean path
+	// Rebuild the cleaned absolute path
 	normalizedPath = "/";
 	for (const auto& seg : segments) {
 		normalizedPath += seg + "/";
 	}
 	if (!segments.empty()) {
-		normalizedPath.pop_back(); // Remove trailing slash
+		normalizedPath.pop_back(); // Remove the trailing slash
 	}
 
-	// Character validation
+	// Check for invalid characters in the normalized path
 	for (char c : normalizedPath) {
-		if (!isalnum(c) && c != '/' && c != '_' && c != '-' && c != '.') {
+		if (!std::isalnum(static_cast<unsigned char>(c)) && c != '/' && c != '_' && c != '-' && c != '.') {
+			Logger::error("[" + context + "] Invalid character '" + std::string(1, c) + "' found in path: " + normalizedPath);
 			return false;
 		}
 	}
 
-	// Only check existence for Root and Error page
+	// For Root or Error page contexts, verify that the path exists and is of the correct type
 	if (context == "Root" || context == "Error page") {
 		struct stat path_stat;
-		if (stat(normalizedPath.c_str(), &path_stat) == -1) return false;
+		if (stat(normalizedPath.c_str(), &path_stat) == -1) {
+			Logger::error("[" + context + "] Path does not exist: " + normalizedPath);
+			return false;
+		}
 
-		if (context == "Root") return S_ISDIR(path_stat.st_mode);
-		if (context == "Error page") return S_ISREG(path_stat.st_mode);
+		if (context == "Root" && !S_ISDIR(path_stat.st_mode)) {
+			Logger::error("[" + context + "] Root path is not a directory: " + normalizedPath);
+			return false;
+		}
+		if (context == "Error page" && !S_ISREG(path_stat.st_mode)) {
+			Logger::error("[" + context + "] Error page path is not a file: " + normalizedPath);
+			return false;
+		}
 	}
 
+	// If all checks pass, update the original path to the normalized absolute path
+	path = normalizedPath;
 	return true;
 }
+
 
 long Sanitizer::parseSize(const std::string& sizeStr, const std::string& unit) {
 	long size;
@@ -104,7 +123,7 @@ bool Sanitizer::sanitize_portNr(int portNr) {
 	return (portNr >= 1 && portNr <= 65535);
 }
 
-bool Sanitizer::sanitize_serverName(std::string serverName) {
+bool Sanitizer::sanitize_serverName(std::string& serverName) {
 	if (serverName.empty() || serverName.length() > 255) return false;
 
 	std::string segment;
@@ -122,16 +141,16 @@ bool Sanitizer::sanitize_serverName(std::string serverName) {
 	return true;
 }
 
-bool Sanitizer::sanitize_root(std::string root, const std::string& pwd) {
+bool Sanitizer::sanitize_root(std::string& root, const std::string& pwd) {
 	return isValidPath(root, "Root", pwd);
 }
 
 // Public methods - Optional checks
-bool Sanitizer::sanitize_index(std::string index) {
+bool Sanitizer::sanitize_index(std::string& index) {
 	return index.empty() || isValidFilename(index, false);
 }
 
-bool Sanitizer::sanitize_errorPage(std::string errorPage, const std::string& pwd) {
+bool Sanitizer::sanitize_errorPage(std::string &errorPage, const std::string& pwd) {
 	std::istringstream stream(errorPage);
 	int code;
 	std::string path;
@@ -139,10 +158,17 @@ bool Sanitizer::sanitize_errorPage(std::string errorPage, const std::string& pwd
 	if (!(stream >> code >> path)) return false;
 	if (code < 400 || code > 599) return false;
 
-	return isValidPath(path, "Error page", pwd);
+	if (!isValidPath(path, "Error page", pwd)) {
+		return false;
+	}
+
+	std::ostringstream oss;
+	oss << code << " " << path;
+	errorPage = oss.str();
+	return true;
 }
 
-bool Sanitizer::sanitize_clMaxBodSize(std::string clMaxBodSize) {
+bool Sanitizer::sanitize_clMaxBodSize(std::string& clMaxBodSize) {
 	if (clMaxBodSize.empty()) return true;
 
 	std::istringstream stream(clMaxBodSize);
@@ -153,11 +179,11 @@ bool Sanitizer::sanitize_clMaxBodSize(std::string clMaxBodSize) {
 	return (size != -1 && size <= (1024L * 1024L * 1024L * 2L)); // Max 2GB
 }
 
-bool Sanitizer::sanitize_locationPath(std::string locationPath, const std::string& pwd) {
+bool Sanitizer::sanitize_locationPath(std::string& locationPath, const std::string& pwd) {
 	return locationPath.empty() || isValidPath(locationPath, "Location", pwd);
 }
 
-bool Sanitizer::sanitize_locationMethods(std::string locationMethods) {
+bool Sanitizer::sanitize_locationMethods(std::string& locationMethods) {
 	if (locationMethods.empty()) return true;
 
 	std::istringstream stream(locationMethods);
@@ -175,7 +201,7 @@ bool Sanitizer::sanitize_locationMethods(std::string locationMethods) {
 	return !seenMethods.empty();
 }
 
-bool Sanitizer::sanitize_locationReturn(std::string locationReturn) {
+bool Sanitizer::sanitize_locationReturn(std::string& locationReturn) {
 	if (locationReturn.empty()) return true;
 
 	std::istringstream stream(locationReturn);
@@ -188,11 +214,11 @@ bool Sanitizer::sanitize_locationReturn(std::string locationReturn) {
 	return sanitize_locationRedirect(url);
 }
 
-bool Sanitizer::sanitize_locationRoot(std::string locationRoot, const std::string& pwd) {
+bool Sanitizer::sanitize_locationRoot(std::string& locationRoot, const std::string& pwd) {
 	return locationRoot.empty() || isValidPath(locationRoot, "Location root", pwd);
 }
 
-bool Sanitizer::sanitize_locationAutoindex(std::string locationAutoindex) {
+bool Sanitizer::sanitize_locationAutoindex(std::string& locationAutoindex) {
 	if (locationAutoindex.empty()) return true;
 
 	std::transform(locationAutoindex.begin(), locationAutoindex.end(),
@@ -200,24 +226,24 @@ bool Sanitizer::sanitize_locationAutoindex(std::string locationAutoindex) {
 	return (locationAutoindex == "on" || locationAutoindex == "off");
 }
 
-bool Sanitizer::sanitize_locationDefaultFile(std::string locationDefaultFile) {
+bool Sanitizer::sanitize_locationDefaultFile(std::string& locationDefaultFile) {
 	if (locationDefaultFile.empty()) return true;
 	return isValidFilename(locationDefaultFile, false);
 }
 
-bool Sanitizer::sanitize_locationUploadStore(std::string locationUploadStore, const std::string& pwd) {
+bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore, const std::string& pwd) {
 	return locationUploadStore.empty() || isValidPath(locationUploadStore, "Upload store", pwd);
 }
 
-bool Sanitizer::sanitize_locationClMaxBodSize(std::string locationClMaxBodSize) {
+bool Sanitizer::sanitize_locationClMaxBodSize(std::string& locationClMaxBodSize) {
 	return sanitize_clMaxBodSize(locationClMaxBodSize);
 }
 
-bool Sanitizer::sanitize_locationCgi(std::string locationCgi, const std::string& pwd) {
+bool Sanitizer::sanitize_locationCgi(std::string& locationCgi, const std::string& pwd) {
 	return locationCgi.empty() || isValidPath(locationCgi, "CGI", pwd);
 }
 
-bool Sanitizer::sanitize_locationCgiParam(std::string locationCgiParam) {
+bool Sanitizer::sanitize_locationCgiParam(std::string& locationCgiParam) {
 	if (locationCgiParam.empty()) return true;
 
 	std::istringstream stream(locationCgiParam);
@@ -233,7 +259,7 @@ bool Sanitizer::sanitize_locationCgiParam(std::string locationCgiParam) {
 	return true;
 }
 
-bool Sanitizer::sanitize_locationRedirect(std::string locationRedirect) {
+bool Sanitizer::sanitize_locationRedirect(std::string& locationRedirect) {
 	if (locationRedirect.empty()) return true;
 
 	if (locationRedirect.substr(0, 7) != "http://" &&

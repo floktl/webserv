@@ -6,7 +6,7 @@
 #    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/06 09:16:59 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/06 11:41:27 by jeberle          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -92,7 +92,6 @@ OBJECTS := $(addprefix $(OBJ_DIR)/, $(SRCS:%.cpp=%.o))
 
 .PHONY: all clean fclean re
 
-
 all: $(NAME)
 
 -include $(OBJECTS:.o=.d)
@@ -113,6 +112,15 @@ container:
 		echo "$(YELLOW)container already running.. skip it's creation and try build webserv...$(X)"; \
 	fi
 	@docker exec -it webserv bash
+
+prune:
+	@if docker ps -a | grep -q webserv; then \
+		echo "$(RED)Removing existing container...$(X)"; \
+		docker stop webserv && docker rm webserv; \
+	else \
+		echo "$(YELLOW)No container named 'webserv' to remove.$(X)"; \
+	fi
+	@echo "$(GREEN)All done!$(X)"
 
 clean:
 	@rm -rf $(OBJ_DIR)

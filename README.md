@@ -124,3 +124,11 @@ server {
 		# Minimal location block
 	}
 }
+```
+
+### Absolutely necessary minimum settings:
+
+The Dockerfile will provide paths for the cgi in:
+
+- /usr/lib/cgi-bin/python3
+- /usr/lib/cgi-bin/php
