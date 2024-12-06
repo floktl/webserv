@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:21 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/03 14:03:22 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/06 09:09:07 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@
 #include <vector>
 #include <sys/epoll.h>     // For epoll
 #include <fcntl.h>         // For fcntl (to set non-blocking mode)
-#include "../client/RequestHandler.hpp"
+#include "../requests/RequestHandler.hpp"
 #include "../utils/ConfigHandler.hpp"
 #include <fcntl.h>         // For fcntl (to set non-blocking mode)
 
@@ -33,7 +33,7 @@ struct ServerBlock;
 class Server
 {
 private:
-	std::map<int, const ServerBlock*> clientConfigMap;  // Map client FDs to configurations
+	std::map<int, const ServerBlock*> serverBlockConfigs;  // Map client FDs to configurations
 	const std::vector<ServerBlock>* configs = nullptr; // Pointer to server configurations
 	struct epoll_event changes[MAX_EVENTS];             // Events to register with epoll
 	struct epoll_event events[MAX_EVENTS];              // Array to store triggered events
