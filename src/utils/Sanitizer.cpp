@@ -6,11 +6,15 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:33:15 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/06 15:11:27 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/08 15:23:22 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./Sanitizer.hpp"
+#include <stdio.h> // strerror
+#include <cstring>   // für strerror
+#include <dirent.h>  // für DIR, opendir, closedir
+#include <errno.h>   // für errno
 
 Sanitizer::Sanitizer() {}
 Sanitizer::~Sanitizer() {}
@@ -240,7 +244,37 @@ bool Sanitizer::sanitize_locationClMaxBodSize(std::string& locationClMaxBodSize)
 }
 
 bool Sanitizer::sanitize_locationCgi(std::string& locationCgi, const std::string& pwd) {
-	return locationCgi.empty() || isValidPath(locationCgi, "CGI", pwd);
+	if (locationCgi.empty())
+		return true;
+
+	if (!isValidPath(locationCgi, "CGI", pwd))
+		return false;
+
+	if (access(locationCgi.c_str(), F_OK) == -1) {
+		Logger::error("[CGI] File does not exist: " + locationCgi + " (" + strerror(errno) + ")");
+		return false;
+	}
+
+	{
+		DIR* dirp = opendir(locationCgi.c_str());
+		if (dirp != NULL) {
+			closedir(dirp);
+			Logger::error("[CGI] Path is a directory: " + locationCgi);
+			return false;
+		} else {
+			if (errno != ENOTDIR) {
+				Logger::error("[CGI] Could not open path: " + locationCgi + " (" + strerror(errno) + ")");
+				return false;
+			}
+		}
+	}
+
+	if (access(locationCgi.c_str(), X_OK) == -1) {
+		Logger::error("[CGI] File is not executable: " + locationCgi + " (" + strerror(errno) + ")");
+		return false;
+	}
+
+	return true;
 }
 
 bool Sanitizer::sanitize_locationCgiParam(std::string& locationCgiParam) {

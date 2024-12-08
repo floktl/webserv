@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/06 16:25:28 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/08 15:07:25 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,15 +23,13 @@
 
 std::string getFileExtension(const std::string& filePath)
 {
-	Logger::cyan("getFileExtension called with path: " + filePath);
 	size_t pos = filePath.find_last_of(".");
 	if (pos == std::string::npos)
 	{
-		Logger::red("No file extension found");
+		Logger::red("No file extension found, check to executable cgi target");
 		return "";
 	}
 	std::string ext = filePath.substr(pos);
-	Logger::green("File extension found: " + ext);
 	return ext;
 }
 
@@ -44,7 +42,6 @@ std::string getFileExtension(const std::string& filePath)
 
 void sendErrorResponse(int client_fd, int statusCode, const std::string& message)
 {
-	Logger::red("Sending error response: " + std::to_string(statusCode) + " " + message);
 	std::ostringstream response;
 	response << "HTTP/1.1 " << statusCode << " " << message << "\r\n"
 			<< "Content-Type: text/html\r\n\r\n"
@@ -52,14 +49,11 @@ void sendErrorResponse(int client_fd, int statusCode, const std::string& message
 	int sent = send(client_fd, response.str().c_str(), response.str().size(), 0);
 	if (sent < 0)
 		Logger::red("Error sending response: " + std::string(strerror(errno)));
-	else
-		Logger::yellow("Error response sent successfully.");
 }
 
 void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 				const std::map<std::string, std::string>& cgiParams, int client_fd)
 {
-	Logger::yellow("Executing CGI: " + cgiPath + " with script: " + scriptPath);
 	int pipefd[2];
 	if (pipe(pipefd) == -1)
 	{
@@ -76,7 +70,6 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 
 	if (pid == 0)
 	{
-		Logger::blue("Child process for CGI execution started.");
 		dup2(pipefd[1], STDOUT_FILENO);
 		close(pipefd[0]);
 		close(pipefd[1]);
@@ -96,7 +89,6 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 	}
 	else
 	{
-		Logger::blue("Parent process handling CGI output.");
 		close(pipefd[1]);
 
 		// Read CGI output
@@ -137,7 +129,6 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 		close(pipefd[0]);
 		int status;
 		waitpid(pid, &status, 0);
-		Logger::green("CGI process completed with status: " + std::to_string(status));
 	}
 }
 
@@ -145,7 +136,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 									std::set<int>& activeFds,
 									std::map<int, const ServerBlock*>& serverBlockConfigs)
 {
-	Logger::yellow("handle_request called for client_fd: " + std::to_string(client_fd));
 	char buffer[4096];
 	std::memset(buffer, 0, sizeof(buffer));
 
@@ -159,8 +149,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 		return;
 	}
 
-	Logger::green("Request received:\n" + std::string(buffer));
-
 	std::string request(buffer);
 	std::string requestedPath = "/";
 	size_t start = request.find("GET ") + 4;
@@ -169,7 +157,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 	{
 		requestedPath = request.substr(start, end - start);
 	}
-	Logger::blue("Requested path: " + requestedPath);
 
 	const Location* location = nullptr;
 	for (const auto& loc : config.locations)
@@ -177,7 +164,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 		if (requestedPath.find(loc.path) == 0)
 		{
 			location = &loc;
-			Logger::magenta("Matched location: " + loc.path);
 			break;
 		}
 	}
@@ -191,12 +177,10 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 
 	std::string root = location->root.empty() ? config.root : location->root;
 	std::string filePath = root + requestedPath;
-	Logger::green("Resolved file path: " + filePath);
 
 	DIR* dir = opendir(filePath.c_str());
 	if (dir != nullptr) {
 		closedir(dir);
-		Logger::blue("Requested path is a directory, attempting to serve index file.");
 
 		std::string indexFiles = config.index;
 		if (indexFiles.empty()) {
@@ -221,7 +205,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 				filePath = tryPath;
 				testFile.close();
 				foundIndex = true;
-				Logger::green("Index file found: " + singleIndex);
 				break;
 			}
 		}
@@ -242,7 +225,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 		if (filePath.size() >= ext.size() &&
 			filePath.compare(filePath.size() - ext.size(), ext.size(), ext) == 0)
 		{
-			Logger::yellow("CGI handler detected for file: " + filePath);
 			std::map<std::string, std::string> cgiParams;
 			cgiParams["SCRIPT_FILENAME"] = filePath;
 			cgiParams["DOCUMENT_ROOT"] = root;
@@ -259,7 +241,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 			cgiParams["SCRIPT_NAME"] = requestedPath;
 			executeCGI(location->cgi, filePath, cgiParams, client_fd);
 
-			Logger::yellow("Closing client connection.");
 			activeFds.erase(client_fd);
 			serverBlockConfigs.erase(client_fd);
 			close(client_fd);
@@ -267,7 +248,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 		}
 	}
 
-	Logger::yellow("Serving static file: " + filePath);
 	std::ifstream file(filePath);
 	if (file.is_open())
 	{
@@ -275,15 +255,10 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 		fileContent << file.rdbuf();
 		std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
 		response += fileContent.str();
-		Logger::white(response.c_str());
 		int sent = send(client_fd, response.c_str(), response.size(), 0);
 		if (sent < 0)
 		{
 			Logger::red("Error sending static file: " + std::string(strerror(errno)));
-		}
-		else
-		{
-			Logger::green("Static file served successfully.");
 		}
 	}
 	else
@@ -292,7 +267,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 		sendErrorResponse(client_fd, 404, "File Not Found");
 	}
 
-	Logger::yellow("Closing client connection.");
 	activeFds.erase(client_fd);
 	serverBlockConfigs.erase(client_fd);
 	close(client_fd);
