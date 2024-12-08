@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/08 15:07:25 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/08 16:15:17 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,13 +33,6 @@ std::string getFileExtension(const std::string& filePath)
 	return ext;
 }
 
-// std::string handleCGIResponse(const std::string& output) {
-//     if (output.find("Content-Type:") == std::string::npos) {
-//         return "Content-Type: text/html\r\n\r\n" + output;
-//     }
-//     return output;
-// }
-
 void sendErrorResponse(int client_fd, int statusCode, const std::string& message)
 {
 	std::ostringstream response;
@@ -52,12 +45,21 @@ void sendErrorResponse(int client_fd, int statusCode, const std::string& message
 }
 
 void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
-				const std::map<std::string, std::string>& cgiParams, int client_fd)
+				const std::map<std::string, std::string>& cgiParams, int client_fd,
+				const std::string& requestBody, const std::string& method)
 {
-	int pipefd[2];
-	if (pipe(pipefd) == -1)
+	int pipefd_out[2]; // For CGI stdout
+	int pipefd_in[2];  // For CGI stdin
+	if (pipe(pipefd_out) == -1)
 	{
-		Logger::red("Pipe creation failed: " + std::string(strerror(errno)));
+		Logger::red("Pipe creation failed (out): " + std::string(strerror(errno)));
+		return;
+	}
+	if (pipe(pipefd_in) == -1)
+	{
+		Logger::red("Pipe creation failed (in): " + std::string(strerror(errno)));
+		close(pipefd_out[0]);
+		close(pipefd_out[1]);
 		return;
 	}
 
@@ -65,14 +67,23 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 	if (pid < 0)
 	{
 		Logger::red("Fork failed: " + std::string(strerror(errno)));
+		close(pipefd_out[0]);
+		close(pipefd_out[1]);
+		close(pipefd_in[0]);
+		close(pipefd_in[1]);
 		return;
 	}
 
 	if (pid == 0)
 	{
-		dup2(pipefd[1], STDOUT_FILENO);
-		close(pipefd[0]);
-		close(pipefd[1]);
+		// Child
+		dup2(pipefd_out[1], STDOUT_FILENO);
+		close(pipefd_out[0]);
+		close(pipefd_out[1]);
+
+		dup2(pipefd_in[0], STDIN_FILENO);
+		close(pipefd_in[0]);
+		close(pipefd_in[1]);
 
 		std::vector<char*> env;
 		for (const auto& param : cgiParams)
@@ -89,13 +100,24 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 	}
 	else
 	{
-		close(pipefd[1]);
+		// Parent
+		close(pipefd_out[1]);
+		close(pipefd_in[0]);
+
+		// Write request body to CGI if POST
+		if (method == "POST" && !requestBody.empty())
+		{
+			ssize_t written = write(pipefd_in[1], requestBody.c_str(), requestBody.size());
+			if (written < 0)
+				Logger::red("Error writing to CGI stdin: " + std::string(strerror(errno)));
+		}
+		close(pipefd_in[1]);
 
 		// Read CGI output
 		std::string cgi_output;
 		char buffer[4096];
 		int bytes;
-		while ((bytes = read(pipefd[0], buffer, sizeof(buffer))) > 0)
+		while ((bytes = read(pipefd_out[0], buffer, sizeof(buffer))) > 0)
 		{
 			cgi_output.append(buffer, bytes);
 		}
@@ -126,7 +148,7 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 			Logger::red("Failed to send CGI response: " + std::string(strerror(errno)));
 		}
 
-		close(pipefd[0]);
+		close(pipefd_out[0]);
 		int status;
 		waitpid(pid, &status, 0);
 	}
@@ -149,13 +171,71 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 		return;
 	}
 
-	std::string request(buffer);
-	std::string requestedPath = "/";
-	size_t start = request.find("GET ") + 4;
-	size_t end = request.find(" HTTP/1.1");
-	if (start != std::string::npos && end != std::string::npos)
+	std::string request(buffer, bytes_read);
+
+	// Parse Request line
+	std::istringstream requestStream(request);
+	std::string requestLine;
+	if (!std::getline(requestStream, requestLine))
 	{
-		requestedPath = request.substr(start, end - start);
+		sendErrorResponse(client_fd, 400, "Bad Request");
+		close(client_fd);
+		activeFds.erase(client_fd);
+		serverBlockConfigs.erase(client_fd);
+		return;
+	}
+	if (!requestLine.empty() && requestLine.back() == '\r')
+		requestLine.pop_back();
+
+	std::string method;
+	std::string requestedPath;
+	std::string version;
+
+	{
+		std::istringstream lineStream(requestLine);
+		lineStream >> method >> requestedPath >> version;
+	}
+
+	if (method.empty() || requestedPath.empty() || version.empty())
+	{
+		sendErrorResponse(client_fd, 400, "Bad Request");
+		close(client_fd);
+		activeFds.erase(client_fd);
+		serverBlockConfigs.erase(client_fd);
+		return;
+	}
+
+	// Extract headers
+	std::map<std::string, std::string> headers;
+	std::string headerLine;
+	while (std::getline(requestStream, headerLine) && headerLine != "\r")
+	{
+		if (!headerLine.empty() && headerLine.back() == '\r')
+			headerLine.pop_back();
+		size_t colonPos = headerLine.find(":");
+		if (colonPos != std::string::npos)
+		{
+			std::string key = headerLine.substr(0, colonPos);
+			std::string value = headerLine.substr(colonPos + 1);
+			// trim
+			while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
+				value.erase(value.begin());
+			headers[key] = value;
+		}
+	}
+
+	// Extract body if POST
+	std::string requestBody;
+	if (method == "POST")
+	{
+		// Read the rest into body
+		std::string remaining;
+		while (std::getline(requestStream, remaining))
+			requestBody += remaining + "\n";
+
+		// Remove extra trailing newline
+		if (!requestBody.empty() && requestBody.back() == '\n')
+			requestBody.pop_back();
 	}
 
 	const Location* location = nullptr;
@@ -172,12 +252,37 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 	{
 		Logger::red("No matching location found for path: " + requestedPath);
 		sendErrorResponse(client_fd, 404, "Not Found");
+		activeFds.erase(client_fd);
+		serverBlockConfigs.erase(client_fd);
+		close(client_fd);
 		return;
 	}
 
 	std::string root = location->root.empty() ? config.root : location->root;
 	std::string filePath = root + requestedPath;
 
+	// DELETE Method Handling
+	if (method == "DELETE")
+	{
+		// Versuch die Datei zu löschen
+		if (remove(filePath.c_str()) == 0)
+		{
+			// Erfolgreich gelöscht
+			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body><h1>File Deleted</h1></body></html>";
+			send(client_fd, response.c_str(), response.size(), 0);
+		}
+		else
+		{
+			// Nicht gefunden oder Fehler
+			sendErrorResponse(client_fd, 404, "File Not Found");
+		}
+		activeFds.erase(client_fd);
+		serverBlockConfigs.erase(client_fd);
+		close(client_fd);
+		return;
+	}
+
+	// Directory handling for GET/POST
 	DIR* dir = opendir(filePath.c_str());
 	if (dir != nullptr) {
 		closedir(dir);
@@ -219,6 +324,7 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 		}
 	}
 
+	// CGI Handling for GET/POST
 	if (!location->cgi.empty())
 	{
 		std::string ext = getFileExtension(filePath);
@@ -229,7 +335,7 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 			cgiParams["SCRIPT_FILENAME"] = filePath;
 			cgiParams["DOCUMENT_ROOT"] = root;
 			cgiParams["QUERY_STRING"] = "";
-			cgiParams["REQUEST_METHOD"] = "GET";
+			cgiParams["REQUEST_METHOD"] = method;
 			cgiParams["SERVER_PROTOCOL"] = "HTTP/1.1";
 			cgiParams["GATEWAY_INTERFACE"] = "CGI/1.1";
 			cgiParams["SERVER_SOFTWARE"] = "my-cpp-server/1.0";
@@ -239,7 +345,21 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 			cgiParams["REMOTE_ADDR"] = "127.0.0.1";
 			cgiParams["REQUEST_URI"] = requestedPath;
 			cgiParams["SCRIPT_NAME"] = requestedPath;
-			executeCGI(location->cgi, filePath, cgiParams, client_fd);
+
+			// Content-Length for POST if available
+			if (method == "POST") {
+				std::map<std::string, std::string>::const_iterator it = headers.find("Content-Length");
+				if (it != headers.end()) {
+					cgiParams["CONTENT_LENGTH"] = it->second;
+				}
+				// Content-Type for POST if available
+				it = headers.find("Content-Type");
+				if (it != headers.end()) {
+					cgiParams["CONTENT_TYPE"] = it->second;
+				}
+			}
+
+			executeCGI(location->cgi, filePath, cgiParams, client_fd, requestBody, method);
 
 			activeFds.erase(client_fd);
 			serverBlockConfigs.erase(client_fd);
@@ -248,23 +368,27 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 		}
 	}
 
-	std::ifstream file(filePath);
-	if (file.is_open())
+	// Statisches File Handling für GET & POST (POST hier ggf. statische Resources liefern)
+	if (method == "GET" || method == "POST")
 	{
-		std::stringstream fileContent;
-		fileContent << file.rdbuf();
-		std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-		response += fileContent.str();
-		int sent = send(client_fd, response.c_str(), response.size(), 0);
-		if (sent < 0)
+		std::ifstream file(filePath);
+		if (file.is_open())
 		{
-			Logger::red("Error sending static file: " + std::string(strerror(errno)));
+			std::stringstream fileContent;
+			fileContent << file.rdbuf();
+			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+			response += fileContent.str();
+			int sent = send(client_fd, response.c_str(), response.size(), 0);
+			if (sent < 0)
+			{
+				Logger::red("Error sending static file: " + std::string(strerror(errno)));
+			}
 		}
-	}
-	else
-	{
-		Logger::red("Failed to open static file: " + filePath);
-		sendErrorResponse(client_fd, 404, "File Not Found");
+		else
+		{
+			Logger::red("Failed to open static file: " + filePath);
+			sendErrorResponse(client_fd, 404, "File Not Found");
+		}
 	}
 
 	activeFds.erase(client_fd);

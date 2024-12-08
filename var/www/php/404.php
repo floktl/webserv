@@ -15,7 +15,7 @@
 		<h1>Hello, World!</h1>
 		<p>This is the home page of your web server.</p>
 		<p>Feel free to explore and modify this page.</p>
-		<a href="/about.html">Learn more about us</a>
+		<a href="/about.php">Learn more about us</a>
 	</main>
 </body>
 

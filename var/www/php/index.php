@@ -1,7 +1,18 @@
 <?php
-$names = ["Charlie", "Barny", "Fred"];
-?>
+$dir = __DIR__ . '/data';
+$names = [];
 
+if (is_dir($dir)) {
+	$files = scandir($dir);
+	foreach ($files as $file) {
+		if (substr($file, -5) === '.name') {
+			$name = substr($file, 0, -5);
+			$age = trim(file_get_contents($dir . '/' . $file));
+			$names[] = ['name' => $name, 'age' => $age];
+		}
+	}
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -17,26 +28,40 @@ $names = ["Charlie", "Barny", "Fred"];
 			margin: 0;
 			padding: 0;
 		}
-
 		header {
 			background-color: #4CAF50;
 			color: white;
 			padding: 20px 0;
 			font-size: 2em;
 		}
-
 		main {
 			padding: 20px;
 		}
-
 		a {
 			color: #4CAF50;
 			text-decoration: none;
 			font-weight: bold;
 		}
-
 		a:hover {
 			text-decoration: underline;
+		}
+		form {
+			margin: 20px 0;
+		}
+		input[type="text"],
+		input[type="number"] {
+			padding: 10px;
+			margin: 5px;
+		}
+		input[type="submit"] {
+			background-color: #4CAF50;
+			color: #fff;
+			border: none;
+			padding: 10px;
+			cursor: pointer;
+		}
+		input[type="submit"]:hover {
+			background-color: #45a049;
 		}
 	</style>
 </head>
@@ -47,16 +72,37 @@ $names = ["Charlie", "Barny", "Fred"];
 	</header>
 	<main>
 		<h1>Hello, World!</h1>
-		<p>This is the home page of your web server.</p>
-		<p>Feel free to explore and modify this page.</p>
-		<h2>Some names rendered by PHP:</h2>
+		<p>Dies ist die Startseite des Webservers.</p>
+		<p>Fühle dich frei, diese Seite zu erkunden und zu bearbeiten.</p>
+		<h2>Namen und Alter:</h2>
 		<ul>
-			<?php for ($i = 0 ; $i < sizeof($names) ; $i++): ?>
-				<li><?php echo $names[$i]; ?></li>
-			<?php endfor; ?>
+			<?php foreach ($names as $entry): ?>
+				<li><?php echo htmlspecialchars($entry['name']) . " (Alter: " . htmlspecialchars($entry['age']) . ")"; ?><button onclick="deleteName('<?php echo htmlspecialchars($entry['name']); ?>')" style="display: inline;">X</button></li>
+			<?php endforeach; ?>
 		</ul>
-		<a href="/about.html">Learn more about us</a>
+		<form action="createName.php" method="post">
+			<input type="text" name="name" placeholder="Name" required>
+			<input type="number" name="age" placeholder="Alter" required>
+			<input type="submit" value="Neuen Namen hinzufügen">
+		</form>
+		<a href="/about.php">Mehr über uns</a>
+		<script>
+			function deleteName(name) {
+				fetch("./data/" + name + ".name", {
+					method: 'DELETE',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ nameToDelete: name })
+				})
+				.then(response => {
+					if (response.ok) {
+						window.location.reload();
+					}
+				})
+				.catch(error => console.error('Error:', error));
+			}
+		</script>
 	</main>
 </body>
-
 </html>
