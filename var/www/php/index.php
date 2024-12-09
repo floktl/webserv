@@ -19,7 +19,7 @@ if (is_dir($dir)) {
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Welcome to My Web Server</title>
+	<title>Welcome to My PHP Page</title>
 	<style>
 		body {
 			font-family: Arial, sans-serif;
@@ -87,7 +87,7 @@ if (is_dir($dir)) {
 
 <body>
 	<header>
-		Welcome to My Web Server
+		Welcome to My PHP Page
 	</header>
 	<main>
 		<h1>Hello, World!</h1>

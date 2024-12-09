@@ -1,13 +1,15 @@
 import os
 
-dir_path = os.path.join(os.getcwd(), 'data')
+script_dir = os.path.dirname(os.path.realpath(__file__))
+dir_path = os.path.join(script_dir, 'data')
+
 names = []
 
 if os.path.isdir(dir_path):
 	files = os.listdir(dir_path)
 	for file in files:
 		if file.endswith('.name'):
-			name = file[:-5]
+			name = file[:-5]  # '.name' abschneiden
 			with open(os.path.join(dir_path, file), 'r') as f:
 				age = f.read().strip()
 			names.append({'name': name, 'age': age})
@@ -17,7 +19,7 @@ print("""<!DOCTYPE html>
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Welcome to My Web Server</title>
+	<title>Welcome to My Python Page</title>
 	<style>
 		body {
 			font-family: Arial, sans-serif;
@@ -27,7 +29,7 @@ print("""<!DOCTYPE html>
 			padding: 0;
 		}
 		header {
-			background-color: #4CAF50;
+			background-color: #0033DD;
 			color: white;
 			padding: 20px 0;
 			font-size: 2em;
@@ -36,7 +38,7 @@ print("""<!DOCTYPE html>
 			padding: 20px;
 		}
 		a {
-			color: #4CAF50;
+			color: #0033DD;
 			text-decoration: none;
 			font-weight: bold;
 		}
@@ -52,39 +54,39 @@ print("""<!DOCTYPE html>
 			margin: 5px;
 		}
 		input[type="submit"] {
-			background-color: #4CAF50;
+			background-color: #0033DD;
 			color: #fff;
 			border: none;
 			padding: 10px;
 			cursor: pointer;
 		}
 		input[type="submit"]:hover {
-			background-color: #45a049;
+			background-color: #0000AA;
 		}
 		ul {
 			padding: 0;
 			list-style-type: none;
 		}
-		ul li{
+		ul li {
 			width: 50%;
 			display: flex;
 			gap: 20px;
 			box-sizing: border-box;
-			padding:10px;
+			padding: 10px;
 			margin: auto;
 			justify-content: space-between;
 		}
-		ul li:nth-of-type(1n){
+		ul li:nth-of-type(1n) {
 			background-color: #ddd;
 		}
-		ul li:nth-of-type(2n){
+		ul li:nth-of-type(2n) {
 			background-color: white;
 		}
 	</style>
 </head>
 <body>
 	<header>
-		Welcome to My Web Server
+		Welcome to My Python Page
 	</header>
 	<main>
 		<h1>Hello, World!</h1>

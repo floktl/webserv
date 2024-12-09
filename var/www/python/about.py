@@ -1,4 +1,3 @@
-
 print("""<!DOCTYPE html>
 <html lang="en">
 
@@ -17,7 +16,7 @@ print("""<!DOCTYPE html>
 		}
 
 		header {
-			background-color: #4CAF50;
+			background-color: #0033DD;
 			color: white;
 			padding: 20px;
 		}
@@ -34,7 +33,7 @@ print("""<!DOCTYPE html>
 		}
 
 		a {
-			color: #4CAF50;
+			color: #0033DD;
 			text-decoration: none;
 			font-weight: bold;
 		}
