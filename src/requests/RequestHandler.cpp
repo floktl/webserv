@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/08 16:15:17 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/09 14:12:43 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -139,6 +139,31 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 			headers = "Content-Type: text/html; charset=UTF-8";
 		}
 
+		// Check for Redirect (302 Found)
+		if (headers.find("Status: 302") != std::string::npos)
+		{
+			size_t location_pos = headers.find("Location:");
+			if (location_pos != std::string::npos)
+			{
+				size_t end_pos = headers.find("\r\n", location_pos);
+				std::string location = headers.substr(location_pos + 9, end_pos - location_pos - 9);
+				location.erase(0, location.find_first_not_of(" \t"));
+				location.erase(location.find_last_not_of(" \t") + 1);
+
+				// Send Redirect Response
+				std::string redirect_response = "HTTP/1.1 302 Found\r\n";
+				redirect_response += "Location: " + location + "\r\n\r\n";
+				int sent = send(client_fd, redirect_response.c_str(), redirect_response.size(), 0);
+				if (sent < 0)
+				{
+					Logger::red("Failed to send Redirect response: " + std::string(strerror(errno)));
+				}
+				close(pipefd_out[0]);
+				close(client_fd);
+				return;
+			}
+		}
+
 		// Construct and send HTTP response
 		std::string response = "HTTP/1.1 200 OK\r\n" + headers + "\r\n\r\n" + body;
 		int sent = send(client_fd, response.c_str(), response.length(), 0);
@@ -238,6 +263,27 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 			requestBody.pop_back();
 	}
 
+	// DELETE Method Handling
+	if (method == "DELETE")
+	{
+		// Versuch die Datei zu löschen
+		if (remove(filePath.c_str()) == 0)
+		{
+			// Erfolgreich gelöscht
+			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body><h1>File Deleted</h1></body></html>";
+			send(client_fd, response.c_str(), response.size(), 0);
+		}
+		else
+		{
+			// Nicht gefunden oder Fehler
+			sendErrorResponse(client_fd, 404, "File Not Found");
+		}
+		activeFds.erase(client_fd);
+		serverBlockConfigs.erase(client_fd);
+		close(client_fd);
+		return;
+	}
+
 	const Location* location = nullptr;
 	for (const auto& loc : config.locations)
 	{
@@ -260,27 +306,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 
 	std::string root = location->root.empty() ? config.root : location->root;
 	std::string filePath = root + requestedPath;
-
-	// DELETE Method Handling
-	if (method == "DELETE")
-	{
-		// Versuch die Datei zu löschen
-		if (remove(filePath.c_str()) == 0)
-		{
-			// Erfolgreich gelöscht
-			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body><h1>File Deleted</h1></body></html>";
-			send(client_fd, response.c_str(), response.size(), 0);
-		}
-		else
-		{
-			// Nicht gefunden oder Fehler
-			sendErrorResponse(client_fd, 404, "File Not Found");
-		}
-		activeFds.erase(client_fd);
-		serverBlockConfigs.erase(client_fd);
-		close(client_fd);
-		return;
-	}
 
 	// Directory handling for GET/POST
 	DIR* dir = opendir(filePath.c_str());
