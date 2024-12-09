@@ -4,12 +4,12 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Welcome to My Web Server</title>
+	<title>Welcome to My PHP Page</title>
 </head>
 
 <body>
 	<header>
-		Welcome to My Web Server
+		Welcome to My PHP Page
 	</header>
 	<main>
 		<h1>Hello, World!</h1>
