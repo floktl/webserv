@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/09 14:12:43 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/09 15:26:12 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -263,26 +263,6 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 			requestBody.pop_back();
 	}
 
-	// DELETE Method Handling
-	if (method == "DELETE")
-	{
-		// Versuch die Datei zu löschen
-		if (remove(filePath.c_str()) == 0)
-		{
-			// Erfolgreich gelöscht
-			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body><h1>File Deleted</h1></body></html>";
-			send(client_fd, response.c_str(), response.size(), 0);
-		}
-		else
-		{
-			// Nicht gefunden oder Fehler
-			sendErrorResponse(client_fd, 404, "File Not Found");
-		}
-		activeFds.erase(client_fd);
-		serverBlockConfigs.erase(client_fd);
-		close(client_fd);
-		return;
-	}
 
 	const Location* location = nullptr;
 	for (const auto& loc : config.locations)
@@ -307,6 +287,26 @@ void RequestHandler::handle_request(int client_fd, const ServerBlock& config,
 	std::string root = location->root.empty() ? config.root : location->root;
 	std::string filePath = root + requestedPath;
 
+	// DELETE Method Handling
+	if (method == "DELETE")
+	{
+		// Versuch die Datei zu löschen
+		if (remove(filePath.c_str()) == 0)
+		{
+			// Erfolgreich gelöscht
+			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body><h1>File Deleted</h1></body></html>";
+			send(client_fd, response.c_str(), response.size(), 0);
+		}
+		else
+		{
+			// Nicht gefunden oder Fehler
+			sendErrorResponse(client_fd, 404, "File Not Found");
+		}
+		activeFds.erase(client_fd);
+		serverBlockConfigs.erase(client_fd);
+		close(client_fd);
+		return;
+	}
 	// Directory handling for GET/POST
 	DIR* dir = opendir(filePath.c_str());
 	if (dir != nullptr) {
