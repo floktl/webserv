@@ -6,7 +6,7 @@
 #    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/09 15:30:22 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/10 12:19:04 by jeberle          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -105,13 +105,25 @@ $(NAME): $(OBJECTS)
 	@$(CC) -o $@ $^ $(LDFLAGS)
 	@echo "$(SUCCESS)"
 
-container:
+container-build:
 	@if ! docker ps | grep -q webserv; then \
-		echo "$(YELLOW)container not up, build environment$(X)"; \
-		docker-compose up --build -d; \
+		echo "$(YELLOW)Building the container environment$(X)"; \
+		docker compose -f ./docker-compose.yml build --no-cache; \
 	else \
-		echo "$(YELLOW)container already running.. skip it's creation and try build webserv...$(X)"; \
+		echo "$(YELLOW)Container already built.. skip build process$(X)"; \
 	fi
+
+container-up:
+	@if ! docker ps | grep -q webserv; then \
+		echo "$(YELLOW)Starting the container environment$(X)"; \
+		docker compose -p webserv -f ./docker-compose.yml up -d; \
+	else \
+		echo "$(YELLOW)Container already running.. skip its creation$(X)"; \
+	fi
+
+container:
+	@make container-build
+	@make container-up
 	@docker exec -it webserv bash
 
 prune:
