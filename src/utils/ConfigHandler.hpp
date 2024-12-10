@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigHandler.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/10 13:26:25 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/10 15:05:14 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,7 +55,7 @@ struct ServerBlock {
 	std::string name;
 	std::string root;
 	std::string index;
-	std::string error_page;
+	std::vector<std::string> error_pages;
 	std::string client_max_body_size;
 	std::vector<Location> locations;
 };
