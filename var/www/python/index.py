@@ -14,6 +14,7 @@ if os.path.isdir(dir_path):
 				age = f.read().strip()
 			names.append({'name': name, 'age': age})
 
+
 print("""<!DOCTYPE html>
 <html lang="en">
 <head>
