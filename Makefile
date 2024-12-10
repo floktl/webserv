@@ -6,7 +6,7 @@
 #    By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/10 11:27:27 by fkeitel          ###   ########.fr        #
+#    Updated: 2024/12/10 13:37:28 by fkeitel          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -115,14 +115,26 @@ $(NAME): $(OBJECTS)
 	@$(CC) -o $@ $^ $(LDFLAGS)
 	@echo "$(SUCCESS)"
 
-container:
-	@if ! docker ps | grep -q $(NAME); then \
-		echo "$(YELLOW)container not up, build environment$(X)"; \
-		docker-compose up --build -d; \
+container-build:
+	@if ! docker ps | grep -q webserv; then \
+		echo "$(YELLOW)Building the container environment$(X)"; \
+		docker compose -f ./docker-compose.yml build --no-cache; \
 	else \
-		echo "$(YELLOW)container already running.. skip it's creation and try build $(NAME)...$(X)"; \
+		echo "$(YELLOW)Container already built.. skip build process$(X)"; \
 	fi
-	@docker exec -it $(NAME) bash
+
+container-up:
+	@if ! docker ps | grep -q webserv; then \
+		echo "$(YELLOW)Starting the container environment$(X)"; \
+		docker compose -p webserv -f ./docker-compose.yml up -d; \
+	else \
+		echo "$(YELLOW)Container already running.. skip its creation$(X)"; \
+	fi
+
+container:
+	@make container-build
+	@make container-up
+	@docker exec -it webserv bash
 
 prune:
 	@if docker ps -a | grep -q $(NAME); then \
