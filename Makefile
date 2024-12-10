@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
+#    By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/09 15:30:22 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/10 11:27:27 by fkeitel          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -34,6 +34,16 @@ $(X)\n\
 $(BLACK)_$(X)█   █   ███████  ██████   ███████  ███████  █    ██     █   $(X)\n\
 $(X) Wir muessen noch alle config werte im req handler abfangen!!!!!!\n\
 $(X) Und 404 Pages !!!!!!\n\
+$(X) Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
+$(X) Upload Files:    Make the route able to accept uploaded files and configure where they should be saved. !!!!!!\n\
+$(X) Stress test shell script das de kiste fickt!!!!!!!!!\n\
+$(X) Turn on or off directory listing.\n\
+$(X) Set a default file to answer if the request is a directory.\n\
+$(X) Large files into chunks!!!!!\n\
+$(X) Make shure EOF is set anywhere after eaxh output of default or cgi beahviour EOF\n\
+$(X) Your program should call the CGI with the file requested as first argument.\n\
+$(X) Cookies und Session managment\n\
+$(X) The first server for a host:port will be the default for this host:port (that means it will answer to all the requests that don’t belong to an other server).\n\
 $(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)$(GREEN)█$(X)$(YELLOW)█$(X)\n\
 
 #------------------------------------------------------------------------------#
@@ -106,22 +116,25 @@ $(NAME): $(OBJECTS)
 	@echo "$(SUCCESS)"
 
 container:
-	@if ! docker ps | grep -q webserv; then \
+	@if ! docker ps | grep -q $(NAME); then \
 		echo "$(YELLOW)container not up, build environment$(X)"; \
 		docker-compose up --build -d; \
 	else \
-		echo "$(YELLOW)container already running.. skip it's creation and try build webserv...$(X)"; \
+		echo "$(YELLOW)container already running.. skip it's creation and try build $(NAME)...$(X)"; \
 	fi
-	@docker exec -it webserv bash
+	@docker exec -it $(NAME) bash
 
 prune:
-	@if docker ps -a | grep -q webserv; then \
+	@if docker ps -a | grep -q $(NAME); then \
 		echo "$(RED)Removing existing container...$(X)"; \
-		docker stop webserv && docker rm webserv; \
+		docker stop $(NAME) && docker rm $(NAME); \
 	else \
-		echo "$(YELLOW)No container named 'webserv' to remove.$(X)"; \
+		echo "$(YELLOW)No container named '$(NAME)' to remove.$(X)"; \
 	fi
 	@echo "$(GREEN)All done!$(X)"
+
+test:
+	./$(NAME) config/test.conf
 
 clean:
 	@rm -rf $(OBJ_DIR)
