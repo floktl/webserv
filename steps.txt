@@ -1,0 +1,80 @@
+1. Your Computer (Client) Sends a Request
+	What happens: curl sends a network request to localhost:8080.
+
+	Relevant Code: This part isn't in your code because it's handled by the client (curl).
+
+2. The Operating System Finds the Server
+	What happens: The OS directs the request to webserv, which is listening on port 8080.
+
+	Relevant Code: This happens in create_server_socket when the server binds and listens:
+
+		server_fd = socket(AF_INET, SOCK_STREAM, 0);
+		bind(server_fd, (struct sockaddr *)&addr, sizeof(addr));
+		listen(server_fd, 128);
+
+3. The webserv Accepts the Connection
+	What happens: webserv accepts the incoming connection from the client.
+
+	Relevant Code: This is in handleServerEvent:
+
+		this->client_fd = accept(serv_fd, nullptr, nullptr);
+
+4. The webserv Reads the Request
+	What happens: webserv reads the request sent by curl.
+
+	Relevant Code: This is in handle_request:
+		int bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+		std::cout << "[DEBUG] Received request:\n" << request << std::endl;
+
+5. webserv Checks Its Configuration
+	What happens: webserv checks if the request should be proxied.
+
+	Relevant Code: The proxy check happens in handle_request:
+
+		if (config.isProxy)
+		{
+			std::cout << "[DEBUG] Proxying request to: " << config.proxyTarget << ":"
+				<< config.proxyPort << std::endl;
+		}
+
+6. webserv Forwards the Request
+	What happens: webserv sends a new HTTP request to the
+		target server (host.docker.internal:8081).
+
+	Relevant Code: This happens when you construct and send the HTTP request
+		in handle_request:
+
+		std::ostringstream oss;
+		oss << "GET / HTTP/1.1\r\n"
+			<< "Host: " << config.proxyTarget << ":" << config.proxyPort << "\r\n"
+			<< "User-Agent: custom-proxy\r\n"
+			<< "Connection: close\r\n\r\n";
+
+		send(proxy_fd, full_request.c_str(), full_request.size(), 0);
+
+7. The Target Server Responds
+	What happens: The target server processes the request and sends back
+		a response (or nothing).
+
+	Relevant Code: This is handled by the target server (host.docker.internal:8081)
+		and is not part of your webserv code. You see its result when recv is called:
+
+		int proxy_bytes_read = recv(proxy_fd, buffer, sizeof(buffer) - 1, 0);
+
+8. webserv Relays the Response
+	What happens: webserv sends the response it got from the target server back to curl.
+
+	Relevant Code: This happens in handle_request:
+
+	if (send(client_fd, buffer, proxy_bytes_read, 0) < 0)
+	{
+		std::perror("[ERROR] Failed to send response to client");
+	}
+
+9. curl Displays the Response
+	What happens: curl prints the response in your terminal.
+
+	Relevant Code: This is handled by curl itself. If webserv successfully
+		sends back the response, you’ll see the content.
+
+	

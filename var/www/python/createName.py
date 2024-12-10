@@ -18,6 +18,7 @@ name = re.sub(r'[^a-zA-Z0-9_-]', '', name)
 
 try:
 	age_int = int(age)
+
 except ValueError:
 	age_int = 0
 
@@ -26,4 +27,3 @@ if name and age_int > 0:
 		f.write(str(age_int))
 
 print("Status: 302 Found\r\nLocation: /\r\nContent-type: text/html\r\n\r\n")
-
