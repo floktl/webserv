@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:33:15 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/08 15:23:22 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/10 15:08:50 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -156,18 +156,43 @@ bool Sanitizer::sanitize_index(std::string& index) {
 
 bool Sanitizer::sanitize_errorPage(std::string &errorPage, const std::string& pwd) {
 	std::istringstream stream(errorPage);
-	int code;
-	std::string path;
+	std::vector<std::string> tokens;
+	std::string token;
 
-	if (!(stream >> code >> path)) return false;
-	if (code < 400 || code > 599) return false;
-
-	if (!isValidPath(path, "Error page", pwd)) {
+	while (stream >> token) {
+		tokens.push_back(token);
+	}
+	if (tokens.size() < 2)
 		return false;
+
+	// Last token should be the path
+	std::string path = tokens.back();
+	tokens.pop_back();
+
+	if (path.empty() || path[0] != '/')
+		return false;
+
+	// Remaining tokens must be error codes
+	for (size_t i = 0; i < tokens.size(); ++i) {
+		int code = 0;
+		try {
+			code = std::stoi(tokens[i]);
+		} catch (...) {
+			return false;
+		}
+		if (code < 400 || code > 599) return false;
 	}
 
+	// Validate the path as Error page
+	if (!isValidPath(path, "Error page", pwd))
+		return false;
+
+	// Reconstruct errorPage in normalized format: "code code ... path"
 	std::ostringstream oss;
-	oss << code << " " << path;
+	for (size_t i = 0; i < tokens.size(); ++i) {
+		oss << tokens[i] << " ";
+	}
+	oss << path;
 	errorPage = oss.str();
 	return true;
 }

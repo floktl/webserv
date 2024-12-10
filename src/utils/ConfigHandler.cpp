@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/05 15:21:26 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/10 15:15:53 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ std::string expandEnvironmentVariables(const std::string& value, char** env) {
 		// Find the end of the variable name
 		size_t end = pos + 1;
 		while (end < result.length() &&
-			(std::isalnum(result[end]) || result[end] == '_')) {
+			(std::isalnum((unsigned char)result[end]) || result[end] == '_')) {
 			end++;
 		}
 
@@ -209,7 +209,6 @@ void ConfigHandler::parseLine(std::string line) {
 			return;
 		}
 
-		// Process different server directives
 		if (keyword == "listen") {
 			try {
 				registeredServerConfs.back().port = std::stoi(value);
@@ -227,8 +226,10 @@ void ConfigHandler::parseLine(std::string line) {
 			registeredServerConfs.back().root = value;
 		else if (keyword == "index")
 			registeredServerConfs.back().index = value;
-		else if (keyword == "error_page")
-			registeredServerConfs.back().error_page = value;
+		else if (keyword == "error_page") {
+			// Now we store multiple error_page lines and later handle multiple codes
+			registeredServerConfs.back().error_pages.push_back(value);
+		}
 	}
 	// Handle location-level directives
 	else {
@@ -284,12 +285,11 @@ bool ConfigHandler::sanitizeConfData(void) {
 	std::set<int> usedPorts;
 	for (size_t i = 0; i < registeredServerConfs.size(); ++i) {
 		// Mandatory checks
-		if (registeredServerConfs[i].port == 0) {  // Add this check
+		if (registeredServerConfs[i].port == 0) {
 			Logger::error("Port number is mandatory for server block " + std::to_string(i + 1));
 			configFileValid = false;
 			return false;
 		}
-		// port - mandatory
 		if (Sanitizer::sanitize_portNr(registeredServerConfs[i].port)) {
 			if (usedPorts.find(registeredServerConfs[i].port) == usedPorts.end()) {
 				usedPorts.insert(registeredServerConfs[i].port);
@@ -311,7 +311,6 @@ bool ConfigHandler::sanitizeConfData(void) {
 			return false;
 		}
 
-		// Optional server block checks
 		// server_name - optional
 		if (!registeredServerConfs[i].name.empty() &&
 			!Sanitizer::sanitize_serverName(registeredServerConfs[i].name)) {
@@ -326,11 +325,13 @@ bool ConfigHandler::sanitizeConfData(void) {
 			return false;
 		}
 
-		// error_page - optional
-		if (!registeredServerConfs[i].error_page.empty() &&
-			!Sanitizer::sanitize_errorPage(registeredServerConfs[i].error_page, expandEnvironmentVariables("$PWD", env))) {
-			configFileValid = false;
-			return false;
+		// error_pages - optional (multiple lines and multiple codes)
+		for (size_t ep = 0; ep < registeredServerConfs[i].error_pages.size(); ++ep) {
+			if (!Sanitizer::sanitize_errorPage(registeredServerConfs[i].error_pages[ep], expandEnvironmentVariables("$PWD", env))) {
+				Logger::red("Error page config not valid");
+				configFileValid = false;
+				return false;
+			}
 		}
 
 		// client_max_body_size - optional
@@ -348,13 +349,13 @@ bool ConfigHandler::sanitizeConfData(void) {
 		for (size_t j = 0; j < registeredServerConfs[i].locations.size(); ++j) {
 			Location& loc = registeredServerConfs[i].locations[j];
 
-			// location path - mandatory for location block
+			// location path - mandatory
 			if (!Sanitizer::sanitize_locationPath(loc.path, expandEnvironmentVariables("$PWD", env))) {
 				configFileValid = false;
 				return false;
 			}
 
-			// Optional location block checks
+			// Optional location checks
 			if (!loc.methods.empty() &&
 				!Sanitizer::sanitize_locationMethods(loc.methods)) {
 				configFileValid = false;
@@ -465,7 +466,6 @@ void ConfigHandler::printRegisteredConfs(std::string filename) {
 	Logger::yellow(" Configurations by " + filename);
 	Logger::green("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
-	// Since we're modifying values, we need to work with non-const references
 	auto printValue = [](std::string& value, const std::string& label,
 						const std::string& default_value = "", int padding = 20) {
 		Logger::white(label, false, padding);
@@ -473,7 +473,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename) {
 			if (default_value.empty()) {
 				Logger::black("[undefined]");
 			} else {
-				value = default_value;  // Set the default value
+				value = default_value;
 				Logger::black("[undefined (default: " + default_value + ")]");
 			}
 		} else {
@@ -488,7 +488,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename) {
 			if (default_value == 0) {
 				Logger::black("[undefined]");
 			} else {
-				value = default_value;  // Set the default value
+				value = default_value;
 				Logger::black("[undefined (default: " + std::to_string(default_value) + ")]");
 			}
 		} else {
@@ -496,26 +496,34 @@ void ConfigHandler::printRegisteredConfs(std::string filename) {
 		}
 	};
 
-	// Need to use non-const reference to modify the vector
 	for (size_t i = 0; i < registeredServerConfs.size(); ++i) {
-		ServerBlock& conf = registeredServerConfs[i];  // Note: non-const reference
+		ServerBlock& conf = registeredServerConfs[i];
 		Logger::blue("\n  Server Block [" + std::to_string(i + 1) + "]:\n");
 
-		// Server block defaults based on nginx
 		printIntValue(conf.port, "    Port: ", 80);
 		printValue(conf.name, "    Server Name: ", "localhost");
 		printValue(conf.root, "    Root: ", "/usr/share/nginx/html");
 		printValue(conf.index, "    Index: ", "index.html index.htm");
-		printValue(conf.error_page, "    Error Page: ", "500 502 503 504 /50x.html");
+
+		// Print all error_pages
+		if (conf.error_pages.empty()) {
+			std::string tmp_str;
+			printValue(tmp_str, "    Error Page: ", "500 502 503 504 /50x.html");
+		} else {
+			for (size_t ep = 0; ep < conf.error_pages.size(); ++ep) {
+				std::string label = (ep == 0) ? "    Error Page: " : "               ";
+				std::string tmp = conf.error_pages[ep];
+				printValue(tmp, label);
+			}
+		}
 
 		if (conf.locations.empty()) {
 			Logger::yellow("  No Location Blocks.");
 		} else {
 			for (size_t j = 0; j < conf.locations.size(); ++j) {
-				Location& location = conf.locations[j];  // Note: non-const reference
+				Location& location = conf.locations[j];
 				Logger::cyan("\n    Location [" + std::to_string(j + 1) + "]:   " + location.path);
 
-				// Location block defaults based on nginx
 				printValue(location.methods, "      Methods: ", "GET HEAD POST");
 				printValue(location.cgi, "      CGI: ");
 				printValue(location.cgi_param, "      CGI Param: ");
@@ -534,12 +542,10 @@ void ConfigHandler::printRegisteredConfs(std::string filename) {
 
 std::vector<ServerBlock> ConfigHandler::get_registeredServerConfs(void) const
 {
-	// Ensure there are registered configurations before returning
 	if (registeredServerConfs.empty())
 	{
 		throw std::runtime_error("No registered configurations found!");
 	}
 
-	return registeredServerConfs; // Return all registered configurations
+	return registeredServerConfs;
 }
-

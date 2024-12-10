@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestHandler.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/10 14:05:11 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/10 14:24:39 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -116,63 +116,52 @@ std::string readCgiOutput(int pipe_out) {
 	return cgi_output;
 }
 
-void parseCgiOutput(const std::string& cgi_output, std::string& headers, std::string& body, int pipefd_out[2], int pipefd_in[2]){
+void parseCgiOutput(std::string& headers, std::string& body, int pipefd_out[2], [[maybe_unused]] int pipefd_in[2], pid_t pid) {
+	char buffer[4096];
+	int bytes;
+	struct timeval timeout;
+	timeout.tv_sec = 5;  // Timeout: 5 seconds
+	timeout.tv_usec = 0; // No microseconds
 
-	        // Read CGI output with timeout
-        char buffer[4096];
-        int bytes;
-        struct timeval timeout;
-        timeout.tv_sec = 5;  // Timeout: 5 seconds
-        timeout.tv_usec = 0; // No microseconds
+	fd_set readfds;
+	FD_ZERO(&readfds);
+	FD_SET(pipefd_out[0], &readfds);
 
-        fd_set readfds;
-        FD_ZERO(&readfds);
-        FD_SET(pipefd_out[0], &readfds);
+	std::string output;
+	while (true) {
+		fd_set tempfds = readfds; // Preserve original set
+		int activity = select(pipefd_out[0] + 1, &tempfds, NULL, NULL, &timeout);
+		if (activity == -1) {
+			break;
+		} else if (activity == 0) {
+			Logger::red("CGI script timed out");
+			kill(pid, SIGKILL); // Terminate the child process
+			close(pipefd_out[0]);
+			return;
+		}
 
-        while (true)
-        {
-            fd_set tempfds = readfds; // Preserve original set
-            int activity = select(pipefd_out[0] + 1, &tempfds, NULL, NULL, &timeout);
-            if (activity == -1)
-            {
-                break;
-            }
-            else if (activity == 0)
-            {
-				//Logger::red("Request timed out for client_fd: " + std::to_string(client_fd));
-				//sendErrorResponse(client_fd, 408, "Request Timeout"); // HTTP 408 Request Timeout
-				//close(client_fd);
-				//activeFds.erase(client_fd);
-				//serverBlockConfigs.erase(client_fd);
-                Logger::red("CGI script timed out");
-                kill(pid, SIGKILL); // Terminate the child process
-                close(pipefd_out[0]);
-                return;
-            }
+		if (FD_ISSET(pipefd_out[0], &tempfds)) {
+			bytes = read(pipefd_out[0], buffer, sizeof(buffer));
+			if (bytes > 0) {
+				output.append(buffer, static_cast<size_t>(bytes));
+			} else {
+				break;
+			}
+		}
+	}
 
-            if (FD_ISSET(pipefd_out[0], &tempfds))
-            {
-                bytes = read(pipefd_out[0], buffer, sizeof(buffer));
-                if (bytes > 0)
-                {
-                    cgi_output.append(buffer, bytes);
-                }
-                else
-                {
-                    break;
-                }
-            }
-    }
-	size_t header_end = cgi_output.find("\r\n\r\n");
+	size_t header_end = output.find("\r\n\r\n");
 	if (header_end != std::string::npos) {
-		headers = cgi_output.substr(0, header_end);
-		body = cgi_output.substr(header_end + 4);
+		headers = output.substr(0, header_end);
+		body = output.substr(header_end + 4);
 	} else {
 		// No headers found
-		body = cgi_output;
+		body = output;
 		headers = "Content-Type: text/html; charset=UTF-8";
 	}
 }
+
+
 
 bool checkForRedirect(const std::string& headers, int client_fd) {
 	if (headers.find("Status: 302") != std::string::npos) {
@@ -210,9 +199,8 @@ void waitForChild(pid_t pid) {
 }
 
 void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
-                const std::map<std::string, std::string>& cgiParams, int client_fd,
-                const std::string& requestBody, const std::string& method)
-{
+				const std::map<std::string, std::string>& cgiParams, int client_fd,
+				const std::string& requestBody, const std::string& method) {
 	int pipefd_out[2]; // For CGI stdout
 	int pipefd_in[2];  // For CGI stdin
 	if (!createPipes(pipefd_out, pipefd_in)) {
@@ -237,11 +225,9 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 
 		writeRequestBodyIfNeeded(pipefd_in[1], method, requestBody);
 
-		std::string cgi_output = readCgiOutput(pipefd_out[0]);
-
 		std::string headers;
 		std::string body;
-		parseCgiOutput(cgi_output, headers, body, pipefd_out, pipefd_in);
+		parseCgiOutput(headers, body, pipefd_out, pipefd_in, pid);
 
 		if (checkForRedirect(headers, client_fd)) {
 			close(client_fd);
