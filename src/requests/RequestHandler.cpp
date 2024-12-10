@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/10 13:49:10 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/10 14:05:11 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -116,10 +116,9 @@ std::string readCgiOutput(int pipe_out) {
 	return cgi_output;
 }
 
-void parseCgiOutput(const std::string& cgi_output, std::string& headers, std::string& body) {
+void parseCgiOutput(const std::string& cgi_output, std::string& headers, std::string& body, int pipefd_out[2], int pipefd_in[2]){
 
 	        // Read CGI output with timeout
-        std::string cgi_output;
         char buffer[4096];
         int bytes;
         struct timeval timeout;
@@ -142,7 +141,7 @@ void parseCgiOutput(const std::string& cgi_output, std::string& headers, std::st
             {
 				//Logger::red("Request timed out for client_fd: " + std::to_string(client_fd));
 				//sendErrorResponse(client_fd, 408, "Request Timeout"); // HTTP 408 Request Timeout
-				close(client_fd);
+				//close(client_fd);
 				//activeFds.erase(client_fd);
 				//serverBlockConfigs.erase(client_fd);
                 Logger::red("CGI script timed out");
@@ -242,7 +241,7 @@ void executeCGI(const std::string& cgiPath, const std::string& scriptPath,
 
 		std::string headers;
 		std::string body;
-		parseCgiOutput(cgi_output, headers, body);
+		parseCgiOutput(cgi_output, headers, body, pipefd_out, pipefd_in);
 
 		if (checkForRedirect(headers, client_fd)) {
 			close(client_fd);
