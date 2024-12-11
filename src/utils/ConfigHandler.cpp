@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/11 12:07:35 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/11 13:06:44 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -509,9 +509,6 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd) 
 			}
 
 			// Check if regular file
-#ifdef _DIRENT_HAVE_D_TYPE
-			if (entry->d_type == DT_REG)
-#endif
 			{
 				std::string fileName = entry->d_name;
 				size_t dotPos = fileName.find('.');
@@ -519,10 +516,8 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd) 
 					try {
 						int errorCode = std::stoi(fileName.substr(0, dotPos));
 						std::string fullPath = errorPageDir + "/" + fileName;
-						Logger::magenta(fullPath);
 						errorPageDefaults[errorCode] = fullPath;
 					} catch (const std::exception& e) {
-						// Ignoriere ungültige Dateinamen
 						continue;
 					}
 				}
