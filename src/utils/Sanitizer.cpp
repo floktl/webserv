@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:33:15 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/11 12:07:39 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/11 12:28:30 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,34 +155,28 @@ bool Sanitizer::sanitize_index(std::string& index) {
 }
 
 bool Sanitizer::sanitize_errorPage(std::string &errorPage, const std::string &pwd) {
-	Logger::blue("Validating errorPage: " + errorPage);
 
 	std::istringstream stream(errorPage);
 	std::vector<std::string> tokens;
 	std::string token;
 
-	// Tokens extrahieren
 	while (stream >> token) {
 		tokens.push_back(token);
 	}
 
-	// Mindestens ein Fehlercode und ein Pfad erforderlich
 	if (tokens.size() < 2) {
 		Logger::error("Error page definition must include at least one error code and a path.");
 		return false;
 	}
 
-	// Letztes Token als Pfad
 	std::string path = tokens.back();
 	tokens.pop_back();
 
-	// Validierung des Pfads
 	if (!isValidPath(path, "Error page", pwd)) {
 		Logger::error("Error page path invalid: " + path);
 		return false;
 	}
 
-	// Validierung der Fehlercodes
 	for (const std::string &codeStr : tokens) {
 		int code = 0;
 		try {
@@ -197,7 +191,6 @@ bool Sanitizer::sanitize_errorPage(std::string &errorPage, const std::string &pw
 		}
 	}
 
-	// Normalisierung: Fehlercodes gefolgt vom Pfad
 	std::ostringstream oss;
 	for (const std::string &codeStr : tokens) {
 		oss << codeStr << " ";
@@ -205,7 +198,6 @@ bool Sanitizer::sanitize_errorPage(std::string &errorPage, const std::string &pw
 	oss << path;
 	errorPage = oss.str();
 
-	Logger::green("Error page validated: " + errorPage);
 	return true;
 }
 
