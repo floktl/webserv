@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:36:37 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/11 16:10:23 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/11 16:48:13 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,38 +28,35 @@
 #include <cstring> // Für strerror
 #include <set>
 #include <map> // Für strerror
+#include <string> // Für strerror
 
 struct ServerBlock;
 struct Location;
 
 class CgiHandler {
 private:
-	int client_fd;
-	Location* location;
-	std::string& filePath;
-	std::string& method;
-	std::string& requestedPath;
-	std::string& requestBody;
-	std::string& headers;
-	std::set<int>& activeFds;
-	std::map<int, const ServerBlock*>& serverBlockConfigs;
+	const Location* location;
+	const std::string& filePath;
+	const std::string& method;
+	const std::string& requestedPath;
+	const std::string& requestBody;
+	const std::map<std::string, std::string>& headersMap;
 
 	void closePipe(int fds[2]);
 	bool createPipes(int pipefd_out[2], int pipefd_in[2]);
 	void setupChildEnv(const std::map<std::string, std::string>& cgiParams, std::vector<char*>& env);
 	void runCgiChild(const std::string& cgiPath, const std::string& scriptPath, int pipefd_out[2], int pipefd_in[2], const std::map<std::string, std::string>& cgiParams);
-	void writeRequestBodyIfNeeded(int pipe_in);
-	std::string readCgiOutput(int pipe_out);
-	void parseCgiOutput(std::string& headers, std::string& body, int pipefd_out[2], int pipefd_in[2], pid_t pid);
-	bool checkForRedirect();
-	void sendCgiResponse(const std::string& body);
-	void waitForChild(pid_t pid);
-	void executeCGI(const std::string& cgiPath, const std::map<std::string, std::string>& cgiParams);
+	void writeRequestBodyIfNeeded(int pipe_in, const std::string& method, const std::string& requestBody);
+	std::string readCgiOutput(int);
+	void parseCgiOutput(std::string&, std::string&, int*, int*, pid_t);
+	bool checkForRedirect(const std::string&);
+	void sendCgiResponse(const std::string&, const std::string&);
+	void waitForChild(pid_t);
+	void executeCGI(const std::string& cgiPath, const std::string& scriptPath, const std::map<std::string, std::string>& cgiParams, const std::string& requestBody, const std::string& method);
 
-    std::string getFileExtension();
 public:
-	CgiHandler(int client_fd, Location* _location, std::string& _filePath, std::string& _method, std::string& _requestedPath, std::string& _requestBody, std::string& _headers, std::set<int>& _activeFds, std::map<int, const ServerBlock*>& _serverBlockConfigs);
-	bool handleCGI();
+	CgiHandler(const Location* location, const std::string& filePath, const std::string& method, const std::string& requestedPath, const std::string& requestBody, const std::map<std::string, std::string>& headersMap);
+	bool handleCGIIfNeeded();
 };
 
 #endif

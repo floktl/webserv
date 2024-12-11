@@ -6,7 +6,7 @@
 #    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/11 16:20:48 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/11 16:45:16 by jeberle          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -89,6 +89,7 @@ SRCS=	src/main.cpp \
 		src/utils/ConfigHandler.cpp \
 		src/utils/Sanitizer.cpp \
 		src/server/Server.cpp \
+		src/cgi/CgiHandler.cpp \
 		src/requests/RequestHandler.cpp \
 		src/helpers/helper.cpp
 
