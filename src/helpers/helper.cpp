@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/01 10:32:07 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/06 08:41:40 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/11 12:25:19 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,17 +26,4 @@ void setNonBlocking(int fd)
 	// Get the current flags of the file descriptor
 	flags = fcntl(fd, F_GETFL, 0);
 	fcntl(fd, F_SETFL, flags | O_NONBLOCK); // Set fd to non-blocking mode
-}
-
-void printCurrentWorkingDirectory(void)
-{
-	char cwd[PATH_MAX]; // Buffer to store the current working directory
-	if (getcwd(cwd, sizeof(cwd)) != nullptr)
-	{
-		std::cout << "Current working directory: " << cwd << std::endl;
-	}
-	else
-	{
-		std::perror("getcwd"); // Print error if getcwd fails
-	}
 }
