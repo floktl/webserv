@@ -6,14 +6,14 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/10 15:15:53 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/11 12:07:35 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./ConfigHandler.hpp"
 #include "./Sanitizer.hpp"
 
-// initialize handler with necessay flags
+// initialize handler with necessary flags
 ConfigHandler::ConfigHandler() {
 	configFileValid = false;
 	inServerBlock = false;
@@ -45,7 +45,7 @@ std::vector<std::string> parseOptionsToVector(const std::string& opts) {
 	return result;
 }
 
-// expand ENV varibales in bash style for config values
+// expand ENV variables in bash style for config values
 std::string expandEnvironmentVariables(const std::string& value, char** env) {
 	if (!env) return value;
 
@@ -53,20 +53,16 @@ std::string expandEnvironmentVariables(const std::string& value, char** env) {
 	size_t pos = 0;
 
 	while ((pos = result.find('$', pos)) != std::string::npos) {
-		// Check if we have a valid variable name after $
 		if (pos + 1 >= result.length()) break;
 
-		// Find the end of the variable name
 		size_t end = pos + 1;
 		while (end < result.length() &&
 			(std::isalnum((unsigned char)result[end]) || result[end] == '_')) {
 			end++;
 		}
 
-		// Extract the variable name
 		std::string varName = result.substr(pos + 1, end - (pos + 1));
 
-		// Search for the variable in environment
 		bool found = false;
 		for (char** envVar = env; *envVar != nullptr; envVar++) {
 			std::string envStr(*envVar);
@@ -83,7 +79,6 @@ std::string expandEnvironmentVariables(const std::string& value, char** env) {
 			}
 		}
 
-		// If variable not found, leave it unchanged and move past it
 		if (!found) {
 			pos = end;
 		}
@@ -227,16 +222,44 @@ void ConfigHandler::parseLine(std::string line) {
 		else if (keyword == "index")
 			registeredServerConfs.back().index = value;
 		else if (keyword == "error_page") {
-			// Now we store multiple error_page lines and later handle multiple codes
-			registeredServerConfs.back().error_pages.push_back(value);
+			std::istringstream iss(value);
+			std::vector<std::string> tokens;
+			std::string token;
+
+			while (iss >> token) {
+				tokens.push_back(token);
+			}
+
+			if (tokens.size() < 2) {
+				Logger::error("Error: Invalid error_page format at line " + std::to_string(linecount));
+				parsingErr = true;
+				return;
+			}
+
+			std::string path = tokens.back(); // Pfad ist das letzte Token
+			tokens.pop_back();
+
+			for (const std::string &codeStr : tokens) {
+				try {
+					int code = std::stoi(codeStr);
+					if (code < 400 || code > 599) {
+						Logger::error("Error: Invalid error code '" + codeStr + "' at line " + std::to_string(linecount));
+						parsingErr = true;
+						return;
+					}
+					registeredServerConfs.back().error_pages[code] = path;
+				} catch (...) {
+					Logger::error("Error: Invalid error code '" + codeStr + "' at line " + std::to_string(linecount));
+					parsingErr = true;
+					return;
+				}
+			}
 		}
 	}
 	// Handle location-level directives
 	else {
-		if (std::find(locationOpts.begin(), locationOpts.end(), keyword)
-			== locationOpts.end()) {
-			Logger::error("Error: Invalid location directive '" + keyword
-				+ "' at line " + std::to_string(linecount));
+		if (std::find(locationOpts.begin(), locationOpts.end(), keyword) == locationOpts.end()) {
+			Logger::error("Error: Invalid location directive '" + keyword + "' at line " + std::to_string(linecount));
 			parsingErr = true;
 			return;
 		}
@@ -325,26 +348,39 @@ bool ConfigHandler::sanitizeConfData(void) {
 			return false;
 		}
 
-		// error_pages - optional (multiple lines and multiple codes)
-		for (size_t ep = 0; ep < registeredServerConfs[i].error_pages.size(); ++ep) {
-			if (!Sanitizer::sanitize_errorPage(registeredServerConfs[i].error_pages[ep], expandEnvironmentVariables("$PWD", env))) {
-				Logger::red("Error page config not valid");
-				configFileValid = false;
-				return false;
+		// error_pages - now handled as a map
+		for (size_t j = 0; j < registeredServerConfs.size(); ++j) {
+			ServerBlock& conf = registeredServerConfs[j];
+			std::map<int, std::string> errorPagesToValidate = conf.error_pages;
+
+			for (std::map<int, std::string>::const_iterator it = errorPagesToValidate.begin();
+				it != errorPagesToValidate.end(); ++it) {
+				int code = it->first;
+				std::string path = it->second;
+
+				// Validierung des Pfads und der Fehlercodes
+				std::string normalizedPath = path; // Kopie für Validierung
+				std::ostringstream errorPageDef;
+				errorPageDef << code << " " << normalizedPath;
+
+				std::string errorPageString = errorPageDef.str();
+				if (!Sanitizer::sanitize_errorPage(errorPageString, expandEnvironmentVariables("$PWD", env))) {
+					Logger::red("Error page config not valid for code: " + std::to_string(code));
+					configFileValid = false;
+					return false;
+				}
+
+				// Pfad nach Validierung aktualisieren
+				conf.error_pages[code] = normalizedPath;
 			}
 		}
 
-		// client_max_body_size - optional
-		if (!registeredServerConfs[i].client_max_body_size.empty() &&
-			!Sanitizer::sanitize_clMaxBodSize(registeredServerConfs[i].client_max_body_size)) {
-			configFileValid = false;
-			return false;
-		}
 		if (registeredServerConfs[i].locations.empty()) {
 			Logger::error("Server block " + std::to_string(i + 1) + " must have at least one location block");
 			configFileValid = false;
 			return false;
 		}
+
 		// Location blocks validation
 		for (size_t j = 0; j < registeredServerConfs[i].locations.size(); ++j) {
 			Location& loc = registeredServerConfs[i].locations[j];
@@ -445,7 +481,7 @@ void ConfigHandler::parseArgs(int argc, char **argv, char **envp) {
 		std::string filepath(argv[1]);
 		if (isConfigFile(filepath)) {
 			Logger::green("\nConfig " + filepath + " registered successfully!\n");
-			printRegisteredConfs(filepath);
+			printRegisteredConfs(filepath, expandEnvironmentVariables("$PWD", env));
 		}
 	} else {
 		Logger::error() << "Usage: ./webserv [CONFIG_PATH]";
@@ -456,7 +492,45 @@ bool ConfigHandler::getconfigFileValid(void) const {
 	return configFileValid;
 }
 
-void ConfigHandler::printRegisteredConfs(std::string filename) {
+void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd) {
+	// Map to store default error page paths
+	std::map<int, std::string> errorPageDefaults;
+
+	// Scan the directory for error page files
+	std::string errorPageDir = pwd + "/err_page_defaults";
+
+	DIR *dir = opendir(errorPageDir.c_str());
+	if (dir != NULL) {
+		struct dirent *entry;
+		while ((entry = readdir(dir)) != NULL) {
+			// Skip "." and ".."
+			if (std::string(entry->d_name) == "." || std::string(entry->d_name) == "..") {
+				continue;
+			}
+
+			// Check if regular file
+#ifdef _DIRENT_HAVE_D_TYPE
+			if (entry->d_type == DT_REG)
+#endif
+			{
+				std::string fileName = entry->d_name;
+				size_t dotPos = fileName.find('.');
+				if (dotPos != std::string::npos) {
+					try {
+						int errorCode = std::stoi(fileName.substr(0, dotPos));
+						std::string fullPath = errorPageDir + "/" + fileName;
+						Logger::magenta(fullPath);
+						errorPageDefaults[errorCode] = fullPath;
+					} catch (const std::exception& e) {
+						// Ignoriere ungültige Dateinamen
+						continue;
+					}
+				}
+			}
+		}
+		closedir(dir);
+	}
+
 	if (registeredServerConfs.empty()) {
 		Logger::yellow("No configurations registered.");
 		return;
@@ -503,18 +577,31 @@ void ConfigHandler::printRegisteredConfs(std::string filename) {
 		printIntValue(conf.port, "    Port: ", 80);
 		printValue(conf.name, "    Server Name: ", "localhost");
 		printValue(conf.root, "    Root: ", "/usr/share/nginx/html");
-		printValue(conf.index, "    Index: ", "index.html index.htm");
+		printValue(conf.index, "    Index: ", "index.html");
 
-		// Print all error_pages
+		// Kombinierte Error Page Logik
 		if (conf.error_pages.empty()) {
-			std::string tmp_str;
-			printValue(tmp_str, "    Error Page: ", "500 502 503 504 /50x.html");
-		} else {
-			for (size_t ep = 0; ep < conf.error_pages.size(); ++ep) {
-				std::string label = (ep == 0) ? "    Error Page: " : "               ";
-				std::string tmp = conf.error_pages[ep];
-				printValue(tmp, label);
+			// Füge alle gefundenen Error Pages hinzu
+			for (const auto& errorPage : errorPageDefaults) {
+				conf.error_pages[errorPage.first] = errorPage.second;
 			}
+
+			// Fallback für häufige Fehler-Codes, falls nicht gefunden
+			const int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};
+			for (int errorCode : defaultErrorCodes) {
+				if (conf.error_pages.find(errorCode) == conf.error_pages.end()) {
+					conf.error_pages[errorCode] = "/50x.html";
+				}
+			}
+
+			Logger::yellow("    Using default error pages:");
+		}
+
+		// Ausgabe der Error Pages
+		for (std::map<int, std::string>::const_iterator it = conf.error_pages.begin();
+			it != conf.error_pages.end(); ++it) {
+			Logger::white("    Error Page: ", false, 20);
+			Logger::yellow("Error " + std::to_string(it->first) + " -> " + it->second);
 		}
 
 		if (conf.locations.empty()) {
@@ -540,12 +627,9 @@ void ConfigHandler::printRegisteredConfs(std::string filename) {
 	Logger::green("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 }
 
-std::vector<ServerBlock> ConfigHandler::get_registeredServerConfs(void) const
-{
-	if (registeredServerConfs.empty())
-	{
+std::vector<ServerBlock> ConfigHandler::get_registeredServerConfs(void) const {
+	if (registeredServerConfs.empty()) {
 		throw std::runtime_error("No registered configurations found!");
 	}
-
 	return registeredServerConfs;
 }
