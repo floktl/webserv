@@ -6,24 +6,50 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/11 16:40:31 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/12 09:00:09 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CgiHandler.hpp"
 
-CgiHandler::CgiHandler(const Location* _location,
-					const std::string& _filePath,
-					const std::string& _method,
-					const std::string& _requestedPath,
-					const std::string& _requestBody,
-					const std::map<std::string, std::string>& _headersMap)
-	: location(_location),
+CgiHandler::CgiHandler(
+	int _client_fd,
+	const Location* _location,
+	const std::string& _filePath,
+	const std::string& _method,
+	const std::string& _requestedPath,
+	const std::string& _requestBody,
+	const std::map<std::string, std::string>& _headersMap,
+	std::set<int> _activeFds,
+	const std::map<int, const ServerBlock*>& _serverBlockConfigs
+)
+	: client_fd(_client_fd),
+	location(_location),
 	filePath(_filePath),
 	method(_method),
 	requestedPath(_requestedPath),
 	requestBody(_requestBody),
-	headersMap(_headersMap) {}
+	headersMap(_headersMap),
+	activeFds(std::move(_activeFds))
+{
+	// Konvertiere _serverBlockConfigs (Pointer) in serverBlockConfigs (Werte)
+	for (const auto& pair : _serverBlockConfigs) {
+		if (pair.second) { // Prüfe, ob der Zeiger gültig ist
+			serverBlockConfigs.emplace(pair.first, *(pair.second));
+		}
+	}
+}
+
+std::string CgiHandler::getFileExtension()
+{
+	size_t pos = filePath.find_last_of(".");
+	if (pos == std::string::npos) {
+		Logger::red("No file extension found, check to executable cgi target");
+		return "";
+	}
+	std::string ext = filePath.substr(pos);
+	return ext;
+}
 
 void CgiHandler::closePipe(int fds[2]) {
 	close(fds[0]);
@@ -79,7 +105,7 @@ void CgiHandler::runCgiChild(const std::string& cgiPath, const std::string& scri
 	exit(EXIT_FAILURE);
 }
 
-void CgiHandler::writeRequestBodyIfNeeded(int pipe_in, const std::string& method, const std::string& requestBody) {
+void CgiHandler::writeRequestBodyIfNeeded(int pipe_in) {
 	if (method == "POST" && !requestBody.empty()) {
 		ssize_t written = write(pipe_in, requestBody.c_str(), requestBody.size());
 		if (written < 0)
@@ -151,13 +177,13 @@ bool CgiHandler::checkForRedirect(const std::string& headers) {
 		size_t location_pos = headers.find("Location:");
 		if (location_pos != std::string::npos) {
 			size_t end_pos = headers.find("\r\n", location_pos);
-			std::string location = headers.substr(location_pos + 9, end_pos - location_pos - 9);
-			location.erase(0, location.find_first_not_of(" \t"));
-			location.erase(location.find_last_not_of(" \t") + 1);
+			std::string redirectLocation = headers.substr(location_pos + 9, end_pos - location_pos - 9);
+			redirectLocation.erase(0, redirectLocation.find_first_not_of(" \t"));
+			redirectLocation.erase(redirectLocation.find_last_not_of(" \t") + 1);
 
 			// Send Redirect Response
 			std::string redirect_response = "HTTP/1.1 302 Found\r\n";
-			redirect_response += "Location: " + location + "\r\n\r\n";
+			redirect_response += "Location: " + redirectLocation + "\r\n\r\n";
 			int sent = send(client_fd, redirect_response.c_str(), redirect_response.size(), 0);
 			if (sent < 0) {
 				Logger::red("Failed to send Redirect response: " + std::string(strerror(errno)));
@@ -182,8 +208,7 @@ void CgiHandler::waitForChild(pid_t pid) {
 }
 
 void CgiHandler::executeCGI(const std::string& cgiPath, const std::string& scriptPath,
-				const std::map<std::string, std::string>& cgiParams,
-				const std::string& requestBody, const std::string& method) {
+				const std::map<std::string, std::string>& cgiParams) {
 	int pipefd_out[2]; // For CGI stdout
 	int pipefd_in[2];  // For CGI stdin
 	if (!createPipes(pipefd_out, pipefd_in)) {
@@ -206,7 +231,7 @@ void CgiHandler::executeCGI(const std::string& cgiPath, const std::string& scrip
 		close(pipefd_out[1]);
 		close(pipefd_in[0]);
 
-		writeRequestBodyIfNeeded(pipefd_in[1], method, requestBody);
+		writeRequestBodyIfNeeded(pipefd_in[1]);
 
 		std::string headers;
 		std::string body;
@@ -234,13 +259,10 @@ void CgiHandler::closeConnection()
 
 
 
-bool CgiHandler::handleCGIIfNeeded(const Location* location, const std::string& filePath,
-							const std::string& method, const std::string& requestedPath,
-							const std::string& requestBody,
-							const std::map<std::string, std::string>& headersMap)
+bool CgiHandler::handleCGIIfNeeded()
 {
 	if (!location->cgi.empty()) {
-		std::string ext = getFileExtension(filePath);
+		std::string ext = getFileExtension();
 		if (filePath.size() >= ext.size() &&
 			filePath.compare(filePath.size() - ext.size(), ext.size(), ext) == 0) {
 			std::map<std::string, std::string> cgiParams;
@@ -270,7 +292,7 @@ bool CgiHandler::handleCGIIfNeeded(const Location* location, const std::string& 
 			}
 			Logger::green("test 4");
 
-			executeCGI(location->cgi, filePath, cgiParams, requestBody, method);
+			executeCGI(location->cgi, filePath, cgiParams);
 			closeConnection();
 			return true;
 		}

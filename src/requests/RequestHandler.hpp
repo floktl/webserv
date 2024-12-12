@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:13 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/11 16:44:07 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/12 08:39:27 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ private:
 	int client_fd; // File descriptor for the client connection
 	const ServerBlock& config; // Reference to the server configuration
 	std::set<int>& activeFds; // Reference to the set of active file descriptors
-	std::map<int, const ServerBlock*>& serverBlockConfigs; // Reference to server block configurations
+	std::map<int,const ServerBlock*>& serverBlockConfigs; // Reference to server block configurations
 
 	// Helper functions
 	bool parseRequestLine(const std::string& request, std::string& method, std::string& requestedPath, std::string& version);
@@ -42,21 +42,8 @@ private:
 	void closeConnection();
 	void sendErrorResponse(int statusCode, const std::string& message, const std::map<int, std::string>& errorPages);
 
-	// void closePipe(int fds[2]);
-	// bool createPipes(int pipefd_out[2], int pipefd_in[2]);
-	// void setupChildEnv(const std::map<std::string, std::string>& cgiParams, std::vector<char*>& env);
-	// void runCgiChild(const std::string& cgiPath, const std::string& scriptPath, int pipefd_out[2], int pipefd_in[2], const std::map<std::string, std::string>& cgiParams);
-	// void writeRequestBodyIfNeeded(int pipe_in, const std::string& method, const std::string& requestBody);
-	// std::string readCgiOutput(int);
-	// void parseCgiOutput(std::string&, std::string&, int*, int*, pid_t);
-	// bool checkForRedirect(const std::string&);
-	// void sendCgiResponse(const std::string&, const std::string&);
-	// void waitForChild(pid_t);
-	// void executeCGI(const std::string& cgiPath, const std::string& scriptPath, const std::map<std::string, std::string>& cgiParams, const std::string& requestBody, const std::string& method);
-	// bool handleCGIIfNeeded(const Location* location, const std::string& filePath, const std::string& method, const std::string& requestedPath, const std::string& requestBody, const std::map<std::string, std::string>& headers);
-
 public:
-	RequestHandler(int client_fd, const ServerBlock& config, std::set<int>& activeFds, std::map<int, const ServerBlock*>& serverBlockConfigs);
+	RequestHandler(int client_fd,const ServerBlock& config, std::set<int>& activeFds, std::map<int,const ServerBlock*>& serverBlockConfigs);
 	void handle_request();
 };
 
