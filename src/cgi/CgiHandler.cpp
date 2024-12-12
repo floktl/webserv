@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/12 12:21:02 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/12 13:05:51 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,118 +14,133 @@
 #include "../helpers/helper.hpp"
 
 CgiHandler::CgiHandler(
-	int _client_fd,
-	const Location* _location,
-	const std::string& _filePath,
-	const std::string& _method,
-	const std::string& _requestedPath,
-	const std::string& _requestBody,
-	const std::map<std::string, std::string>& _headersMap,
-	std::set<int> _activeFds,
-	const std::map<int, const ServerBlock*>& _serverBlockConfigs
+    int _client_fd,
+    const Location* _location,
+    const std::string& _filePath,
+    const std::string& _method,
+    const std::string& _requestedPath,
+    const std::string& _requestBody,
+    const std::map<std::string, std::string>& _headersMap,
+    std::set<int> _activeFds,
+    const std::map<int, const ServerBlock*>& _serverBlockConfigs
 )
-	: client_fd(_client_fd),
-	location(_location),
-	filePath(_filePath),
-	method(_method),
-	requestedPath(_requestedPath),
-	requestBody(_requestBody),
-	headersMap(_headersMap),
-	activeFds(std::move(_activeFds))
+    : client_fd(_client_fd),
+      location(_location),
+      filePath(_filePath),
+      method(_method),
+      requestedPath(_requestedPath),
+      requestBody(_requestBody),
+      headersMap(_headersMap),
+      activeFds(std::move(_activeFds))
 {
-	// Konvertiere _serverBlockConfigs (Pointer) in serverBlockConfigs (Werte)
-	for (const auto& pair : _serverBlockConfigs) {
-		if (pair.second) { // Prüfe, ob der Zeiger gültig ist
-			serverBlockConfigs.emplace(pair.first, *(pair.second));
-		}
-	}
+    Logger::blue("Initializing CgiHandler with filePath: " + filePath);
+    for (const auto& pair : _serverBlockConfigs) {
+        if (pair.second) {
+            serverBlockConfigs.emplace(pair.first, *(pair.second));
+        }
+    }
 }
 
 std::string CgiHandler::getFileExtension()
 {
-	size_t pos = filePath.find_last_of(".");
-	if (pos == std::string::npos) {
-		Logger::red("No file extension found, check to executable cgi target");
-		return "";
-	}
-	std::string ext = filePath.substr(pos);
-	return ext;
+    Logger::blue("Getting file extension for: " + filePath);
+    size_t pos = filePath.find_last_of(".");
+    if (pos == std::string::npos) {
+        Logger::red("No file extension found for: " + filePath);
+        return "";
+    }
+    std::string ext = filePath.substr(pos);
+    Logger::green("Found file extension: " + ext);
+    return ext;
 }
 
 void CgiHandler::closePipe(int fds[2]) {
-	close(fds[0]);
-	close(fds[1]);
+    Logger::blue("Closing pipe: " + std::to_string(fds[0]) + ", " + std::to_string(fds[1]));
+    close(fds[0]);
+    close(fds[1]);
 }
 
 bool CgiHandler::createPipes(int pipefd_out[2], int pipefd_in[2]) {
-	if (pipe(pipefd_out) == -1 || pipe(pipefd_in) == -1) {
-		Logger::red("Pipe creation failed: " + std::string(strerror(errno)));
-		return false;
-	}
-	if (!setNonBlocking(pipefd_out[0]) || !setNonBlocking(pipefd_in[1])) {
-		Logger::red("Failed to set non-blocking mode on pipes.");
-		closePipe(pipefd_out);
-		closePipe(pipefd_in);
-		return false;
-	}
-	return true;
+    Logger::blue("Creating pipes.");
+    if (pipe(pipefd_out) == -1 || pipe(pipefd_in) == -1) {
+        Logger::red("Pipe creation failed: " + std::string(strerror(errno)));
+        return false;
+    }
+    if (!setNonBlocking(pipefd_out[0]) || !setNonBlocking(pipefd_in[1])) {
+        Logger::red("Failed to set non-blocking mode on pipes.");
+        closePipe(pipefd_out);
+        closePipe(pipefd_in);
+        return false;
+    }
+    Logger::green("Pipes created successfully.");
+    return true;
 }
-
 
 void CgiHandler::setupChildEnv(const std::map<std::string, std::string>& cgiParams, std::vector<char*>& env) {
-	for (const auto& param : cgiParams) {
-		std::string envVar = param.first + "=" + param.second;
-		env.push_back(strdup(envVar.c_str()));
-	}
-	env.push_back(nullptr);
+    Logger::blue("Setting up child environment.");
+    for (const auto& param : cgiParams) {
+        Logger::blue("Adding environment variable: " + param.first + "=" + param.second);
+        std::string envVar = param.first + "=" + param.second;
+        env.push_back(strdup(envVar.c_str()));
+    }
+    env.push_back(nullptr);
 }
+
 
 
 void CgiHandler::runCgiChild(const std::string& cgiPath, const std::string& scriptPath,
 				int pipefd_out[2], int pipefd_in[2],
 				const std::map<std::string, std::string>& cgiParams)
 {
-	Logger::red("test\n");
-	/// TODO!!!
-	dup2(pipefd_out[1], STDOUT_FILENO);
-	close(pipefd_out[0]);
-	close(pipefd_out[1]);
-	/// GRANDE PROBELEME!!!
+    Logger::blue("Running CGI child process.");
+    dup2(pipefd_out[1], STDOUT_FILENO);
+    close(pipefd_out[0]);
+    close(pipefd_out[1]);
 
-	dup2(pipefd_in[0], STDIN_FILENO);
-	close(pipefd_in[0]);
-	close(pipefd_in[1]);
-	std::vector<char*> env;
-	setupChildEnv(cgiParams, env);
+    dup2(pipefd_in[0], STDIN_FILENO);
+    close(pipefd_in[0]);
+    close(pipefd_in[1]);
 
-	char* args[] = {
-		const_cast<char*>(cgiPath.c_str()),
-		const_cast<char*>(scriptPath.c_str()),
-		nullptr
-	};
-	execve(cgiPath.c_str(), args, env.data());
-	Logger::red("execve failed: " + std::string(strerror(errno)));
-	exit(EXIT_FAILURE);
+    std::vector<char*> env;
+    setupChildEnv(cgiParams, env);
+
+    char* args[] = {
+        const_cast<char*>(cgiPath.c_str()),
+        const_cast<char*>(scriptPath.c_str()),
+        nullptr
+    };
+
+    Logger::blue("Executing CGI script: " + cgiPath + " with script: " + scriptPath);
+    execve(cgiPath.c_str(), args, env.data());
+    Logger::red("execve failed: " + std::string(strerror(errno)));
+    exit(EXIT_FAILURE);
 }
 
 void CgiHandler::writeRequestBodyIfNeeded(int pipe_in) {
-	if (method == "POST" && !requestBody.empty()) {
-		ssize_t written = write(pipe_in, requestBody.c_str(), requestBody.size());
-		if (written < 0)
-			Logger::red("Error writing to CGI stdin: " + std::string(strerror(errno)));
-	}
-	close(pipe_in);
+    if (method == "POST" && !requestBody.empty()) {
+        Logger::blue("Writing request body to pipe.");
+        ssize_t written = write(pipe_in, requestBody.c_str(), requestBody.size());
+        if (written < 0) {
+            Logger::red("Error writing to CGI stdin: " + std::string(strerror(errno)));
+        } else {
+            Logger::green("Request body written successfully.");
+        }
+    }
+    close(pipe_in);
 }
 
 std::string CgiHandler::readCgiOutput(int pipe_out) {
-	std::string cgi_output;
-	char buffer[4096];
-	int bytes;
-	while ((bytes = read(pipe_out, buffer, sizeof(buffer))) > 0) {
-		cgi_output.append(buffer, bytes);
-	}
-	close(pipe_out);
-	return cgi_output;
+    Logger::blue("Reading CGI output.");
+    std::string cgi_output;
+    char buffer[4096];
+    int bytes;
+    while ((bytes = read(pipe_out, buffer, sizeof(buffer))) > 0) {
+        Logger::blue("Read " + std::to_string(bytes) + " bytes from CGI output.");
+        cgi_output.append(buffer, bytes);
+    }
+    close(pipe_out);
+    Logger::green("Finished reading CGI output.");
+    return cgi_output;
 }
 
 void CgiHandler::parseCgiOutput(std::string& headers, std::string& body, int pipefd_out[2], [[maybe_unused]] int pipefd_in[2], pid_t pid) {
