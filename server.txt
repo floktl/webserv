@@ -1,20 +1,16 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Server.cpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/12 10:58:41 by jeberle          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    server.txt                                         :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#              #
+#    Updated: 2024/12/12 10:32:34 by jeberle          ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
 
 #include "Server.hpp"
-#include "../helpers/helper.hpp"
-
-#include <poll.h> // For poll
-#include <sys/epoll.h> // For epoll
 
 int Server::create_server_socket(int port)
 {
@@ -133,9 +129,11 @@ std::vector<ServerBlock>::const_iterator Server::define_config(int fd, const std
 
 void Server::process_events(int num_events)
 {
+	std::time_t now = std::time(nullptr);
 	for (int i = 0; i < num_events; ++i)
 	{
 		int fd = events[i].data.fd;
+		fdActivityMap[fd] = now;
 		if (events[i].events & EPOLLIN) // Check if there's data to read
 		{
 			auto confIt = define_config(fd, *configs);
@@ -145,12 +143,33 @@ void Server::process_events(int num_events)
 			}
 			else
 			{
-				Logger::green("start\n");
 				RequestHandler reqHan(fd, *(serverBlockConfigs[fd]),activeFds, serverBlockConfigs);
 				reqHan.handle_request();
 			}
 		}
 	}
+}
+bool Server::isInactive(int fd, std::time_t now)
+{
+    auto lastActivity = fdActivityMap[fd];
+    return (now - lastActivity > 30);
+}
+
+void Server::handleTimeout()
+{
+    std::time_t now = std::time(nullptr);
+
+    for (auto it = activeFds.begin(); it != activeFds.end();) {
+        if (isInactive(*it, now)) {
+            Logger::yellow("Closing inactive FD: " + std::to_string(*it));
+            close(*it);
+            serverBlockConfigs.erase(*it);
+            fdActivityMap.erase(*it);
+            it = activeFds.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void Server::start(const std::vector<ServerBlock>& configs_files)
@@ -168,12 +187,11 @@ void Server::start(const std::vector<ServerBlock>& configs_files)
 
 	while (true)
 	{
-		int num_events = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-		if (num_events < 0)
-		{
-			std::perror("epoll_wait");
-			break;
-		}
+	int num_events = epoll_wait(epoll_fd, events, MAX_EVENTS, 5000); // 5 Sekunden Timeout
+	if (num_events == 0) {
+		// Keine Events in den letzten 5 Sekunden - führe Wartungsarbeiten aus
+		handleTimeout();
+	}
 		process_events(num_events);
 	}
 
