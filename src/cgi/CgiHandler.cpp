@@ -6,11 +6,12 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/12 09:00:09 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/12 12:21:02 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CgiHandler.hpp"
+#include "../helpers/helper.hpp"
 
 CgiHandler::CgiHandler(
 	int _client_fd,
@@ -57,14 +58,14 @@ void CgiHandler::closePipe(int fds[2]) {
 }
 
 bool CgiHandler::createPipes(int pipefd_out[2], int pipefd_in[2]) {
-	if (pipe(pipefd_out) == -1) {
-		Logger::red("Pipe creation failed (out): " + std::string(strerror(errno)));
+	if (pipe(pipefd_out) == -1 || pipe(pipefd_in) == -1) {
+		Logger::red("Pipe creation failed: " + std::string(strerror(errno)));
 		return false;
 	}
-	if (pipe(pipefd_in) == -1) {
-		Logger::red("Pipe creation failed (in): " + std::string(strerror(errno)));
-		close(pipefd_out[0]);
-		close(pipefd_out[1]);
+	if (!setNonBlocking(pipefd_out[0]) || !setNonBlocking(pipefd_in[1])) {
+		Logger::red("Failed to set non-blocking mode on pipes.");
+		closePipe(pipefd_out);
+		closePipe(pipefd_in);
 		return false;
 	}
 	return true;
@@ -84,14 +85,16 @@ void CgiHandler::runCgiChild(const std::string& cgiPath, const std::string& scri
 				int pipefd_out[2], int pipefd_in[2],
 				const std::map<std::string, std::string>& cgiParams)
 {
+	Logger::red("test\n");
+	/// TODO!!!
 	dup2(pipefd_out[1], STDOUT_FILENO);
 	close(pipefd_out[0]);
 	close(pipefd_out[1]);
+	/// GRANDE PROBELEME!!!
 
 	dup2(pipefd_in[0], STDIN_FILENO);
 	close(pipefd_in[0]);
 	close(pipefd_in[1]);
-
 	std::vector<char*> env;
 	setupChildEnv(cgiParams, env);
 
@@ -207,47 +210,82 @@ void CgiHandler::waitForChild(pid_t pid) {
 	waitpid(pid, &status, 0);
 }
 
-void CgiHandler::executeCGI(const std::string& cgiPath, const std::string& scriptPath,
-				const std::map<std::string, std::string>& cgiParams) {
-	int pipefd_out[2]; // For CGI stdout
-	int pipefd_in[2];  // For CGI stdin
-	if (!createPipes(pipefd_out, pipefd_in)) {
-		return;
-	}
+void CgiHandler::executeCGI(const std::string& cgiPath, const std::string& scriptPath, const std::map<std::string, std::string>& cgiParams) {
+    int pipe_out[2]; // Pipe für die Ausgabe (Kind zu Elternprozess)
+    int pipe_in[2];  // Pipe für die Eingabe (Eltern zu Kindprozess)
 
-	pid_t pid = fork();
-	if (pid < 0) {
-		Logger::red("Fork failed: " + std::string(strerror(errno)));
-		closePipe(pipefd_out);
-		closePipe(pipefd_in);
-		return;
-	}
+    // Erstelle die Pipes
+    if (pipe(pipe_out) == -1 || pipe(pipe_in) == -1) {
+        Logger::red("Failed to create pipes.");
+        return;
+    }
 
-	if (pid == 0) {
-		// Child
-		runCgiChild(cgiPath, scriptPath, pipefd_out, pipefd_in, cgiParams);
-	} else {
-		// Parent
-		close(pipefd_out[1]);
-		close(pipefd_in[0]);
+    pid_t pid = fork(); // Fork den Prozess
+    if (pid < 0) {
+        Logger::red("Fork failed.");
+        closePipe(pipe_out);
+        closePipe(pipe_in);
+        return;
+    }
 
-		writeRequestBodyIfNeeded(pipefd_in[1]);
+    if (pid == 0) {
+        // Kindprozess
+        dup2(pipe_out[1], STDOUT_FILENO); // Verbinde stdout mit pipe_out
+        dup2(pipe_in[0], STDIN_FILENO);  // Verbinde stdin mit pipe_in
+        closePipe(pipe_out);
+        closePipe(pipe_in);
 
-		std::string headers;
-		std::string body;
-		parseCgiOutput(headers, body, pipefd_out, pipefd_in, pid);
+        // Erstelle die Umgebungsvariablen für CGI
+        std::vector<std::string> envStrings;
+        std::vector<char*> envp;
+        for (const auto& param : cgiParams) {
+            envStrings.push_back(param.first + "=" + param.second);
+            envp.push_back(const_cast<char*>(envStrings.back().c_str()));
+        }
+        envp.push_back(nullptr); // Null-Terminator für execve
 
-		if (checkForRedirect(headers)) {
-			close(client_fd);
-			waitForChild(pid);
-			return;
-		}
+        // Erstelle die Argumente
+        char* args[] = {
+            const_cast<char*>(cgiPath.c_str()), // CGI-Interpreter (z. B. PHP oder Python)
+            const_cast<char*>(scriptPath.c_str()), // Das auszuführende Skript
+            nullptr
+        };
 
-		sendCgiResponse(headers, body);
+        // Führe das CGI-Skript aus
+        execve(cgiPath.c_str(), args, envp.data());
+        Logger::red("execve failed: " + std::string(strerror(errno)));
+        exit(EXIT_FAILURE); // Beende Kindprozess, falls execve fehlschlägt
+    } else {
+        // Elternprozess
+        close(pipe_out[1]); // Elternprozess schreibt nicht in pipe_out
+        close(pipe_in[0]);  // Elternprozess liest nicht aus pipe_in
 
-		close(client_fd);
-		waitForChild(pid);
-	}
+        // Schreibe die Anfrage-Daten in die Pipe (für POST-Methoden)
+        if (!requestBody.empty()) {
+            ssize_t written = write(pipe_in[1], requestBody.c_str(), requestBody.size());
+            if (written < 0) {
+                Logger::red("Failed to write to CGI input pipe: " + std::string(strerror(errno)));
+            }
+        }
+        close(pipe_in[1]); // Schließe Schreibseite der Eingabe-Pipe
+
+        // Lese die CGI-Ausgabe und sende sie an den Client
+        char buffer[4096];
+        ssize_t bytes;
+        while ((bytes = read(pipe_out[0], buffer, sizeof(buffer))) > 0) {
+            send(client_fd, buffer, bytes, 0);
+        }
+        close(pipe_out[0]); // Schließe Leseseite der Ausgabe-Pipe
+
+        // Warte auf den Kindprozess
+        int status;
+        waitpid(pid, &status, 0);
+        if (WIFEXITED(status)) {
+            Logger::green("CGI process exited with status: " + std::to_string(WEXITSTATUS(status)));
+        } else {
+            Logger::red("CGI process did not terminate normally.");
+        }
+    }
 }
 
 void CgiHandler::closeConnection()
@@ -290,7 +328,6 @@ bool CgiHandler::handleCGIIfNeeded()
 					cgiParams["CONTENT_TYPE"] = it->second;
 				}
 			}
-			Logger::green("test 4");
 
 			executeCGI(location->cgi, filePath, cgiParams);
 			closeConnection();
