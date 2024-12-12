@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/11 16:44:30 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/12 09:00:18 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,22 +24,11 @@
 
 // contructor
 RequestHandler::RequestHandler(
-    int _client_fd,
-    const ServerBlock& _config,
-    std::set<int>& _activeFds,
-    std::map<int, const ServerBlock*>& _serverBlockConfigs
+	int _client_fd,
+	const ServerBlock& _config,
+	std::set<int>& _activeFds,
+	std::map<int,const ServerBlock*>& _serverBlockConfigs
 ) : client_fd(_client_fd), config(_config), activeFds(_activeFds), serverBlockConfigs(_serverBlockConfigs){}
-
-std::string getFileExtension(const std::string& filePath)
-{
-	size_t pos = filePath.find_last_of(".");
-	if (pos == std::string::npos) {
-		Logger::red("No file extension found, check to executable cgi target");
-		return "";
-	}
-	std::string ext = filePath.substr(pos);
-	return ext;
-}
 
 void RequestHandler::sendErrorResponse(int statusCode, const std::string& message, const std::map<int, std::string>& errorPages) {
 	auto it = errorPages.find(statusCode);
@@ -254,7 +243,7 @@ for (const auto& ep : config.error_pages) {
 	}
 
 	// Handle CGI
-	CgiHandler cgiHandler(location, filePath, method, requestedPath, requestBody, headersMap);
+	CgiHandler cgiHandler(client_fd, location, filePath, method, requestedPath, requestBody, headersMap, activeFds, serverBlockConfigs);
 	if (cgiHandler.handleCGIIfNeeded())
 	{
 			return;
@@ -269,4 +258,11 @@ for (const auto& ep : config.error_pages) {
 
 	sendErrorResponse(405, "Method Not Allowed", config.error_pages);
 	closeConnection();
+}
+
+void RequestHandler::closeConnection()
+{
+	activeFds.erase(client_fd);
+	serverBlockConfigs.erase(client_fd);
+	close(client_fd);
 }
