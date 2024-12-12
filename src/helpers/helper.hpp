@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/01 10:35:42 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/11 12:25:40 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/12 10:56:03 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,6 @@
 #include "../server/Server.hpp"
 #include <limits.h>  // For PATH_MAX
 
-void setNonBlocking(int fd);
+bool setNonBlocking(int fd);
 
 #endif
