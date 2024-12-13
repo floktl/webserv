@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/13 08:49:04 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 09:58:48 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,8 +28,7 @@ RequestHandler::RequestHandler(
 	const ServerBlock& _config,
 	std::set<int>& _activeFds,
 	std::map<int,const ServerBlock*>& _serverBlockConfigs
-) : client_fd(_client_fd), config(_config), activeFds(_activeFds), serverBlockConfigs(_serverBlockConfigs), errorHandler(_client_fd, _config.errorPages) {}
-
+) : client_fd(_client_fd), config(_config), activeFds(_activeFds), serverBlockConfigs(_serverBlockConfigs), errorHandler(_client_fd, _config.errorPages){}
 
 bool RequestHandler::parseRequestLine(const std::string& request, std::string& method,
 							std::string& requestedPath, std::string& version)
@@ -164,7 +163,10 @@ void RequestHandler::handle_request()
 {
 	char buffer[4096];
 	std::memset(buffer, 0, sizeof(buffer));
-
+	Logger::yellow("ERROR DEFINE: " + config.index);
+for (const auto& ep : config.errorPages) {
+	Logger::yellow("ERROR DEFINE: " + std::to_string(ep.first) + " -> " + ep.second);
+}
 	int bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (bytes_read < 0) {
 		Logger::red("Error reading request: " + std::string(strerror(errno)));
@@ -197,6 +199,7 @@ void RequestHandler::handle_request()
 	// Find corresponding location
 	const Location* location = findLocation(requestedPath);
 	if (!location) {
+		Logger::red("No matching location found for path: " + requestedPath);
 		errorHandler.sendErrorResponse(404, "Not Found");
 		closeConnection();
 		return;
@@ -217,11 +220,10 @@ void RequestHandler::handle_request()
 	}
 
 	// Handle CGI
-	CgiHandler cgiHandler(
-		client_fd, location, filePath, method, requestedPath, requestBody, headersMap, activeFds, config, serverBlockConfigs
-	);
-	if (cgiHandler.handleCGIIfNeeded()) {
-		return;
+	CgiHandler cgiHandler(client_fd, location, filePath, method, requestedPath, requestBody, headersMap, activeFds, config, serverBlockConfigs);
+	if (cgiHandler.handleCGIIfNeeded())
+	{
+			return;
 	}
 
 
