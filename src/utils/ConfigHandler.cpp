@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/11 13:06:44 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 07:48:58 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -247,7 +247,7 @@ void ConfigHandler::parseLine(std::string line) {
 						parsingErr = true;
 						return;
 					}
-					registeredServerConfs.back().error_pages[code] = path;
+					registeredServerConfs.back().errorPages[code] = path;
 				} catch (...) {
 					Logger::error("Error: Invalid error code '" + codeStr + "' at line " + std::to_string(linecount));
 					parsingErr = true;
@@ -348,10 +348,10 @@ bool ConfigHandler::sanitizeConfData(void) {
 			return false;
 		}
 
-		// error_pages - now handled as a map
+		// errorPages - now handled as a map
 		for (size_t j = 0; j < registeredServerConfs.size(); ++j) {
 			ServerBlock& conf = registeredServerConfs[j];
-			std::map<int, std::string> errorPagesToValidate = conf.error_pages;
+			std::map<int, std::string> errorPagesToValidate = conf.errorPages;
 
 			for (std::map<int, std::string>::const_iterator it = errorPagesToValidate.begin();
 				it != errorPagesToValidate.end(); ++it) {
@@ -371,7 +371,7 @@ bool ConfigHandler::sanitizeConfData(void) {
 				}
 
 				// Pfad nach Validierung aktualisieren
-				conf.error_pages[code] = normalizedPath;
+				conf.errorPages[code] = normalizedPath;
 			}
 		}
 
@@ -575,17 +575,17 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd) 
 		printValue(conf.index, "    Index: ", "index.html");
 
 		// Kombinierte Error Page Logik
-		if (conf.error_pages.empty()) {
+		if (conf.errorPages.empty()) {
 			// Füge alle gefundenen Error Pages hinzu
 			for (const auto& errorPage : errorPageDefaults) {
-				conf.error_pages[errorPage.first] = errorPage.second;
+				conf.errorPages[errorPage.first] = errorPage.second;
 			}
 
 			// Fallback für häufige Fehler-Codes, falls nicht gefunden
 			const int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};
 			for (int errorCode : defaultErrorCodes) {
-				if (conf.error_pages.find(errorCode) == conf.error_pages.end()) {
-					conf.error_pages[errorCode] = "/50x.html";
+				if (conf.errorPages.find(errorCode) == conf.errorPages.end()) {
+					conf.errorPages[errorCode] = "/50x.html";
 				}
 			}
 
@@ -593,8 +593,8 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd) 
 		}
 
 		// Ausgabe der Error Pages
-		for (std::map<int, std::string>::const_iterator it = conf.error_pages.begin();
-			it != conf.error_pages.end(); ++it) {
+		for (std::map<int, std::string>::const_iterator it = conf.errorPages.begin();
+			it != conf.errorPages.end(); ++it) {
 			Logger::white("    Error Page: ", false, 20);
 			Logger::yellow("Error " + std::to_string(it->first) + " -> " + it->second);
 		}

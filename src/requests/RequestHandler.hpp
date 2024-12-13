@@ -6,13 +6,14 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:13 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/12 08:39:27 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 07:46:05 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef REQUESTHANDLER_HPP
 #define REQUESTHANDLER_HPP
 
+#include "../error/ErrorHandler.hpp"
 #include "../utils/ConfigHandler.hpp"
 #include "../cgi/CgiHandler.hpp"
 #include <string>
@@ -30,6 +31,7 @@ private:
 	const ServerBlock& config; // Reference to the server configuration
 	std::set<int>& activeFds; // Reference to the set of active file descriptors
 	std::map<int,const ServerBlock*>& serverBlockConfigs; // Reference to server block configurations
+	ErrorHandler errorHandler;
 
 	// Helper functions
 	bool parseRequestLine(const std::string& request, std::string& method, std::string& requestedPath, std::string& version);
@@ -40,7 +42,6 @@ private:
 	bool handleDirectoryIndex( std::string& filePath);
 	void handleStaticFile( const std::string& filePath);
 	void closeConnection();
-	void sendErrorResponse(int statusCode, const std::string& message, const std::map<int, std::string>& errorPages);
 
 public:
 	RequestHandler(int client_fd,const ServerBlock& config, std::set<int>& activeFds, std::map<int,const ServerBlock*>& serverBlockConfigs);

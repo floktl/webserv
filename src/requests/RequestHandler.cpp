@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/12 09:00:18 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 08:14:28 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,30 +28,8 @@ RequestHandler::RequestHandler(
 	const ServerBlock& _config,
 	std::set<int>& _activeFds,
 	std::map<int,const ServerBlock*>& _serverBlockConfigs
-) : client_fd(_client_fd), config(_config), activeFds(_activeFds), serverBlockConfigs(_serverBlockConfigs){}
+) : client_fd(_client_fd), config(_config), activeFds(_activeFds), serverBlockConfigs(_serverBlockConfigs), errorHandler(_client_fd, _config.errorPages) {}
 
-void RequestHandler::sendErrorResponse(int statusCode, const std::string& message, const std::map<int, std::string>& errorPages) {
-	auto it = errorPages.find(statusCode);
-	if (it != errorPages.end()) {
-		std::ifstream errorFile(it->second);
-		if (errorFile.is_open()) {
-			std::stringstream fileContent;
-			fileContent << errorFile.rdbuf();
-			std::string response = "HTTP/1.1 " + std::to_string(statusCode) + " " + message + "\r\n"
-								"Content-Type: text/html\r\n\r\n" + fileContent.str();
-			send(client_fd, response.c_str(), response.size(), 0);
-			return;
-		} else {
-			Logger::red("Error loading custom error page: " + it->second);
-		}
-	}
-
-	std::ostringstream response;
-	response << "HTTP/1.1 " << statusCode << " " << message << "\r\n"
-			<< "Content-Type: text/html\r\n\r\n"
-			<< "<html><body><h1>" << statusCode << " " << message << "</h1></body></html>";
-	send(client_fd, response.str().c_str(), response.str().size(), 0);
-}
 
 bool RequestHandler::parseRequestLine(const std::string& request, std::string& method,
 							std::string& requestedPath, std::string& version)
@@ -116,7 +94,7 @@ bool RequestHandler::handleDeleteMethod(const std::string& filePath)
 							"<html><body><h1>File Deleted</h1></body></html>";
 		send(client_fd, response.c_str(), response.size(), 0);
 	} else {
-		sendErrorResponse(404, "File Not Found", config.error_pages);
+		errorHandler.sendErrorResponse(404, "File Not Found");
 	}
 	closeConnection();
 	return true;
@@ -130,7 +108,7 @@ bool RequestHandler::handleDirectoryIndex(std::string& filePath)
 
 		std::string indexFiles = config.index;
 		if (indexFiles.empty()) {
-			sendErrorResponse(403, "Forbidden", config.error_pages);
+			errorHandler.sendErrorResponse(403, "Forbidden");
 			closeConnection();
 			return true;
 		}
@@ -155,7 +133,7 @@ bool RequestHandler::handleDirectoryIndex(std::string& filePath)
 
 		if (!foundIndex) {
 			Logger::red("No index file found in directory: " + filePath);
-			sendErrorResponse(404, "File Not Found", config.error_pages);
+			errorHandler.sendErrorResponse(404, "File Not Found");
 			closeConnection();
 			return true;
 		}
@@ -177,7 +155,7 @@ void RequestHandler::handleStaticFile(const std::string& filePath)
 		}
 	} else {
 		Logger::red("Failed to open file: " + filePath);
-		sendErrorResponse(404, "File Not Found", config.error_pages);
+		errorHandler.sendErrorResponse(404, "File Not Found");
 	}
 	closeConnection();
 }
@@ -186,10 +164,7 @@ void RequestHandler::handle_request()
 {
 	char buffer[4096];
 	std::memset(buffer, 0, sizeof(buffer));
-	Logger::yellow("ERROR DEFINE: " + config.index);
-for (const auto& ep : config.error_pages) {
-	Logger::yellow("ERROR DEFINE: " + std::to_string(ep.first) + " -> " + ep.second);
-}
+
 	int bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (bytes_read < 0) {
 		Logger::red("Error reading request: " + std::string(strerror(errno)));
@@ -201,7 +176,7 @@ for (const auto& ep : config.error_pages) {
 
 	std::string method, requestedPath, version;
 	if (!parseRequestLine(request, method, requestedPath, version)) {
-		sendErrorResponse(400, "Bad Request", config.error_pages);
+		errorHandler.sendErrorResponse(400, "Bad Request");
 		closeConnection();
 		return;
 	}
@@ -222,8 +197,7 @@ for (const auto& ep : config.error_pages) {
 	// Find corresponding location
 	const Location* location = findLocation(requestedPath);
 	if (!location) {
-		Logger::red("No matching location found for path: " + requestedPath);
-		sendErrorResponse(404, "Not Found", config.error_pages);
+		errorHandler.sendErrorResponse(404, "Not Found");
 		closeConnection();
 		return;
 	}
@@ -243,10 +217,11 @@ for (const auto& ep : config.error_pages) {
 	}
 
 	// Handle CGI
-	CgiHandler cgiHandler(client_fd, location, filePath, method, requestedPath, requestBody, headersMap, activeFds, serverBlockConfigs);
-	if (cgiHandler.handleCGIIfNeeded())
-	{
-			return;
+	CgiHandler cgiHandler(
+		client_fd, location, filePath, method, requestedPath, requestBody, headersMap, activeFds, config, serverBlockConfigs
+	);
+	if (cgiHandler.handleCGIIfNeeded()) {
+		return;
 	}
 
 
@@ -256,7 +231,7 @@ for (const auto& ep : config.error_pages) {
 		return;
 	}
 
-	sendErrorResponse(405, "Method Not Allowed", config.error_pages);
+	errorHandler.sendErrorResponse(405, "Method Not Allowed");
 	closeConnection();
 }
 
