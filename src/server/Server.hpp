@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:21 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/12 08:38:41 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 06:57:32 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,21 +33,21 @@ struct ServerBlock;
 class Server
 {
 private:
-	std::map<int,const ServerBlock*> serverBlockConfigs;  // Map client FDs to configurations
-	const std::vector<ServerBlock>* configs = nullptr; // Pointer to server configurations
-	struct epoll_event changes[MAX_EVENTS];             // Events to register with epoll
-	struct epoll_event events[MAX_EVENTS];              // Array to store triggered events
-	int epoll_fd = -1;                                  // epoll instance
-	int num_fds = 0;                                    // Number of triggered events
-	int client_fd = -1;                                 // Current client file descriptor
-	std::set<int> activeFds;                            // Track active file descriptors
+	std::map<int,const ServerBlock*> serverBlockConfigs;
+	const std::vector<ServerBlock>* configs = nullptr;
+	struct epoll_event changes[MAX_EVENTS];
+	struct epoll_event events[MAX_EVENTS];
+	int epoll_fd = -1;
+	int num_fds = 0;
+	int client_fd = -1;
+	std::set<int> activeFds;
 
 public:
-	int create_server_socket(int port);                 // Create a server socket for the given port
-	void start(const std::vector<ServerBlock>& configs); // Start the server
-	int handleServerEvent(int serv_fd,const ServerBlock& serverConfig); // Handle server events
-	void process_events(int num_events);                // Process triggered events
-	void close_everything(void);                        // Close all FDs and epoll instance
+	int create_server_socket(int port);
+	void start(const std::vector<ServerBlock>& configs);
+	int handleServerEvent(int serv_fd,const ServerBlock& serverConfig);
+	void process_events();
+	void close_everything(void);
 	std::vector<ServerBlock>::const_iterator define_config(int fd, const std::vector<ServerBlock>& configList);
 
 };

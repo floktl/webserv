@@ -6,13 +6,14 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:36:37 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/12 09:00:14 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 07:46:02 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CGIHANDLER_HPP
 #define CGIHANDLER_HPP
 
+#include "../error/ErrorHandler.hpp"
 #include "./../requests/RequestHandler.hpp"
 #include "./../utils/Logger.hpp"
 #include <sys/socket.h>
@@ -43,7 +44,9 @@ private:
 	const std::string& requestBody;
 	const std::map<std::string, std::string>& headersMap;
 	std::set<int> activeFds;
+	const ServerBlock& config;
 	std::map<int, const ServerBlock> serverBlockConfigs;
+	ErrorHandler errorHandler;
 
 	std::string getFileExtension();
 	void closePipe(int fds[2]);
@@ -57,21 +60,21 @@ private:
 	void sendCgiResponse(const std::string& headers, const std::string& body);
 	void waitForChild(pid_t pid);
 	void executeCGI(const std::string& cgiPath, const std::string& scriptPath, const std::map<std::string, std::string>& cgiParams);
-
 public:
-CgiHandler(
-	int client_fd,
-	const Location* location,
-	const std::string& filePath,
-	const std::string& method,
-	const std::string& requestedPath,
-	const std::string& requestBody,
-	const std::map<std::string, std::string>& headersMap,
-	std::set<int> activeFds,
-	const std::map<int, const ServerBlock*>& serverBlockConfigs
-);
-	bool handleCGIIfNeeded();
-	void closeConnection();
-};
+	CgiHandler(
+		int client_fd,
+		const Location* location,
+		const std::string& filePath,
+		const std::string& method,
+		const std::string& requestedPath,
+		const std::string& requestBody,
+		const std::map<std::string, std::string>& headersMap,
+		std::set<int> activeFds,
+		const ServerBlock& config,
+		const std::map<int, const ServerBlock*>& serverBlockConfigs
+	);
+		bool handleCGIIfNeeded();
+		void closeConnection();
+	};
 
 #endif
