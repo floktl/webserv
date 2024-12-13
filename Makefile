@@ -6,7 +6,7 @@
 #    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/13 07:52:40 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/13 11:43:08 by jeberle          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -149,7 +149,7 @@ prune:
 	@echo "$(GREEN)All done!$(X)"
 
 test:
-	./$(NAME) config/test.conf
+	make && ./$(NAME) config/test.conf
 
 clean:
 	@rm -rf $(OBJ_DIR)
