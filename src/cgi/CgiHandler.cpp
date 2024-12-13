@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/13 08:45:38 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 09:44:40 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -157,6 +157,7 @@ void CgiHandler::executeCGI(const std::string& cgiPath, const std::string& scrip
     int pipefd_out[2]; // For CGI stdout
     int pipefd_in[2];  // For CGI stdin
 
+	std::cout << "executeCGI" << std::endl;
     if (!createPipes(pipefd_out, pipefd_in)) {
         return;
     }
@@ -270,11 +271,13 @@ void CgiHandler::writeRequestBodyIfNeeded(int pipe_in) {
 }
 
 bool CgiHandler::handleCGIIfNeeded() {
-    // Prüfen, ob der Request als CGI behandelt werden muss
-    if (location->cgi.empty() || filePath.find(location->cgi) == std::string::npos) {
-        return false; // Kein CGI-Request
-    }
+	std::cout << "location->cgi" << location->cgi << std::endl;
+	std::cout << "location->cgi" << (filePath.find(location->cgi) == std::string::npos ? " true" :  " false") << std::endl;
+	if (location->cgi.empty() || filePath.find(location->cgi) == std::string::npos) {
+	    return false;
+	}
 
+	std::cout << "before cgi try" << std::endl;
     try {
         std::string cgiPath = location->cgi;
         if (cgiPath.empty()) {
