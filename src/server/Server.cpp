@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/12 10:58:41 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 09:26:08 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -145,7 +145,6 @@ void Server::process_events(int num_events)
 			}
 			else
 			{
-				Logger::green("start\n");
 				RequestHandler reqHan(fd, *(serverBlockConfigs[fd]),activeFds, serverBlockConfigs);
 				reqHan.handle_request();
 			}

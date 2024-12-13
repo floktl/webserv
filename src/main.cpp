@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/26 12:58:21 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/06 08:41:40 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 08:15:49 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,6 +54,7 @@ int main(int argc, char **argv, char **envp)
 		// Create server sockets for each configuration
 		for (auto& conf : configs) {
 			conf.server_fd = server.create_server_socket(conf.port);
+			std::cout << conf.port << std::endl;
 			if (conf.server_fd < 0)
 			{
 				Logger::red() << "Failed to create socket on port: " << conf.port;
