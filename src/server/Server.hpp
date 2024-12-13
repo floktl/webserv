@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:21 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/13 09:27:13 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 12:23:01 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,32 +24,36 @@
 #include <fcntl.h>         // For fcntl (to set non-blocking mode)
 #include "../requests/RequestHandler.hpp"
 #include "../utils/ConfigHandler.hpp"
-#include <fcntl.h>         // For fcntl (to set non-blocking mode)
+#include "../cgi/CgiHandler.hpp"
 
 #define MAX_EVENTS 100
 
 struct ServerBlock;
 
+class RequestHandler;
+class CgiHandler;
 class Server
 {
 private:
-	std::map<int,const ServerBlock*> serverBlockConfigs;  // Map client FDs to configurations
-	const std::vector<ServerBlock>* configs = nullptr; // Pointer to server configurations
-	struct epoll_event changes[MAX_EVENTS];             // Events to register with epoll
-	struct epoll_event events[MAX_EVENTS];              // Array to store triggered events
-	int epoll_fd = -1;                                  // epoll instance
-	int num_fds = 0;                                    // Number of triggered events
-	int client_fd = -1;                                 // Current client file descriptor
-	std::set<int> activeFds;                            // Track active file descriptors
+    std::map<int,const ServerBlock*> serverBlockConfigs;   // Map client FDs to configurations
+    const std::vector<ServerBlock>* configs = nullptr;     // Pointer to server configurations
+    struct epoll_event changes[MAX_EVENTS];                // Events to register with epoll
+    struct epoll_event events[MAX_EVENTS];                 // Array to store triggered events
+    int epoll_fd = -1;                                     // epoll instance
+    int num_fds = 0;                                       // Number of triggered events
+    int client_fd = -1;                                    // Current client file descriptor
+    std::set<int> activeFds;                               // Track active file descriptors
+
+    // Zustandsbasierte Verarbeitung pro Client-FD
+    std::map<int, RequestHandler> requestHandlers;
 
 public:
-	int create_server_socket(int port);                 // Create a server socket for the given port
-	void start(const std::vector<ServerBlock>& configs); // Start the server
-	int handleServerEvent(int serv_fd,const ServerBlock& serverConfig); // Handle server events
-	void process_events(int num_events);                // Process triggered events
-	void close_everything(void);                        // Close all FDs and epoll instance
-	std::vector<ServerBlock>::const_iterator define_config(int fd, const std::vector<ServerBlock>& configList);
-
+    int create_server_socket(int port);                    // Create a server socket for the given port
+    void start(const std::vector<ServerBlock>& configs);   // Start the server
+    int handleServerEvent(int serv_fd, const ServerBlock& serverConfig); // Handle new client connections on a server socket
+    void process_events(int num_events);                   // Process triggered epoll events
+    void close_everything(void);                           // Close all FDs and the epoll instance
+    std::vector<ServerBlock>::const_iterator define_config(int fd, const std::vector<ServerBlock>& configList);
 };
 
 #endif
