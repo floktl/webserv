@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/11 10:14:43 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/13 07:48:58 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,7 +57,7 @@ struct ServerBlock {
 	std::string				name;
 	std::string				root;
 	std::string				index;
-	std::map				<int, std::string> error_pages;
+	std::map				<int, std::string> errorPages;
 	std::string				client_max_body_size;
 	std::vector<Location>	locations;
 };
