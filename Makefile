@@ -6,7 +6,7 @@
 #    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/14 14:39:17 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/14 18:16:28 by jeberle          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -91,8 +91,7 @@ SRCS=	src/main.cpp \
 		src/utils/Sanitizer.cpp \
 		src/server/Server.cpp \
 		src/cgi/CgiHandler.cpp \
-		src/requests/RequestHandler.cpp \
-		src/helpers/helper.cpp
+		src/requests/RequestHandler.cpp
 
 #------------------------------------------------------------------------------#
 #--------------                      OBJECTS                      -------------#
@@ -107,6 +106,7 @@ OBJECTS := $(addprefix $(OBJ_DIR)/, $(SRCS:%.cpp=%.o))
 .PHONY: all clean fclean re
 
 all: $(NAME)
+	rm ./webserv.log; \
 
 -include $(OBJECTS:.o=.d)
 
@@ -149,16 +149,12 @@ prune:
 	@echo "$(GREEN)All done!$(X)"
 
 test:
-	@if [ -d "./tmp" ]; then \
-		echo "$(YELLOW)Cleaning existing 'tmp' directory$(X)"; \
-		rm -rf ./tmp; \
-	fi
-	@mkdir ./tmp
-	@touch ./tmp/webserv.log
-	@echo "$(GREEN)Temporary 'tmp' directory prepared$(X)"
+	rm ./webserv.log; \
+	@touch ./webserv.log
 	@make && ./$(NAME) config/test.conf
 
 clean:
+	rm ./webserv.log; \
 	@rm -rf $(OBJ_DIR)
 	@echo "$(RED)objects deleted$(X)"
 
