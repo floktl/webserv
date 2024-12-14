@@ -6,15 +6,11 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:33:15 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/11 12:28:30 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/14 18:11:12 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./Sanitizer.hpp"
-#include <stdio.h> // strerror
-#include <cstring>   // für strerror
-#include <dirent.h>  // für DIR, opendir, closedir
-#include <errno.h>   // für errno
 
 Sanitizer::Sanitizer() {}
 Sanitizer::~Sanitizer() {}
@@ -210,7 +206,7 @@ bool Sanitizer::sanitize_clMaxBodSize(std::string& clMaxBodSize) {
 	stream >> sizeStr >> unit;
 
 	long size = parseSize(sizeStr, unit);
-	return (size != -1 && size <= (1024L * 1024L * 1024L * 2L)); // Max 2GB
+	return (size != -1 && size <= (1024L * 1024L * 1024L * 2L));
 }
 
 bool Sanitizer::sanitize_locationPath(std::string& locationPath, const std::string& pwd) {

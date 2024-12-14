@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/13 07:48:58 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/14 17:34:12 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@
 #  define LOCATION_OPTS "methods,return,root,autoindex,default_file,cgi,cgi_param,upload_store,client_max_body_size"
 # endif
 
+# include "../structs/webserv.hpp"
 # include <string>
 # include <vector>
 # include <map>
@@ -35,32 +36,6 @@
 # include <algorithm>
 # include <dirent.h>
 # include <iostream>
-
-struct Location {
-	int			port;
-	std::string	path;
-	std::string	methods;
-	std::string	autoindex;
-	std::string	return_directive;
-	std::string	default_file;
-	std::string	upload_store;
-	std::string	client_max_body_size;
-	std::string	root;
-	std::string	cgi;
-	std::string	cgi_param;
-	std::string	redirect;
-};
-
-struct ServerBlock {
-	int						port;
-	int						server_fd;
-	std::string				name;
-	std::string				root;
-	std::string				index;
-	std::map				<int, std::string> errorPages;
-	std::string				client_max_body_size;
-	std::vector<Location>	locations;
-};
 
 class ConfigHandler {
 private:

@@ -6,25 +6,21 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/13 07:15:29 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/13 07:37:13 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/14 17:40:48 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef ERRORHANDLER_HPP
 #define ERRORHANDLER_HPP
 
-#include <map>
-#include <string>
+#include "./../structs/webserv.hpp"
+#include "./../utils/Logger.hpp"
+#include "./../error/ErrorHandler.hpp"
 
 class ErrorHandler
 {
-private:
-    int client_fd;
-    const std::map<int, std::string>& errorPages;
-
-public:
-    ErrorHandler(int client_fd, const std::map<int, std::string>& errorPages);
-    void sendErrorResponse(int statusCode, const std::string& message);
+	private:
+	public:
 };
 
 #endif

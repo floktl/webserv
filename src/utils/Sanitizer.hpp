@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:27:25 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/06 13:52:20 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/14 18:10:55 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,9 +19,11 @@
 # include <set>
 # include <vector>
 # include <sstream>
-#include <algorithm> // For std::transform
+# include <algorithm> // For std::transform
 # include <sys/stat.h>
 # include <unistd.h>
+# include <cstring>			// für strerror
+# include <dirent.h>		// für DIR, opendir, closedir
 
 class Sanitizer {
 	private:
