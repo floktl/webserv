@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 12:39:19 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/03 10:12:26 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/14 18:11:25 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,25 @@ void Logger::white(const std::string &message, bool newline, size_t length) {
 
 void Logger::black(const std::string &message, bool newline, size_t length) {
 	log(formatMessage(message, length), BLACK, newline);
+}
+
+void Logger::file(const std::string& message) {
+    try {
+
+        std::string filePath = "./webserv.log";
+        std::ofstream logfile(filePath.c_str(), std::ios::app);
+        if (!logfile.is_open()) {
+            throw std::runtime_error("Konnte Logdatei nicht öffnen");
+        }
+
+        auto now = std::chrono::system_clock::now();
+        auto time = std::chrono::system_clock::to_time_t(now);
+        std::stringstream ss;
+        ss << std::put_time(std::localtime(&time), "[%Y-%m-%d %H:%M:%S]");
+
+        logfile << ss.str() << " " << message << std::endl;
+    } catch (const std::exception& e) {
+    }
 }
 
 std::string Logger::formatMessage(const std::string &message, size_t length) {
@@ -128,3 +147,9 @@ Logger::StreamLogger &Logger::error() {
 	static StreamLogger logger(RED, true, true);
 	return logger;
 }
+
+Logger::StreamLogger& Logger::file() {
+	static StreamLogger logger("", true, false);
+	return logger;
+}
+

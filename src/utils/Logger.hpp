@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 12:39:04 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/03 10:13:19 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/14 18:03:19 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,10 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <chrono>
+#include <iomanip>
+#include <fstream>
+#include <system_error>
 
 #define RED "\033[0;31m"
 #define GREEN "\033[0;32m"
@@ -41,6 +45,7 @@ class Logger {
 		static void white(const std::string &message, bool newline = true, size_t length = 0);
 		static void black(const std::string &message, bool newline = true, size_t length = 0);
 		static void error(const std::string &message, bool newline = true);
+		static void file(const std::string &message);
 
 		static void log(const std::string &message, const std::string &color, bool newline = true);
 
@@ -72,6 +77,7 @@ class Logger {
 		static StreamLogger &white();
 		static StreamLogger &black();
 		static StreamLogger &error();
+		static StreamLogger &file();
 };
 
 #endif
