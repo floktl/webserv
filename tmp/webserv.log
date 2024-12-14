@@ -1,0 +1,48 @@
+=== Server starting ===
+[Sat Dec 14 14:04:09 2024] Server starting
+[Sat Dec 14 14:04:09 2024] Server listening on port: 8080
+[Sat Dec 14 14:04:09 2024] Server listening on port: 9090
+[Sat Dec 14 14:04:09 2024] Server listening on port: 8001
+[Sat Dec 14 14:04:09 2024] Server listening on port: 8002
+[Sat Dec 14 14:04:12 2024] epoll_wait n 1
+[Sat Dec 14 14:04:12 2024] Event Loop Iteration: 1 events
+[Sat Dec 14 14:04:12 2024] Event 0: fd=4, events=1
+[Sat Dec 14 14:04:12 2024] New client connection on fd 8
+[Sat Dec 14 14:04:12 2024] epoll_wait n 1
+[Sat Dec 14 14:04:12 2024] Event Loop Iteration: 1 events
+[Sat Dec 14 14:04:12 2024] Event 0: fd=4, events=1
+[Sat Dec 14 14:04:12 2024] New client connection on fd 9
+[Sat Dec 14 14:04:12 2024] epoll_wait n 1
+[Sat Dec 14 14:04:12 2024] Event Loop Iteration: 1 events
+[Sat Dec 14 14:04:12 2024] Event 0: fd=9, events=1
+[Sat Dec 14 14:04:12 2024] req handling entered
+[Sat Dec 14 14:04:12 2024] req handling EPOLLIN
+[Sat Dec 14 14:04:12 2024] Handling client read on fd 9
+[Sat Dec 14 14:04:12 2024] Handling client read on fd 9
+[Sat Dec 14 14:04:12 2024] Read 732 bytes from client
+[Sat Dec 14 14:04:12 2024] Complete request received, parsing
+[Sat Dec 14 14:04:12 2024] Response
+HTTP/1.1 200 OK
+Content-Length: 13
+
+Hello, World!
+[Sat Dec 14 14:04:12 2024] here we dont !
+[Sat Dec 14 14:04:12 2024] here we dont go!
+[Sat Dec 14 14:04:12 2024] here we dont go further!
+[Sat Dec 14 14:04:12 2024] Processing as normal request
+[Sat Dec 14 14:04:12 2024] Response
+HTTP/1.1 200 OK
+Content-Length: 13
+
+Hello, World!
+[Sat Dec 14 14:05:30 2024] epoll_wait n 1
+[Sat Dec 14 14:05:30 2024] Event Loop Iteration: 1 events
+[Sat Dec 14 14:05:30 2024] Event 0: fd=8, events=1
+[Sat Dec 14 14:05:30 2024] req handling entered
+[Sat Dec 14 14:05:30 2024] req handling EPOLLIN
+[Sat Dec 14 14:05:30 2024] Handling client read on fd 8
+[Sat Dec 14 14:05:30 2024] Handling client read on fd 8
+[Sat Dec 14 14:05:30 2024] Client closed connection
+[Sat Dec 14 14:05:30 2024] Removing fd 8 from epoll
+[Sat Dec 14 14:05:30 2024] Cleaning up client connection resources
+[Sat Dec 14 14:05:30 2024] Closed fd 8
