@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/26 12:58:21 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/14 15:04:50 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/14 16:38:37 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,13 +72,21 @@ static int setNonBlocking(int fd) {
 }
 
 static void modEpoll(int epfd, int fd, uint32_t events) {
-	struct epoll_event ev;
-	memset(&ev, 0, sizeof(ev));
-	ev.events = events;
-	ev.data.fd = fd;
-	if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev) < 0) {
-		Logger::red() << "epoll_ctl ADD failed\n";
-	}
+    struct epoll_event ev;
+    memset(&ev, 0, sizeof(ev));
+    ev.events = events;
+    ev.data.fd = fd;
+
+    // Try to modify first, if that fails (probably because it doesn't exist), add it
+    if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) < 0) {
+        if (errno == ENOENT) {
+            if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev) < 0) {
+                logMessage("epoll_ctl ADD failed: " + std::string(strerror(errno)));
+            }
+        } else {
+            logMessage("epoll_ctl MOD failed: " + std::string(strerror(errno)));
+        }
+    }
 }
 
 
@@ -145,114 +153,120 @@ logMessage(ss.str());
 }
 
 static void startCGI(RequestState &req, const std::string &method, const std::string &query) {
-	int pipe_in[2];
-	int pipe_out[2];
+    int pipe_in[2];
+    int pipe_out[2];
 
-	std::stringstream ss;
-	ss << "Starting CGI Process - Method: " << method << " Query: " << query;
-	logMessage(ss.str());
+    std::stringstream ss;
+    ss << "Starting CGI Process - Method: " << method << " Query: " << query;
+    logMessage(ss.str());
 
-	if (pipe(pipe_in) < 0 || pipe(pipe_out) < 0) {
-		logMessage("Error creating pipes: " + std::string(strerror(errno)));
-		return;
-	}
+    if (pipe(pipe_in) < 0 || pipe(pipe_out) < 0) {
+        logMessage("Error creating pipes: " + std::string(strerror(errno)));
+        return;
+    }
 
-	req.cgi_in_fd = pipe_in[1];
-	req.cgi_out_fd = pipe_out[0];
+    // Setze beide Pipe-Enden auf non-blocking
+    if (setNonBlocking(pipe_in[0]) < 0 || setNonBlocking(pipe_in[1]) < 0 ||
+        setNonBlocking(pipe_out[0]) < 0 || setNonBlocking(pipe_out[1]) < 0) {
+        logMessage("Failed to set pipes non-blocking");
+        close(pipe_in[0]); close(pipe_in[1]);
+        close(pipe_out[0]); close(pipe_out[1]);
+        return;
+    }
 
-	pid_t pid = fork();
-	if (pid < 0) {
-		logMessage("Fork failed: " + std::string(strerror(errno)));
-		close(pipe_in[0]); close(pipe_in[1]);
-		close(pipe_out[0]); close(pipe_out[1]);
-		return;
-	}
+    req.cgi_in_fd = pipe_in[1];
+    req.cgi_out_fd = pipe_out[0];
 
-	if (pid == 0) {
-		ss.str("");
-		ss << "Child process started (PID: " << getpid() << ")";
-		logMessage(ss.str());
+    pid_t pid = fork();
+    if (pid < 0) {
+        logMessage("Fork failed: " + std::string(strerror(errno)));
+        close(pipe_in[0]); close(pipe_in[1]);
+        close(pipe_out[0]); close(pipe_out[1]);
+        return;
+    }
 
-		close(pipe_in[1]);
-		close(pipe_out[0]);
+    if (pid == 0) { // Child process
+        ss.str("");
+        ss << "Child process started (PID: " << getpid() << ")";
+        logMessage(ss.str());
 
-		if (dup2(pipe_in[0], STDIN_FILENO) < 0) {
-			logMessage("dup2 stdin failed: " + std::string(strerror(errno)));
-			_exit(1);
-		}
-		if (dup2(pipe_out[1], STDOUT_FILENO) < 0) {
-			logMessage("dup2 stdout failed: " + std::string(strerror(errno)));
-			_exit(1);
-		}
+        close(pipe_in[1]);
+        close(pipe_out[0]);
 
-		close(pipe_in[0]);
-		close(pipe_out[1]);
+        if (dup2(pipe_in[0], STDIN_FILENO) < 0) {
+            logMessage("dup2 stdin failed: " + std::string(strerror(errno)));
+            _exit(1);
+        }
+        if (dup2(pipe_out[1], STDOUT_FILENO) < 0) {
+            logMessage("dup2 stdout failed: " + std::string(strerror(errno)));
+            _exit(1);
+        }
 
-		std::string script_path = "/app/var/www/php/index.php";
+        close(pipe_in[0]);
+        close(pipe_out[1]);
 
-		std::string method_env = "REQUEST_METHOD=" + method;
-		std::string query_env = "QUERY_STRING=" + query;
-		std::string script_env = "SCRIPT_FILENAME=" + script_path;
-		std::string gateway_env = "GATEWAY_INTERFACE=CGI/1.1";
-		std::string server_protocol_env = "SERVER_PROTOCOL=HTTP/1.1";
-		std::string redirect_status_env = "REDIRECT_STATUS=200";
-		std::string server_software_env = "SERVER_SOFTWARE=MySimpleWebServer/1.0";
-		std::string server_name_env = "SERVER_NAME=localhost";
-		std::string server_port_env = "SERVER_PORT=" + std::to_string(req.associated_conf->port);
-		std::string request_uri_env = "REQUEST_URI=" + req.requested_path;
-		std::string script_name_env = "SCRIPT_NAME=/index.php";
+        // Setze wichtige Umgebungsvariablen
+        std::string script_path = "/app/var/www/php/index.php";
+        std::string content_length = std::to_string(req.request_buffer.size());
 
-		char *env[] = {
-			(char*)method_env.c_str(),
-			(char*)query_env.c_str(),
-			(char*)"CONTENT_LENGTH=0",
-			(char*)script_env.c_str(),
-			(char*)gateway_env.c_str(),
-			(char*)server_protocol_env.c_str(),
-			(char*)server_software_env.c_str(),
-			(char*)server_name_env.c_str(),
-			(char*)server_port_env.c_str(),
-			(char*)redirect_status_env.c_str(),
-			(char*)request_uri_env.c_str(),
-			(char*)script_name_env.c_str(),
-			NULL
-		};
-	char *args[] = {
-		(char*)"/usr/bin/php-cgi",
-		NULL
-	};
+        std::vector<std::string> env_strings = {
+            "REQUEST_METHOD=" + method,
+            "QUERY_STRING=" + query,
+            "CONTENT_LENGTH=" + content_length,
+            "SCRIPT_FILENAME=" + script_path,
+            "GATEWAY_INTERFACE=CGI/1.1",
+            "SERVER_PROTOCOL=HTTP/1.1",
+            "SERVER_SOFTWARE=MySimpleWebServer/1.0",
+            "SERVER_NAME=localhost",
+            "SERVER_PORT=" + std::to_string(req.associated_conf->port),
+            "REDIRECT_STATUS=200",
+            "REQUEST_URI=" + req.requested_path,
+            "SCRIPT_NAME=/index.php",
+            "CONTENT_TYPE=application/x-www-form-urlencoded"
+        };
 
-		if (execve(args[0], args, env) == -1) {
-			logMessage("execve failed: " + std::string(strerror(errno)));
-			_exit(1);
-		}
-		_exit(1);
-	}
+        std::vector<char*> env;
+        for (const auto& s : env_strings) {
+            env.push_back(strdup(s.c_str()));
+        }
+        env.push_back(nullptr);
 
-	ss.str("");
-	ss << "Parent process continued, child PID: " << pid;
-	logMessage(ss.str());
+        char* const args[] = {
+            (char*)"/usr/bin/php-cgi",
+            (char*)script_path.c_str(),
+            nullptr
+        };
 
-	close(pipe_in[0]);
-	close(pipe_out[1]);
+        execve(args[0], args, env.data());
 
-	if (setNonBlocking(req.cgi_in_fd) < 0) {
-		logMessage("Failed to set cgi_in_fd non-blocking");
-	}
-	if (setNonBlocking(req.cgi_out_fd) < 0) {
-		logMessage("Failed to set cgi_out_fd non-blocking");
-	}
+        // Aufräumen falls execve fehlschlägt
+        for (char* ptr : env) {
+            free(ptr);
+        }
 
-	modEpoll(g_epfd, req.cgi_in_fd, EPOLLOUT);
-	modEpoll(g_epfd, req.cgi_out_fd, EPOLLIN);
+        logMessage("execve failed: " + std::string(strerror(errno)));
+        _exit(1);
+    }
 
-	g_fd_to_client[req.cgi_in_fd] = req.client_fd;
-	g_fd_to_client[req.cgi_out_fd] = req.client_fd;
+    // Parent process
+    ss.str("");
+    ss << "Parent process continued, child PID: " << pid;
+    logMessage(ss.str());
 
-	req.cgi_pid = pid;
-	req.state = RequestState::STATE_CGI_RUNNING;
+    close(pipe_in[0]);
+    close(pipe_out[1]);
 
-	logMessage("CGI setup complete");
+    // Registriere die Pipes für epoll
+    modEpoll(g_epfd, req.cgi_in_fd, EPOLLOUT);
+    modEpoll(g_epfd, req.cgi_out_fd, EPOLLIN);
+
+    g_fd_to_client[req.cgi_in_fd] = req.client_fd;
+    g_fd_to_client[req.cgi_out_fd] = req.client_fd;
+
+    req.cgi_pid = pid;
+    req.state = RequestState::STATE_CGI_RUNNING;
+
+    logMessage("CGI setup complete");
 }
 
 static const Location* findMatchingLocation(const ServerBlock* conf, const std::string& path) {
@@ -386,37 +400,58 @@ static void handleClientRead(int epfd, int fd) {
 
 
 static void handleClientWrite(int epfd, int fd) {
-std::stringstream ss;
-ss << "Handling client write on fd " << fd;
-logMessage(ss.str());
+    std::stringstream ss;
+    ss << "Handling client write on fd " << fd;
+    logMessage(ss.str());
 
-RequestState &req = g_requests[fd];
-if (req.state == RequestState::STATE_SENDING_RESPONSE) {
-	ss.str("");
-	ss << "Writing response, buffer size: " << req.response_buffer.size();
-	logMessage(ss.str());
+    RequestState &req = g_requests[fd];
+    if (req.state == RequestState::STATE_SENDING_RESPONSE) {
+        // Debug the response content
+        ss.str("");
+        ss << "Attempting to write response, buffer size: " << req.response_buffer.size()
+           << ", content: " << std::string(req.response_buffer.begin(), req.response_buffer.end());
+        logMessage(ss.str());
 
-	ssize_t n = write(fd, req.response_buffer.data(), req.response_buffer.size());
+        // Make sure we're writing to a valid socket
+        int error = 0;
+        socklen_t len = sizeof(error);
+        if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0) {
+            logMessage("Socket error detected: " + std::string(strerror(error)));
+            delFromEpoll(epfd, fd);
+            return;
+        }
 
-	if (n > 0) {
-		ss.str("");
-		ss << "Wrote " << n << " bytes to client";
-		logMessage(ss.str());
+        ssize_t n = send(fd, req.response_buffer.data(), req.response_buffer.size(), MSG_NOSIGNAL);
 
-		req.response_buffer.erase(req.response_buffer.begin(),
-								req.response_buffer.begin() + n);
+        if (n > 0) {
+            ss.str("");
+            ss << "Successfully wrote " << n << " bytes to client";
+            logMessage(ss.str());
 
-		if (req.response_buffer.empty()) {
-			logMessage("Response complete, closing connection");
-			delFromEpoll(epfd, fd);
-		}
-	} else if (n < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
-			logMessage("Write error: " + std::string(strerror(errno)));
-			delFromEpoll(epfd, fd);
-		}
-	}
-}
+            req.response_buffer.erase(
+                req.response_buffer.begin(),
+                req.response_buffer.begin() + n
+            );
+
+            if (req.response_buffer.empty()) {
+                logMessage("Response fully sent, closing connection");
+                delFromEpoll(epfd, fd);
+            } else {
+                // If there's more data to write, make sure we're still watching for EPOLLOUT
+                modEpoll(epfd, fd, EPOLLOUT);
+            }
+        } else if (n < 0) {
+            if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                ss.str("");
+                ss << "Write error: " << strerror(errno);
+                logMessage(ss.str());
+                delFromEpoll(epfd, fd);
+            } else {
+                // If we would block, make sure we're still watching for EPOLLOUT
+                modEpoll(epfd, fd, EPOLLOUT);
+            }
+        }
+    }
 }
 
 
@@ -467,88 +502,110 @@ static void handleCGIWrite(int epfd, int fd) {
 }
 
 static void handleCGIRead(int epfd, int fd) {
-	std::stringstream ss;
-	ss << "CGI Read Event started for fd " << fd;
-	logMessage(ss.str());
+    std::stringstream ss;
+    ss << "CGI Read Event started for fd " << fd;
+    logMessage(ss.str());
 
-	if (g_fd_to_client.find(fd) == g_fd_to_client.end()) {
-		logMessage("No client mapping found for fd " + std::to_string(fd));
-		delFromEpoll(epfd, fd);
-		return;
-	}
+    if (g_fd_to_client.find(fd) == g_fd_to_client.end()) {
+        logMessage("No client mapping found for fd " + std::to_string(fd));
+        delFromEpoll(epfd, fd);
+        return;
+    }
 
-	int client_fd = g_fd_to_client[fd];
-	RequestState &req = g_requests[client_fd];
+    int client_fd = g_fd_to_client[fd];
+    RequestState &req = g_requests[client_fd];
 
-	int error = 0;
-	socklen_t len = sizeof(error);
-	if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) == 0 && error != 0) {
-		ss.str("");
-		ss << "Pipe error on fd " << fd << ": " << strerror(error);
-		logMessage(ss.str());
-	}
+    char buf[4096];  // Größerer Buffer für CGI-Output
+    ssize_t n = read(fd, buf, sizeof(buf));
 
-	char buf[1024];
-	ssize_t n = read(fd, buf, sizeof(buf));
+    ss.str("");
+    ss << "Read attempt returned " << n << " bytes";
+    logMessage(ss.str());
 
-	ss.str("");
-	ss << "Read attempt returned " << n << " bytes";
-	logMessage(ss.str());
+    if (n > 0) {
+        // Daten vom CGI-Skript empfangen
+        req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
+        ss.str("");
+        ss << "Added " << n << " bytes to CGI output buffer, total size: "
+           << req.cgi_output_buffer.size();
+        logMessage(ss.str());
+        return;  // Warten auf mehr Daten
+    }
 
-	if (n == 0) {
-		logMessage("CGI EOF received");
-		req.cgi_done = true;
+    if (n == 0) {  // EOF - CGI hat seine Ausgabe beendet
+        logMessage("CGI EOF received, processing output");
+        req.cgi_done = true;
 
-		if (!req.cgi_output_buffer.empty()) {
-			ss.str("");
-			ss << "Processing CGI output of size: " << req.cgi_output_buffer.size();
-			logMessage(ss.str());
+        // Debug-Ausgabe des CGI-Outputs
+        std::string debug_output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
+        ss.str("");
+        ss << "Raw CGI output:\n" << debug_output;
+        logMessage(ss.str());
 
-			std::string cgi_output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-			std::string response = "HTTP/1.1 200 OK\r\n";
-			response += "Content-Length: " + std::to_string(cgi_output.length()) + "\r\n\r\n";
-			response += cgi_output;
+        if (!req.cgi_output_buffer.empty()) {
+            std::string cgi_output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
 
-			req.response_buffer.assign(response.begin(), response.end());
-			req.state = RequestState::STATE_SENDING_RESPONSE;
+            // Überprüfen, ob der CGI-Output bereits HTTP-Header enthält
+            if (cgi_output.find("HTTP/1.1") != 0) {
+                // Wenn nicht, fügen wir eigene Header hinzu
+                std::string response = "HTTP/1.1 200 OK\r\n"
+                                     "Content-Type: text/html\r\n"
+                                     "Connection: close\r\n"
+                                     "Content-Length: " + std::to_string(cgi_output.length()) +
+                                     "\r\n\r\n" + cgi_output;
+                req.response_buffer.assign(response.begin(), response.end());
+            } else {
+                // CGI-Output enthält bereits Header
+                req.response_buffer = req.cgi_output_buffer;
+            }
 
-			delFromEpoll(epfd, fd);
-			modEpoll(epfd, req.client_fd, EPOLLOUT);
-		} else {
-			logMessage("No CGI output received, sending error response");
-			std::string error_response = "HTTP/1.1 500 Internal Server Error\r\n"
-									"Content-Length: 21\r\n\r\n"
-									"CGI produced no output";
-			req.response_buffer.assign(error_response.begin(), error_response.end());
-			req.state = RequestState::STATE_SENDING_RESPONSE;
-			delFromEpoll(epfd, fd);
-			modEpoll(epfd, req.client_fd, EPOLLOUT);
-		}
+            ss.str("");
+            ss << "Prepared response of size: " << req.response_buffer.size();
+            logMessage(ss.str());
 
-		if (req.cgi_pid > 0) {
-			int status;
-			pid_t result = waitpid(req.cgi_pid, &status, WNOHANG);
-			if (result > 0) {
-				ss.str("");
-				ss << "CGI process " << req.cgi_pid << " exited with status " << WEXITSTATUS(status);
-				logMessage(ss.str());
-			}
-		}
-		return;
-	}
+            // CGI-Pipe schließen
+            delFromEpoll(epfd, fd);
+            close(fd);
+            req.cgi_out_fd = -1;
 
-	if (n < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
-			logMessage("Read error: " + std::string(strerror(errno)));
-			delFromEpoll(epfd, fd);
-		}
-		return;
-	}
+            // Zum Senden der Antwort wechseln
+            req.state = RequestState::STATE_SENDING_RESPONSE;
+            modEpoll(epfd, req.client_fd, EPOLLOUT);
+        } else {
+            logMessage("No CGI output received, sending error response");
+            std::string error_response = "HTTP/1.1 500 Internal Server Error\r\n"
+                                       "Content-Type: text/plain\r\n"
+                                       "Content-Length: 21\r\n"
+                                       "Connection: close\r\n\r\n"
+                                       "CGI produced no output";
+            req.response_buffer.assign(error_response.begin(), error_response.end());
+            req.state = RequestState::STATE_SENDING_RESPONSE;
 
-	req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
-	ss.str("");
-	ss << "Added " << n << " bytes to CGI output buffer";
-	logMessage(ss.str());
+            delFromEpoll(epfd, fd);
+            close(fd);
+            req.cgi_out_fd = -1;
+
+            modEpoll(epfd, req.client_fd, EPOLLOUT);
+        }
+
+        // CGI-Prozess aufräumen
+        if (req.cgi_pid > 0) {
+            int status;
+            pid_t result = waitpid(req.cgi_pid, &status, WNOHANG);
+            if (result > 0) {
+                ss.str("");
+                ss << "CGI process " << req.cgi_pid << " exited with status " << WEXITSTATUS(status);
+                logMessage(ss.str());
+            }
+        }
+    } else if (n < 0) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            logMessage("Read error: " + std::string(strerror(errno)));
+            delFromEpoll(epfd, fd);
+            close(fd);
+            req.cgi_out_fd = -1;
+        }
+    }
 }
 
 int main(int argc, char **argv, char **envp)
