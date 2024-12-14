@@ -6,7 +6,7 @@
 #    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/13 11:43:08 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/14 14:39:17 by jeberle          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -149,7 +149,14 @@ prune:
 	@echo "$(GREEN)All done!$(X)"
 
 test:
-	make && ./$(NAME) config/test.conf
+	@if [ -d "./tmp" ]; then \
+		echo "$(YELLOW)Cleaning existing 'tmp' directory$(X)"; \
+		rm -rf ./tmp; \
+	fi
+	@mkdir ./tmp
+	@touch ./tmp/webserv.log
+	@echo "$(GREEN)Temporary 'tmp' directory prepared$(X)"
+	@make && ./$(NAME) config/test.conf
 
 clean:
 	@rm -rf $(OBJ_DIR)
