@@ -6,7 +6,7 @@
 #    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/14 18:16:28 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/14 19:17:06 by jeberle          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -106,7 +106,10 @@ OBJECTS := $(addprefix $(OBJ_DIR)/, $(SRCS:%.cpp=%.o))
 .PHONY: all clean fclean re
 
 all: $(NAME)
-	rm ./webserv.log; \
+	@if [ -e "./webserv.log" ]; then \
+		rm -rf ./webserv.log; \
+		echo "$(RED)Removed old webserv.log$(X)"; \
+	fi
 
 -include $(OBJECTS:.o=.d)
 
@@ -149,12 +152,18 @@ prune:
 	@echo "$(GREEN)All done!$(X)"
 
 test:
-	rm ./webserv.log; \
+	@if [ -e "./webserv.log" ]; then \
+		rm -rf ./webserv.log; \
+		echo "$(RED)Removed old webserv.log$(X)"; \
+	fi
 	@touch ./webserv.log
 	@make && ./$(NAME) config/test.conf
 
 clean:
-	rm ./webserv.log; \
+	@if [ -e "./webserv.log" ]; then \
+		rm -rf ./webserv.log; \
+		echo "$(RED)Removed old webserv.log$(X)"; \
+	fi
 	@rm -rf $(OBJ_DIR)
 	@echo "$(RED)objects deleted$(X)"
 
