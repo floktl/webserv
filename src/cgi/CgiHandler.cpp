@@ -3,17 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 13:37:26 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 14:39:26 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CgiHandler.hpp"
 #include "../main.hpp"
 
-CgiHandler::CgiHandler(GlobalFDS &_globalFDS) : globalFDS(_globalFDS) {}
+CgiHandler::CgiHandler(GlobalFDS &_globalFDS, Server& _server) : globalFDS(_globalFDS), server(_server) {}
 
 void CgiHandler::cleanupCGI(RequestState &req) {
 	std::stringstream ss;
@@ -96,8 +96,8 @@ void CgiHandler::startCGI(RequestState &req, const std::string &method, const st
 	setNonBlocking(req.cgi_in_fd);
 	setNonBlocking(req.cgi_out_fd);
 
-	modEpoll(globalFDS.epoll_FD, req.cgi_in_fd, EPOLLOUT);
-	modEpoll(globalFDS.epoll_FD, req.cgi_out_fd, EPOLLIN);
+	server.modEpoll(globalFDS.epoll_FD, req.cgi_in_fd, EPOLLOUT);
+	server.modEpoll(globalFDS.epoll_FD, req.cgi_out_fd, EPOLLIN);
 
 	pid_t pid = fork();
 	if (pid < 0) {
