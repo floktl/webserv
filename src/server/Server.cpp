@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/16 12:38:47 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 14:43:14 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/16 16:44:20 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,10 +14,10 @@
 
 Server::Server(GlobalFDS &_globalFDS) :
 	globalFDS(_globalFDS),
-	staticHandler(new StaticHandler(_globalFDS, *this)),
-	cgiHandler(new CgiHandler(_globalFDS, *this)),
-	requestHandler(new RequestHandler(_globalFDS, *this)),
-	errorHandler(new ErrorHandler(_globalFDS))
+	staticHandler(new StaticHandler(*this)),
+	cgiHandler(new CgiHandler(*this)),
+	requestHandler(new RequestHandler(*this)),
+	errorHandler(new ErrorHandler(*this))
 {}
 
 Server::~Server()
@@ -26,6 +26,31 @@ Server::~Server()
 	delete cgiHandler;
 	delete requestHandler;
 	delete errorHandler;
+}
+
+StaticHandler* Server::getStaticHandler(void)
+{
+	return (staticHandler);
+}
+
+CgiHandler* Server::getCgiHandler(void)
+{
+	return (cgiHandler);
+}
+
+RequestHandler* Server::getRequestHandler(void)
+{
+	return (requestHandler);
+}
+
+ErrorHandler* Server::getErrorHandler(void)
+{
+	return (errorHandler);
+}
+
+GlobalFDS& Server::getGlobalFds(void)
+{
+	return globalFDS;
 }
 
 int Server::server_init(std::vector<ServerBlock> configs)
@@ -382,4 +407,12 @@ void Server::delFromEpoll(int epfd, int fd)
 	ss.str("");
 	ss << "Closed fd " << fd;
 	Logger::file(ss.str());
+}
+
+int Server::setNonBlocking(int fd)
+{
+	int flags = fcntl(fd, F_GETFL, 0);
+	if (flags < 0)
+		return -1;
+	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
