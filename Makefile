@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+         #
+#    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/16 12:38:17 by fkeitel          ###   ########.fr        #
+#    Updated: 2024/12/16 16:44:09 by jeberle          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -92,7 +92,6 @@ SRCS=	src/main.cpp \
 		src/static/StaticHandler.cpp \
 		src/server/Server.cpp \
 		src/cgi/CgiHandler.cpp \
-		src/utils/utils.cpp \
 		src/requests/RequestHandler.cpp
 
 #------------------------------------------------------------------------------#

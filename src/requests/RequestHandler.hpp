@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:13 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 14:45:00 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/16 16:01:35 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,13 +22,11 @@ class Server;
 
 class RequestHandler {
 	public:
-		RequestHandler(GlobalFDS &_globalFDS, Server& server);
+		RequestHandler(Server& server);
 
 		void buildResponse(RequestState &req);
 		void parseRequest(RequestState &req);
 	private:
-		GlobalFDS& globalFDS;
-		CgiHandler* cgiHandler;
 		Server& server;
 };
 
