@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.hpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 14:00:14 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 16:45:51 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,6 @@
 #include "./structs/webserv.hpp"
 #include "./utils/ConfigHandler.hpp"
 #include "./utils/Logger.hpp"
-#include "./utils/utils.hpp"
 #include "./cgi/CgiHandler.hpp"
 # include "./requests/RequestHandler.hpp"
 # include "./utils/Logger.hpp"

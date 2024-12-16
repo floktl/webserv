@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/16 12:38:49 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 14:52:26 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/16 16:45:01 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,12 @@ class Server
 		int server_init(std::vector<ServerBlock> configs);
 		void delFromEpoll(int epfd, int fd);
 		void modEpoll(int epfd, int fd, uint32_t events);
+		GlobalFDS& getGlobalFds(void);
+		StaticHandler* getStaticHandler(void);
+		CgiHandler* getCgiHandler(void);
+		RequestHandler* getRequestHandler(void);
+		ErrorHandler* getErrorHandler(void);
+		int setNonBlocking(int fd);
 
 	private:
 		GlobalFDS& globalFDS;
