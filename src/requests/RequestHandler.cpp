@@ -6,13 +6,14 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 09:26:31 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 10:02:07 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "RequestHandler.hpp"
 
-void buildResponse(RequestState &req) {
+void buildResponse(RequestState &req)
+{
 	const ServerBlock* conf = req.associated_conf;
 	if (!conf) return;
 
@@ -27,7 +28,8 @@ void buildResponse(RequestState &req) {
 	Logger::file(ss.str());
 }
 
-void parseRequest(RequestState &req) {
+void parseRequest(RequestState &req)
+{
 	std::string request(req.request_buffer.begin(), req.request_buffer.end());
 
 	size_t pos = request.find("\r\n");
@@ -50,7 +52,8 @@ void parseRequest(RequestState &req) {
 
 	std::string query;
 	size_t qpos = path.find('?');
-	if (qpos != std::string::npos) {
+	if (qpos != std::string::npos)
+	{
 		query = path.substr(qpos + 1);
 		path = path.substr(0, qpos);
 	}
@@ -58,10 +61,13 @@ void parseRequest(RequestState &req) {
 	req.requested_path = "http://localhost:" + std::to_string(req.associated_conf->port) + path;
 	req.cgi_output_buffer.clear();
 
-	if (needsCGI(req.associated_conf, req.requested_path)) {
+	if (needsCGI(req.associated_conf, req.requested_path))
+	{
 		req.state = RequestState::STATE_PREPARE_CGI;
 		startCGI(req, method, query);
-	} else {
+	}
+	else
+	{
 		buildResponse(req);
 		Logger::file("here we dont !");
 		req.state = RequestState::STATE_SENDING_RESPONSE;

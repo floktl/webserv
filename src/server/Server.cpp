@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 09:53:19 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 10:02:26 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,7 +104,8 @@ void handleClientWrite(int epfd, int fd)
 				req.response_buffer.begin() + n
 			);
 
-			if (req.response_buffer.empty()) {
+			if (req.response_buffer.empty())
+			{
 				Logger::file("Response fully sent, closing connection");
 				delFromEpoll(epfd, fd);
 			} else {
