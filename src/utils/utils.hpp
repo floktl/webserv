@@ -1,26 +1,22 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Server.hpp                                         :+:      :+:    :+:   */
+/*   utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/11/29 12:40:21 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 09:53:07 by fkeitel          ###   ########.fr       */
+/*   Created: 2024/12/16 09:18:24 by fkeitel           #+#    #+#             */
+/*   Updated: 2024/12/16 09:25:41 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#ifndef UTILS_HPP
+#define UTILS_HPP
 
 #include "../main.hpp"
 
-class Server {
-	public:
-	private:
-};
-
-void handleClientRead(int epfd, int fd);
-void handleClientWrite(int epfd, int fd);
+int setNonBlocking(int fd);
+void modEpoll(int epfd, int fd, uint32_t events);
+void delFromEpoll(int epfd, int fd);
 
 #endif

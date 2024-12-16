@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Sanitizer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 15:27:25 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/14 18:10:55 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/16 09:32:34 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,15 +15,6 @@
 # define SANITIZER_HPP
 
 # include "./../main.hpp"
-# include "./Logger.hpp"
-# include <set>
-# include <vector>
-# include <sstream>
-# include <algorithm> // For std::transform
-# include <sys/stat.h>
-# include <unistd.h>
-# include <cstring>			// für strerror
-# include <dirent.h>		// für DIR, opendir, closedir
 
 class Sanitizer {
 	private:
