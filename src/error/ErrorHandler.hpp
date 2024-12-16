@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ErrorHandler.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/13 07:15:29 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 13:37:26 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 15:59:35 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,9 +18,9 @@
 class ErrorHandler
 {
 	public:
-		ErrorHandler(GlobalFDS &_globalFDS);
+		ErrorHandler(Server& server);
 	private:
-		GlobalFDS& globalFDS;
+		Server& server;
 };
 
 #endif

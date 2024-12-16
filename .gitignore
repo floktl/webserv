@@ -3,3 +3,5 @@ var/www/html/data/*
 var/www/php/data/*
 var/www/python/data/*
 ./webserv.log
+./obj
+webserv

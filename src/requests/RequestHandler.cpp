@@ -6,17 +6,13 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 14:44:32 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/16 16:23:48 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "RequestHandler.hpp"
 
-RequestHandler::RequestHandler(GlobalFDS &_globalFDS, Server& _server)
-    : globalFDS(_globalFDS),
-      cgiHandler(new CgiHandler(_globalFDS, _server)),
-      server(_server)
-{}
+RequestHandler::RequestHandler(Server& _server) : server(_server){}
 
 void RequestHandler::buildResponse(RequestState &req)
 {
@@ -67,10 +63,10 @@ void RequestHandler::parseRequest(RequestState &req)
 	req.requested_path = "http://localhost:" + std::to_string(req.associated_conf->port) + path;
 	req.cgi_output_buffer.clear();
 
-	if (cgiHandler->needsCGI(req.associated_conf, req.requested_path))
+	if (server.getCgiHandler()->needsCGI(req.associated_conf, req.requested_path))
 	{
 		req.state = RequestState::STATE_PREPARE_CGI;
-		cgiHandler->startCGI(req, method, query);
+		server.getCgiHandler()->startCGI(req, method, query);
 	}
 	else
 	{
@@ -78,7 +74,7 @@ void RequestHandler::parseRequest(RequestState &req)
 		Logger::file("here we dont !");
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		Logger::file("here we dont go!");
-		server.modEpoll(globalFDS.epoll_FD, req.client_fd, EPOLLOUT);
+		server.modEpoll(server.getGlobalFds().epoll_FD, req.client_fd, EPOLLOUT);
 		Logger::file("here we dont go further!");
 	}
 }
