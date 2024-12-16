@@ -3,17 +3,30 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/16 12:38:47 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 14:11:07 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 14:43:14 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
-Server::Server(GlobalFDS &_globalFDS)
-    : globalFDS(_globalFDS), staticHandler(_globalFDS), cgiHandler(_globalFDS), requestHandler(_globalFDS), errorHandler(_globalFDS) {}
+Server::Server(GlobalFDS &_globalFDS) :
+	globalFDS(_globalFDS),
+	staticHandler(new StaticHandler(_globalFDS, *this)),
+	cgiHandler(new CgiHandler(_globalFDS, *this)),
+	requestHandler(new RequestHandler(_globalFDS, *this)),
+	errorHandler(new ErrorHandler(_globalFDS))
+{}
+
+Server::~Server()
+{
+	delete staticHandler;
+	delete cgiHandler;
+	delete requestHandler;
+	delete errorHandler;
+}
 
 int Server::server_init(std::vector<ServerBlock> configs)
 {
@@ -140,8 +153,8 @@ int Server::server_init(std::vector<ServerBlock> configs)
 						delFromEpoll(epoll_FD, fd);
 						continue;
 					}
-					if (ev & EPOLLIN) staticHandler.handleClientRead(epoll_FD, fd);
-					if (ev & EPOLLOUT) staticHandler.handleClientWrite(epoll_FD, fd);
+					if (ev & EPOLLIN) staticHandler->handleClientRead(epoll_FD, fd);
+					if (ev & EPOLLOUT) staticHandler->handleClientWrite(epoll_FD, fd);
 					continue;
 				}
 
@@ -163,7 +176,7 @@ int Server::server_init(std::vector<ServerBlock> configs)
 					{
 						if (ev & EPOLLIN)
 						{
-							cgiHandler.handleCGIRead(epoll_FD, fd);
+							cgiHandler->handleCGIRead(epoll_FD, fd);
 						}
 						if (ev & EPOLLHUP)
 						{
@@ -213,14 +226,14 @@ int Server::server_init(std::vector<ServerBlock> configs)
 								req.state = RequestState::STATE_SENDING_RESPONSE;
 								modEpoll(epoll_FD, client_fd, EPOLLOUT);
 							}
-							cgiHandler.cleanupCGI(req);
+							cgiHandler->cleanupCGI(req);
 						}
 					}
 					else if (fd == req.cgi_in_fd)
 					{
 						if (ev & EPOLLOUT)
 						{
-							cgiHandler.handleCGIWrite(epoll_FD, fd);
+							cgiHandler->handleCGIWrite(epoll_FD, fd);
 						}
 						if (ev & (EPOLLHUP | EPOLLERR))
 						{
@@ -271,5 +284,102 @@ void Server::handleNewConnection(int epoll_FD, int fd, const ServerBlock& conf)
 
 	std::stringstream ss;
 	ss << "New client connection on fd " << client_fd;
+	Logger::file(ss.str());
+}
+
+
+
+void Server::modEpoll(int epfd, int fd, uint32_t events)
+{
+	struct epoll_event ev;
+	std::memset(&ev, 0, sizeof(ev));
+	ev.events = events;
+	ev.data.fd = fd;
+
+	if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) < 0)
+	{
+		if (errno == ENOENT)
+		{
+			if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev) < 0)
+			{
+				Logger::file("epoll_ctl ADD failed: " + std::string(strerror(errno)));
+			}
+		}
+		else
+		{
+			Logger::file("epoll_ctl MOD failed: " + std::string(strerror(errno)));
+		}
+	}
+}
+
+
+void Server::delFromEpoll(int epfd, int fd)
+{
+	std::stringstream ss;
+	ss << "Removing fd " << fd << " from epoll";
+	Logger::file(ss.str());
+
+	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+
+	std::map<int,int>::iterator it = globalFDS.svFD_to_clFD_map.find(fd);
+	if (it != globalFDS.svFD_to_clFD_map.end())
+	{
+		int client_fd = it->second;
+		RequestState &req = globalFDS.request_state_map[client_fd];
+
+		ss.str("");
+		ss << "Found associated client fd " << client_fd;
+		Logger::file(ss.str());
+
+		if (fd == req.cgi_in_fd)
+		{
+			Logger::file("Closing CGI input pipe");
+			req.cgi_in_fd = -1;
+		}
+		if (fd == req.cgi_out_fd)
+		{
+			Logger::file("Closing CGI output pipe");
+			req.cgi_out_fd = -1;
+		}
+
+		if (req.cgi_in_fd == -1 && req.cgi_out_fd == -1 &&
+			req.state != RequestState::STATE_SENDING_RESPONSE)
+		{
+			Logger::file("Cleaning up request state");
+			globalFDS.request_state_map.erase(client_fd);
+		}
+
+		globalFDS.svFD_to_clFD_map.erase(it);
+	}
+	else
+	{
+		RequestState &req = globalFDS.request_state_map[fd];
+		Logger::file("Cleaning up client connection resources");
+
+		if (req.cgi_in_fd != -1)
+		{
+			ss.str("");
+			ss << "Cleaning up CGI input pipe " << req.cgi_in_fd;
+			Logger::file(ss.str());
+			epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
+			close(req.cgi_in_fd);
+			globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
+		}
+		if (req.cgi_out_fd != -1)
+		{
+			ss.str("");
+			ss << "Cleaning up CGI output pipe " << req.cgi_out_fd;
+			Logger::file(ss.str());
+			epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
+			close(req.cgi_out_fd);
+			globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
+		}
+
+		globalFDS.request_state_map.erase(fd);
+	}
+
+	close(fd);
+	ss.str("");
+	ss << "Closed fd " << fd;
 	Logger::file(ss.str());
 }

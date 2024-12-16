@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.hpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:36:37 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 13:37:26 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 14:38:48 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,10 +19,12 @@ struct ServerBlock;
 struct RequestState;
 struct Location;
 
+class Server;
+
 class CgiHandler
 {
 	public:
-		CgiHandler(GlobalFDS &_globalFDS);
+		CgiHandler(GlobalFDS &_globalFDS, Server& server);
 
 		void cleanupCGI(RequestState &req);
 		void startCGI(RequestState &req, const std::string &method, const std::string &query);
@@ -32,6 +34,7 @@ class CgiHandler
 		void handleCGIRead(int epfd, int fd);
 	private:
 		GlobalFDS& globalFDS;
+		Server& server;
 };
 
 
