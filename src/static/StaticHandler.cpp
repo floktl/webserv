@@ -6,14 +6,13 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 14:50:38 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/16 16:41:04 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "StaticHandler.hpp"
 
-StaticHandler::StaticHandler(GlobalFDS &_globalFDS, Server& _server) : globalFDS(_globalFDS),
-    cgiHandler(new CgiHandler(_globalFDS, _server)),server(_server) {}
+StaticHandler::StaticHandler(Server& _server) : server(_server){}
 
 void StaticHandler::handleClientRead(int epfd, int fd)
 {
@@ -21,7 +20,7 @@ void StaticHandler::handleClientRead(int epfd, int fd)
 	ss << "Handling client read on fd " << fd;
 	Logger::file(ss.str());
 
-	RequestState &req = globalFDS.request_state_map[fd];
+	RequestState &req = server.getGlobalFds().request_state_map[fd];
 	char buf[1024];
 	ssize_t n = read(fd, buf, sizeof(buf));
 
@@ -53,12 +52,12 @@ void StaticHandler::handleClientRead(int epfd, int fd)
 		std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
 		if (req_str.find("\r\n\r\n") != std::string::npos) {
 			Logger::file("Complete request received, parsing");
-			//parseRequest(req);
+			server.getRequestHandler()->parseRequest(req);
 
-			if (!cgiHandler->needsCGI(req.associated_conf, req.requested_path))
+			if (!server.getCgiHandler()->needsCGI(req.associated_conf, req.requested_path))
 			{
 				Logger::file("Processing as normal request");
-				server.requestHandler->buildResponse(req);
+				server.getRequestHandler()->buildResponse(req);
 				req.state = RequestState::STATE_SENDING_RESPONSE;
 				server.modEpoll(epfd, fd, EPOLLOUT);
 			}
@@ -77,7 +76,7 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 	ss << "Handling client write on fd " << fd;
 	Logger::file(ss.str());
 
-	RequestState &req = globalFDS.request_state_map[fd];
+	RequestState &req = server.getGlobalFds().request_state_map[fd];
 	if (req.state == RequestState::STATE_SENDING_RESPONSE)
 	{
 		ss.str("");

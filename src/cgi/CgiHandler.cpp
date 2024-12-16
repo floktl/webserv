@@ -6,14 +6,14 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 14:39:26 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/16 16:46:07 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CgiHandler.hpp"
 #include "../main.hpp"
 
-CgiHandler::CgiHandler(GlobalFDS &_globalFDS, Server& _server) : globalFDS(_globalFDS), server(_server) {}
+CgiHandler::CgiHandler(Server& _server) : server(_server) {}
 
 void CgiHandler::cleanupCGI(RequestState &req) {
 	std::stringstream ss;
@@ -55,9 +55,9 @@ void CgiHandler::cleanupCGI(RequestState &req) {
 		ss.str("");
 		ss << "Closing CGI input pipe (fd " << req.cgi_in_fd << ")";
 		Logger::file(ss.str());
-		epoll_ctl(globalFDS.epoll_FD, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
+		epoll_ctl(server.getGlobalFds().epoll_FD, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
 		close(req.cgi_in_fd);
-		globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
+		server.getGlobalFds().svFD_to_clFD_map.erase(req.cgi_in_fd);
 		req.cgi_in_fd = -1;
 	}
 
@@ -65,9 +65,9 @@ void CgiHandler::cleanupCGI(RequestState &req) {
 		ss.str("");
 		ss << "Closing CGI output pipe (fd " << req.cgi_out_fd << ")";
 		Logger::file(ss.str());
-		epoll_ctl(globalFDS.epoll_FD, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
+		epoll_ctl(server.getGlobalFds().epoll_FD, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
 		close(req.cgi_out_fd);
-		globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
+		server.getGlobalFds().svFD_to_clFD_map.erase(req.cgi_out_fd);
 		req.cgi_out_fd = -1;
 	}
 
@@ -90,14 +90,14 @@ void CgiHandler::startCGI(RequestState &req, const std::string &method, const st
 	req.cgi_in_fd = pipe_in[1];
 	req.cgi_out_fd = pipe_out[0];
 
-	globalFDS.svFD_to_clFD_map[req.cgi_in_fd] = req.client_fd;
-	globalFDS.svFD_to_clFD_map[req.cgi_out_fd] = req.client_fd;
+	server.getGlobalFds().svFD_to_clFD_map[req.cgi_in_fd] = req.client_fd;
+	server.getGlobalFds().svFD_to_clFD_map[req.cgi_out_fd] = req.client_fd;
 
-	setNonBlocking(req.cgi_in_fd);
-	setNonBlocking(req.cgi_out_fd);
+	server.setNonBlocking(req.cgi_in_fd);
+	server.setNonBlocking(req.cgi_out_fd);
 
-	server.modEpoll(globalFDS.epoll_FD, req.cgi_in_fd, EPOLLOUT);
-	server.modEpoll(globalFDS.epoll_FD, req.cgi_out_fd, EPOLLIN);
+	server.modEpoll(server.getGlobalFds().epoll_FD, req.cgi_in_fd, EPOLLOUT);
+	server.modEpoll(server.getGlobalFds().epoll_FD, req.cgi_out_fd, EPOLLIN);
 
 	pid_t pid = fork();
 	if (pid < 0) {
@@ -211,20 +211,20 @@ bool CgiHandler::needsCGI(const ServerBlock* conf, const std::string &path) {
 }
 
 void CgiHandler::handleCGIWrite(int epfd, int fd) {
-	if (globalFDS.svFD_to_clFD_map.find(fd) == globalFDS.svFD_to_clFD_map.end()) {
+	if (server.getGlobalFds().svFD_to_clFD_map.find(fd) == server.getGlobalFds().svFD_to_clFD_map.end()) {
 		Logger::file("No client mapping found for CGI fd " + std::to_string(fd));
 		return;
 	}
 
-	int client_fd = globalFDS.svFD_to_clFD_map[fd];
-	RequestState &req = globalFDS.request_state_map[client_fd];
+	int client_fd = server.getGlobalFds().svFD_to_clFD_map[fd];
+	RequestState &req = server.getGlobalFds().request_state_map[client_fd];
 
 	if (req.request_buffer.empty()) {
 		Logger::file("No data to write to CGI");
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		close(fd);
 		req.cgi_in_fd = -1;
-		globalFDS.svFD_to_clFD_map.erase(fd);
+		server.getGlobalFds().svFD_to_clFD_map.erase(fd);
 		return;
 	}
 
@@ -241,14 +241,14 @@ void CgiHandler::handleCGIWrite(int epfd, int fd) {
 			epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 			close(fd);
 			req.cgi_in_fd = -1;
-			globalFDS.svFD_to_clFD_map.erase(fd);
+			server.getGlobalFds().svFD_to_clFD_map.erase(fd);
 		}
 	} else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
 		Logger::file("Error writing to CGI: " + std::string(strerror(errno)));
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		close(fd);
 		req.cgi_in_fd = -1;
-		globalFDS.svFD_to_clFD_map.erase(fd);
+		server.getGlobalFds().svFD_to_clFD_map.erase(fd);
 	}
 }
 
@@ -258,14 +258,14 @@ void CgiHandler::handleCGIRead(int epfd, int fd) {
 	<< "Handling fd=" << fd;
 	Logger::file(ss.str());
 
-	if (globalFDS.svFD_to_clFD_map.find(fd) == globalFDS.svFD_to_clFD_map.end()) {
+	if (server.getGlobalFds().svFD_to_clFD_map.find(fd) == server.getGlobalFds().svFD_to_clFD_map.end()) {
 		Logger::file("ERROR: No client mapping found for CGI fd");
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		return;
 	}
 
-	int client_fd = globalFDS.svFD_to_clFD_map[fd];
-	RequestState &req = globalFDS.request_state_map[client_fd];
+	int client_fd = server.getGlobalFds().svFD_to_clFD_map[fd];
+	RequestState &req = server.getGlobalFds().request_state_map[client_fd];
 
 	ss.str("");
 	ss << "CGI State Info:\n"
