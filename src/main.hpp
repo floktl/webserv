@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 13:54:12 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 14:00:14 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,6 +50,5 @@
 # include "./error/ErrorHandler.hpp"
 # include "./server/Server.hpp"
 # include "structs/webserv.hpp"
-
 
 # endif
