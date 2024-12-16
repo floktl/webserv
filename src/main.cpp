@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/26 12:58:21 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 13:42:16 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 14:10:40 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,8 +17,10 @@ int main(int argc, char **argv, char **envp)
 	ConfigHandler utils;
 	GlobalFDS globalFDS;
 	Server server(globalFDS);
-	ErrorHandler errorHandler(globalFDS);
+	StaticHandler staticHandler(globalFDS);
+	CgiHandler cgiHandler(globalFDS);
 	RequestHandler requestHandler(globalFDS);
+	ErrorHandler errorHandler(globalFDS);
 
 	(void)server;
 	try
