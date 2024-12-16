@@ -3,16 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   StaticHandler.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 13:37:26 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 14:50:38 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "StaticHandler.hpp"
 
-StaticHandler::StaticHandler(GlobalFDS &_globalFDS) : globalFDS(_globalFDS) {}
+StaticHandler::StaticHandler(GlobalFDS &_globalFDS, Server& _server) : globalFDS(_globalFDS),
+    cgiHandler(new CgiHandler(_globalFDS, _server)),server(_server) {}
 
 void StaticHandler::handleClientRead(int epfd, int fd)
 {
@@ -27,7 +28,7 @@ void StaticHandler::handleClientRead(int epfd, int fd)
 	if (n == 0)
 	{
 		Logger::file("Client closed connection");
-		delFromEpoll(epfd, fd);
+		server.delFromEpoll(epfd, fd);
 		return;
 	}
 
@@ -36,7 +37,7 @@ void StaticHandler::handleClientRead(int epfd, int fd)
 		if (errno != EAGAIN && errno != EWOULDBLOCK)
 		{
 			Logger::file("Read error: " + std::string(strerror(errno)));
-			delFromEpoll(epfd, fd);
+			server.delFromEpoll(epfd, fd);
 		}
 		return;
 	}
@@ -49,23 +50,23 @@ void StaticHandler::handleClientRead(int epfd, int fd)
 
 	if (req.request_buffer.size() > 4)
 	{
-		//std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
-		//if (req_str.find("\r\n\r\n") != std::string::npos) {
-		//	Logger::file("Complete request received, parsing");
-		//	//parseRequest(req);
+		std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
+		if (req_str.find("\r\n\r\n") != std::string::npos) {
+			Logger::file("Complete request received, parsing");
+			//parseRequest(req);
 
-		//	if (!needsCGI(req.associated_conf, req.requested_path))
-		//	{
-		//		Logger::file("Processing as normal request");
-		//		buildResponse(req);
-		//		req.state = RequestState::STATE_SENDING_RESPONSE;
-		//		modEpoll(epfd, fd, EPOLLOUT);
-		//	}
-		//	else
-		//	{
-		//		Logger::file("Request requires CGI processing");
-		//	}
-		//}
+			if (!cgiHandler->needsCGI(req.associated_conf, req.requested_path))
+			{
+				Logger::file("Processing as normal request");
+				server.requestHandler->buildResponse(req);
+				req.state = RequestState::STATE_SENDING_RESPONSE;
+				server.modEpoll(epfd, fd, EPOLLOUT);
+			}
+			else
+			{
+				Logger::file("Request requires CGI processing");
+			}
+		}
 	}
 }
 
@@ -89,7 +90,7 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0)
 		{
 			Logger::file("Socket error detected: " + std::string(strerror(error)));
-			delFromEpoll(epfd, fd);
+			server.delFromEpoll(epfd, fd);
 			return;
 		}
 
@@ -109,9 +110,9 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 			if (req.response_buffer.empty())
 			{
 				Logger::file("Response fully sent, closing connection");
-				delFromEpoll(epfd, fd);
+				server.delFromEpoll(epfd, fd);
 			} else {
-				modEpoll(epfd, fd, EPOLLOUT);
+				server.modEpoll(epfd, fd, EPOLLOUT);
 			}
 		}
 		else if (n < 0)
@@ -121,11 +122,11 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 				ss.str("");
 				ss << "Write error: " << strerror(errno);
 				Logger::file(ss.str());
-				delFromEpoll(epfd, fd);
+				server.delFromEpoll(epfd, fd);
 			}
 			else
 			{
-				modEpoll(epfd, fd, EPOLLOUT);
+				server.modEpoll(epfd, fd, EPOLLOUT);
 			}
 		}
 	}
