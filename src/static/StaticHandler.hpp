@@ -1,26 +1,28 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ErrorHandler.hpp                                   :+:      :+:    :+:   */
+/*   StaticHandler.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/12/13 07:15:29 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 13:37:26 by fkeitel          ###   ########.fr       */
+/*   Created: 2024/11/29 12:40:21 by fkeitel           #+#    #+#             */
+/*   Updated: 2024/12/16 13:53:05 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef ERRORHANDLER_HPP
-#define ERRORHANDLER_HPP
+#ifndef STATICHANDLER_HPP
+#define STATICHANDLER_HPP
 
 #include "../main.hpp"
 
-class ErrorHandler
-{
+class StaticHandler {
 	public:
-		ErrorHandler(GlobalFDS &_globalFDS);
+		StaticHandler(GlobalFDS &_globalFDS);
+		void handleClientRead(int epfd, int fd);
+		void handleClientWrite(int epfd, int fd);
 	private:
 		GlobalFDS& globalFDS;
 };
+
 
 #endif

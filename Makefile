@@ -6,7 +6,7 @@
 #    By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/16 09:49:13 by fkeitel          ###   ########.fr        #
+#    Updated: 2024/12/16 12:38:17 by fkeitel          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -89,6 +89,7 @@ SRCS=	src/main.cpp \
 		src/utils/Logger.cpp \
 		src/utils/ConfigHandler.cpp \
 		src/utils/Sanitizer.cpp \
+		src/static/StaticHandler.cpp \
 		src/server/Server.cpp \
 		src/cgi/CgiHandler.cpp \
 		src/utils/utils.cpp \

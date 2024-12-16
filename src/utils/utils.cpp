@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/16 09:18:09 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 10:12:50 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 12:44:26 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,11 +52,11 @@ void delFromEpoll(int epfd, int fd)
 
 	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 
-	std::map<int,int>::iterator it = g_fd_to_client.find(fd);
-	if (it != g_fd_to_client.end())
+	std::map<int,int>::iterator it = globalFDS.svFD_to_clFD_map.find(fd);
+	if (it != globalFDS.svFD_to_clFD_map.end())
 	{
 		int client_fd = it->second;
-		RequestState &req = g_requests[client_fd];
+		RequestState &req = globalFDS.request_state_map[client_fd];
 
 		ss.str("");
 		ss << "Found associated client fd " << client_fd;
@@ -77,14 +77,14 @@ void delFromEpoll(int epfd, int fd)
 			req.state != RequestState::STATE_SENDING_RESPONSE)
 		{
 			Logger::file("Cleaning up request state");
-			g_requests.erase(client_fd);
+			globalFDS.request_state_map.erase(client_fd);
 		}
 
-		g_fd_to_client.erase(it);
+		globalFDS.svFD_to_clFD_map.erase(it);
 	}
 	else
 	{
-		RequestState &req = g_requests[fd];
+		RequestState &req = globalFDS.request_state_map[fd];
 		Logger::file("Cleaning up client connection resources");
 
 		if (req.cgi_in_fd != -1)
@@ -94,7 +94,7 @@ void delFromEpoll(int epfd, int fd)
 			Logger::file(ss.str());
 			epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
 			close(req.cgi_in_fd);
-			g_fd_to_client.erase(req.cgi_in_fd);
+			globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
 		}
 		if (req.cgi_out_fd != -1)
 		{
@@ -103,10 +103,10 @@ void delFromEpoll(int epfd, int fd)
 			Logger::file(ss.str());
 			epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
 			close(req.cgi_out_fd);
-			g_fd_to_client.erase(req.cgi_out_fd);
+			globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
 		}
 
-		g_requests.erase(fd);
+		globalFDS.request_state_map.erase(fd);
 	}
 
 	close(fd);

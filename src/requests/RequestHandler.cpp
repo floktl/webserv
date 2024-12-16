@@ -6,13 +6,15 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 10:02:07 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 13:37:26 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "RequestHandler.hpp"
 
-void buildResponse(RequestState &req)
+RequestHandler::RequestHandler(GlobalFDS &_globalFDS) : globalFDS(_globalFDS) {}
+
+void RequestHandler::buildResponse(RequestState &req)
 {
 	const ServerBlock* conf = req.associated_conf;
 	if (!conf) return;
@@ -28,7 +30,7 @@ void buildResponse(RequestState &req)
 	Logger::file(ss.str());
 }
 
-void parseRequest(RequestState &req)
+void RequestHandler::parseRequest(RequestState &req)
 {
 	std::string request(req.request_buffer.begin(), req.request_buffer.end());
 
@@ -72,7 +74,7 @@ void parseRequest(RequestState &req)
 		Logger::file("here we dont !");
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		Logger::file("here we dont go!");
-		modEpoll(g_epfd, req.client_fd, EPOLLOUT);
+		modEpoll(globalFDS.epoll_FD, req.client_fd, EPOLLOUT);
 		Logger::file("here we dont go further!");
 	}
 }

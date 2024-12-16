@@ -3,11 +3,13 @@
 /*                                                        :::      ::::::::   */
 /*   ErrorHandler.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/13 07:09:22 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/14 17:40:55 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/16 13:37:26 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./ErrorHandler.hpp"
+
+ErrorHandler::ErrorHandler(GlobalFDS &_globalFDS) : globalFDS(_globalFDS) {}
