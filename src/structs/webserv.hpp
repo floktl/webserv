@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/14 17:31:47 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 09:42:41 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 12:44:30 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,6 +68,13 @@ struct RequestState
 
 	const ServerBlock* associated_conf;
 	std::string requested_path;
+};
+
+struct GlobalFDS
+{
+	int epoll_FD = -1;
+	std::map<int, RequestState> request_state_map;
+	std::map<int, int> svFD_to_clFD_map;
 };
 
 #endif

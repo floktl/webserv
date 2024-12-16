@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 10:01:40 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 13:54:12 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,11 +46,10 @@
 #include "./cgi/CgiHandler.hpp"
 # include "./requests/RequestHandler.hpp"
 # include "./utils/Logger.hpp"
+# include "./static/StaticHandler.hpp"
+# include "./error/ErrorHandler.hpp"
 # include "./server/Server.hpp"
 # include "structs/webserv.hpp"
 
-extern std::map<int, RequestState> g_requests;
-extern std::map<int, int> g_fd_to_client;
-extern int g_epfd;
 
 # endif
