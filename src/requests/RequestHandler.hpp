@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:13 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 09:31:29 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 10:02:16 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,10 @@
 
 #include "../main.hpp"
 
-//class RequestHandler {
-//	public:
-//	private:
-//};
+class RequestHandler {
+	public:
+	private:
+};
 
 struct RequestState;
 

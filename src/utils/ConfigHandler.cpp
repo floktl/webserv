@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigHandler.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/14 18:13:20 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/16 10:14:20 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,8 @@
 #include "./Sanitizer.hpp"
 
 // initialize handler with necessary flags
-ConfigHandler::ConfigHandler() {
+ConfigHandler::ConfigHandler()
+{
 	configFileValid = false;
 	inServerBlock = false;
 	inLocationBlock = false;
@@ -27,7 +28,8 @@ ConfigHandler::ConfigHandler() {
 ConfigHandler::~ConfigHandler() {};
 
 // internal trimming
-std::string trim(const std::string& str) {
+std::string trim(const std::string& str)
+{
 	size_t first = str.find_first_not_of(" \t");
 	if (first == std::string::npos) return "";
 	size_t last = str.find_last_not_of(" \t");
@@ -35,41 +37,49 @@ std::string trim(const std::string& str) {
 }
 
 // parsing constants
-std::vector<std::string> parseOptionsToVector(const std::string& opts) {
+std::vector<std::string> parseOptionsToVector(const std::string& opts)
+{
 	std::vector<std::string> result;
 	std::istringstream stream(opts);
 	std::string opt;
-	while (std::getline(stream, opt, ',')) {
+	while (std::getline(stream, opt, ','))
+	{
 		result.push_back(trim(opt));
 	}
 	return result;
 }
 
 // expand ENV variables in bash style for config values
-std::string expandEnvironmentVariables(const std::string& value, char** env) {
+std::string expandEnvironmentVariables(const std::string& value, char** env)
+{
 	if (!env) return value;
 
 	std::string result = value;
 	size_t pos = 0;
 
-	while ((pos = result.find('$', pos)) != std::string::npos) {
+	while ((pos = result.find('$', pos)) != std::string::npos)
+	{
 		if (pos + 1 >= result.length()) break;
 
 		size_t end = pos + 1;
 		while (end < result.length() &&
-			(std::isalnum((unsigned char)result[end]) || result[end] == '_')) {
+			(std::isalnum((unsigned char)result[end]) || result[end] == '_'))
+		{
 			end++;
 		}
 
 		std::string varName = result.substr(pos + 1, end - (pos + 1));
 
 		bool found = false;
-		for (char** envVar = env; *envVar != nullptr; envVar++) {
+		for (char** envVar = env; *envVar != nullptr; envVar++)
+		{
 			std::string envStr(*envVar);
 			size_t equalPos = envStr.find('=');
-			if (equalPos != std::string::npos) {
+			if (equalPos != std::string::npos)
+			{
 				std::string name = envStr.substr(0, equalPos);
-				if (name == varName) {
+				if (name == varName)
+				{
 					std::string replacer = envStr.substr(equalPos + 1);
 					result.replace(pos, end - pos, replacer);
 					pos += replacer.length();
@@ -79,7 +89,8 @@ std::string expandEnvironmentVariables(const std::string& value, char** env) {
 			}
 		}
 
-		if (!found) {
+		if (!found)
+		{
 			pos = end;
 		}
 	}
@@ -89,7 +100,8 @@ std::string expandEnvironmentVariables(const std::string& value, char** env) {
 
 // Parses a single line of the configuration file
 // Handles server blocks, location blocks, and their respective directives
-void ConfigHandler::parseLine(std::string line) {
+void ConfigHandler::parseLine(std::string line)
+{
 	static const std::vector<std::string> serverOpts =
 		parseOptionsToVector(CONFIG_OPTS);
 	static const std::vector<std::string> locationOpts =
@@ -103,14 +115,17 @@ void ConfigHandler::parseLine(std::string line) {
 	line = trim(line);
 
 	// Skip comment lines
-	if (line.find("#") == 0) {
+	if (line.find("#") == 0)
+	{
 		return;
 	}
 
 	// Handle block opening
-	if (line.find("{") != std::string::npos) {
+	if (line.find("{") != std::string::npos)
+	{
 		// Prevent multiple scopes per line
-		if (line.find("}") != std::string::npos) {
+		if (line.find("}") != std::string::npos)
+		{
 			Logger::error("Error: at line " + std::to_string(linecount)
 				+ " Only one scope per line allowed");
 			parsingErr = true;
@@ -118,8 +133,10 @@ void ConfigHandler::parseLine(std::string line) {
 		}
 
 		// Handle server block opening
-		if (keyword == "server") {
-			if (inServerBlock) {
+		if (keyword == "server")
+		{
+			if (inServerBlock)
+			{
 				Logger::error("Error: Nested server block at line "
 					+ std::to_string(linecount));
 				parsingErr = true;
@@ -130,8 +147,10 @@ void ConfigHandler::parseLine(std::string line) {
 			return;
 		}
 		// Handle location block opening
-		else if (keyword == "location") {
-			if (!inServerBlock || inLocationBlock) {
+		else if (keyword == "location")
+		{
+			if (!inServerBlock || inLocationBlock)
+			{
 				Logger::error("Error: Invalid location block at line "
 					+ std::to_string(linecount));
 				parsingErr = true;
@@ -144,7 +163,8 @@ void ConfigHandler::parseLine(std::string line) {
 			std::getline(stream, rest);
 			rest = trim(rest);
 
-			if (rest != "{") {
+			if (rest != "{")
+			{
 				Logger::error("Error: Location definition must be followed by \
 					its path and { on same line at line " + std::to_string(linecount));
 				parsingErr = true;
@@ -159,8 +179,10 @@ void ConfigHandler::parseLine(std::string line) {
 	}
 
 	// Handle block closing
-	if (keyword == "}") {
-		if (!inServerBlock && !inLocationBlock) {
+	if (keyword == "}")
+	{
+		if (!inServerBlock && !inLocationBlock)
+		{
 			Logger::error("Error: Unexpected } at line "
 				+ std::to_string(linecount));
 			parsingErr = true;
@@ -174,7 +196,8 @@ void ConfigHandler::parseLine(std::string line) {
 	}
 
 	// Ensure directives are within a server block
-	if (!inServerBlock) {
+	if (!inServerBlock)
+	{
 		Logger::error("Error: Configuration outside server block at line "
 			+ std::to_string(linecount));
 		parsingErr = true;
@@ -184,7 +207,8 @@ void ConfigHandler::parseLine(std::string line) {
 	// Parse directive value
 	std::getline(stream, value);
 	value = trim(value);
-	if (value.empty() || value.back() != ';') {
+	if (value.empty() || value.back() != ';')
+	{
 		Logger::error("Error: Missing semicolon at line "
 			+ std::to_string(linecount));
 		parsingErr = true;
@@ -195,9 +219,11 @@ void ConfigHandler::parseLine(std::string line) {
 	value = expandEnvironmentVariables(value, env);
 
 	// Handle server-level directives
-	if (!inLocationBlock) {
+	if (!inLocationBlock)
+	{
 		if (std::find(serverOpts.begin(), serverOpts.end(), keyword)
-			== serverOpts.end() || keyword == "server") {
+			== serverOpts.end() || keyword == "server")
+		{
 			Logger::error("Error: Invalid server directive '"
 				+ keyword + "' at line " + std::to_string(linecount));
 			parsingErr = true;
