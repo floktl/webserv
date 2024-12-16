@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/14 17:31:47 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 12:44:30 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 17:49:43 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,6 +75,15 @@ struct GlobalFDS
 	int epoll_FD = -1;
 	std::map<int, RequestState> request_state_map;
 	std::map<int, int> svFD_to_clFD_map;
+};
+
+struct CgiTunnel {
+	pid_t									pid;
+	int										in_fd;
+	int										out_fd;
+	std::chrono::steady_clock::time_point	last_used;
+	bool									is_busy;
+	std::string								script_path;
 };
 
 #endif
