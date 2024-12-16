@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:36:37 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 09:52:07 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 13:37:26 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,16 +19,20 @@ struct ServerBlock;
 struct RequestState;
 struct Location;
 
-class CgiHandler {
+class CgiHandler
+{
 	public:
+		CgiHandler(GlobalFDS &_globalFDS);
+
+		void cleanupCGI(RequestState &req);
+		void startCGI(RequestState &req, const std::string &method, const std::string &query);
+		const Location* findMatchingLocation(const ServerBlock* conf, const std::string& path);
+		bool needsCGI(const ServerBlock* conf, const std::string &path);
+		void handleCGIWrite(int epfd, int fd);
+		void handleCGIRead(int epfd, int fd);
 	private:
+		GlobalFDS& globalFDS;
 };
 
-void cleanupCGI(RequestState &req);
-void startCGI(RequestState &req, const std::string &method, const std::string &query);
-const Location* findMatchingLocation(const ServerBlock* conf, const std::string& path);
-bool needsCGI(const ServerBlock* conf, const std::string &path);
-void handleCGIWrite(int epfd, int fd);
-void handleCGIRead(int epfd, int fd);
 
 #endif

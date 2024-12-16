@@ -6,14 +6,16 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 09:51:54 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/16 13:37:26 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CgiHandler.hpp"
 #include "../main.hpp"
 
-void cleanupCGI(RequestState &req) {
+CgiHandler::CgiHandler(GlobalFDS &_globalFDS) : globalFDS(_globalFDS) {}
+
+void CgiHandler::cleanupCGI(RequestState &req) {
 	std::stringstream ss;
 	ss << "\n=== CGI Cleanup Start ===\n"
 	<< "Cleaning up CGI resources for client_fd " << req.client_fd;
@@ -53,9 +55,9 @@ void cleanupCGI(RequestState &req) {
 		ss.str("");
 		ss << "Closing CGI input pipe (fd " << req.cgi_in_fd << ")";
 		Logger::file(ss.str());
-		epoll_ctl(g_epfd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
+		epoll_ctl(globalFDS.epoll_FD, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
 		close(req.cgi_in_fd);
-		g_fd_to_client.erase(req.cgi_in_fd);
+		globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
 		req.cgi_in_fd = -1;
 	}
 
@@ -63,16 +65,16 @@ void cleanupCGI(RequestState &req) {
 		ss.str("");
 		ss << "Closing CGI output pipe (fd " << req.cgi_out_fd << ")";
 		Logger::file(ss.str());
-		epoll_ctl(g_epfd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
+		epoll_ctl(globalFDS.epoll_FD, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
 		close(req.cgi_out_fd);
-		g_fd_to_client.erase(req.cgi_out_fd);
+		globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
 		req.cgi_out_fd = -1;
 	}
 
 	Logger::file("=== CGI Cleanup End ===\n");
 }
 
-void startCGI(RequestState &req, const std::string &method, const std::string &query) {
+void CgiHandler::startCGI(RequestState &req, const std::string &method, const std::string &query) {
 	int pipe_in[2];
 	int pipe_out[2];
 
@@ -88,14 +90,14 @@ void startCGI(RequestState &req, const std::string &method, const std::string &q
 	req.cgi_in_fd = pipe_in[1];
 	req.cgi_out_fd = pipe_out[0];
 
-	g_fd_to_client[req.cgi_in_fd] = req.client_fd;
-	g_fd_to_client[req.cgi_out_fd] = req.client_fd;
+	globalFDS.svFD_to_clFD_map[req.cgi_in_fd] = req.client_fd;
+	globalFDS.svFD_to_clFD_map[req.cgi_out_fd] = req.client_fd;
 
 	setNonBlocking(req.cgi_in_fd);
 	setNonBlocking(req.cgi_out_fd);
 
-	modEpoll(g_epfd, req.cgi_in_fd, EPOLLOUT);
-	modEpoll(g_epfd, req.cgi_out_fd, EPOLLIN);
+	modEpoll(globalFDS.epoll_FD, req.cgi_in_fd, EPOLLOUT);
+	modEpoll(globalFDS.epoll_FD, req.cgi_out_fd, EPOLLIN);
 
 	pid_t pid = fork();
 	if (pid < 0) {
@@ -181,7 +183,7 @@ void startCGI(RequestState &req, const std::string &method, const std::string &q
 	Logger::file("CGI setup complete");
 }
 
-const Location* findMatchingLocation(const ServerBlock* conf, const std::string& path) {
+const Location* CgiHandler::findMatchingLocation(const ServerBlock* conf, const std::string& path) {
 	for (size_t i = 0; i < conf->locations.size(); i++) {
 		const Location &loc = conf->locations[i];
 		if (path.find(loc.path) == 0) {
@@ -191,7 +193,7 @@ const Location* findMatchingLocation(const ServerBlock* conf, const std::string&
 	return NULL;
 }
 
-bool needsCGI(const ServerBlock* conf, const std::string &path) {
+bool CgiHandler::needsCGI(const ServerBlock* conf, const std::string &path) {
 	if (path.length() >= 4 && path.substr(path.length() - 4) == ".php") {
 		return true;
 	}
@@ -208,21 +210,21 @@ bool needsCGI(const ServerBlock* conf, const std::string &path) {
 	return false;
 }
 
-void handleCGIWrite(int epfd, int fd) {
-	if (g_fd_to_client.find(fd) == g_fd_to_client.end()) {
+void CgiHandler::handleCGIWrite(int epfd, int fd) {
+	if (globalFDS.svFD_to_clFD_map.find(fd) == globalFDS.svFD_to_clFD_map.end()) {
 		Logger::file("No client mapping found for CGI fd " + std::to_string(fd));
 		return;
 	}
 
-	int client_fd = g_fd_to_client[fd];
-	RequestState &req = g_requests[client_fd];
+	int client_fd = globalFDS.svFD_to_clFD_map[fd];
+	RequestState &req = globalFDS.request_state_map[client_fd];
 
 	if (req.request_buffer.empty()) {
 		Logger::file("No data to write to CGI");
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		close(fd);
 		req.cgi_in_fd = -1;
-		g_fd_to_client.erase(fd);
+		globalFDS.svFD_to_clFD_map.erase(fd);
 		return;
 	}
 
@@ -239,31 +241,31 @@ void handleCGIWrite(int epfd, int fd) {
 			epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 			close(fd);
 			req.cgi_in_fd = -1;
-			g_fd_to_client.erase(fd);
+			globalFDS.svFD_to_clFD_map.erase(fd);
 		}
 	} else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
 		Logger::file("Error writing to CGI: " + std::string(strerror(errno)));
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		close(fd);
 		req.cgi_in_fd = -1;
-		g_fd_to_client.erase(fd);
+		globalFDS.svFD_to_clFD_map.erase(fd);
 	}
 }
 
-void handleCGIRead(int epfd, int fd) {
+void CgiHandler::handleCGIRead(int epfd, int fd) {
 	std::stringstream ss;
 	ss << "\n=== CGI Read Handler Start ===\n"
 	<< "Handling fd=" << fd;
 	Logger::file(ss.str());
 
-	if (g_fd_to_client.find(fd) == g_fd_to_client.end()) {
+	if (globalFDS.svFD_to_clFD_map.find(fd) == globalFDS.svFD_to_clFD_map.end()) {
 		Logger::file("ERROR: No client mapping found for CGI fd");
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		return;
 	}
 
-	int client_fd = g_fd_to_client[fd];
-	RequestState &req = g_requests[client_fd];
+	int client_fd = globalFDS.svFD_to_clFD_map[fd];
+	RequestState &req = globalFDS.request_state_map[client_fd];
 
 	ss.str("");
 	ss << "CGI State Info:\n"
