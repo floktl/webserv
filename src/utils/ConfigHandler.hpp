@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigHandler.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:27:56 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/14 17:34:12 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/16 09:39:46 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,21 +21,9 @@
 #  define LOCATION_OPTS "methods,return,root,autoindex,default_file,cgi,cgi_param,upload_store,client_max_body_size"
 # endif
 
-# include "../structs/webserv.hpp"
-# include <string>
-# include <vector>
-# include <map>
-# include <stdexcept>
-# include <fstream>
-# include "./Logger.hpp"
-# include "./../main.hpp"
-# include "./../server/Server.hpp"
-# include "./../requests/RequestHandler.hpp"
-# include <set>
-# include <sstream>
-# include <algorithm>
-# include <dirent.h>
-# include <iostream>
+#include "../main.hpp"
+
+struct ServerBlock;
 
 class ConfigHandler {
 private:
