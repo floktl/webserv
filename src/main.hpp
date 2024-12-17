@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 16:45:51 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/17 16:49:45 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,9 +30,9 @@
 # include <iostream>
 # include <set>
 # include <sstream>
-# include <algorithm> // For std::transform
+# include <algorithm>
 # include <sys/stat.h>
-# include <dirent.h>		// für DIR, opendir, closedir
+# include <dirent.h>
 # include <stdexcept>
 # include <fstream>
 #include <chrono>
