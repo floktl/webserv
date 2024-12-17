@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/16 12:38:49 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 16:45:01 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/17 11:32:50 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,7 +44,7 @@ class Server
 		CgiHandler* cgiHandler;
 		RequestHandler* requestHandler;
 		ErrorHandler* errorHandler;
-		void handleNewConnection(int epoll_FD, int fd, const ServerBlock& conf);
+		void handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf);
 };
 
 #endif
