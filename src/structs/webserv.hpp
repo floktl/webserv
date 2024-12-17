@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/14 17:31:47 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 17:49:43 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/17 13:47:50 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,18 +72,22 @@ struct RequestState
 
 struct GlobalFDS
 {
-	int epoll_FD = -1;
+	int epoll_fd = -1;
 	std::map<int, RequestState> request_state_map;
 	std::map<int, int> svFD_to_clFD_map;
 };
 
 struct CgiTunnel {
-	pid_t									pid;
-	int										in_fd;
-	int										out_fd;
-	std::chrono::steady_clock::time_point	last_used;
-	bool									is_busy;
-	std::string								script_path;
+	pid_t pid = -1;
+	int in_fd = -1;
+	int out_fd = -1;
+	int client_fd = -1;
+	int server_fd = -1;
+	std::chrono::steady_clock::time_point last_used;
+	bool is_busy = false;
+	std::string script_path;
+	std::vector<char> buffer;
+	CgiTunnel() : last_used(std::chrono::steady_clock::now()) {}
 };
 
 #endif
