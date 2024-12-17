@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 12:39:19 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/14 18:11:25 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/17 16:49:04 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,22 +45,22 @@ void Logger::black(const std::string &message, bool newline, size_t length) {
 }
 
 void Logger::file(const std::string& message) {
-    try {
+	try {
 
-        std::string filePath = "./webserv.log";
-        std::ofstream logfile(filePath.c_str(), std::ios::app);
-        if (!logfile.is_open()) {
-            throw std::runtime_error("Konnte Logdatei nicht öffnen");
-        }
+		std::string filePath = "./webserv.log";
+		std::ofstream logfile(filePath.c_str(), std::ios::app);
+		if (!logfile.is_open()) {
+			throw std::runtime_error("Konnte Logdatei nicht öffnen");
+		}
 
-        auto now = std::chrono::system_clock::now();
-        auto time = std::chrono::system_clock::to_time_t(now);
-        std::stringstream ss;
-        ss << std::put_time(std::localtime(&time), "[%Y-%m-%d %H:%M:%S]");
+		auto now = std::chrono::system_clock::now();
+		auto time = std::chrono::system_clock::to_time_t(now);
+		std::stringstream ss;
+		ss << std::put_time(std::localtime(&time), "[%Y-%m-%d %H:%M:%S]");
 
-        logfile << ss.str() << " " << message << std::endl;
-    } catch (const std::exception& e) {
-    }
+		logfile << ss.str() << " " << message << std::endl;
+	} catch (const std::exception& e) {
+	}
 }
 
 std::string Logger::formatMessage(const std::string &message, size_t length) {
