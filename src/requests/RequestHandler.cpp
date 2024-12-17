@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/17 17:42:28 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/17 17:53:00 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -252,7 +252,8 @@ void RequestHandler::parseRequest(RequestState &req)
 	if (server.getCgiHandler()->needsCGI(req.associated_conf, req.requested_path))
 	{
 		req.state = RequestState::STATE_PREPARE_CGI;
-		server.getCgiHandler()->startCGI(req, method, query);
+		Logger::file("addCgiTunnel");
+		server.getCgiHandler()->addCgiTunnel(req, method, query);
 	}
 	else // handle static pages
 	{
