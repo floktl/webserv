@@ -3,15 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 16:46:07 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/17 10:58:34 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CgiHandler.hpp"
-#include "../main.hpp"
 
 CgiHandler::CgiHandler(Server& _server) : server(_server) {}
 
