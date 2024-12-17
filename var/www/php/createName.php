@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		file_put_contents($dir . '/' . $name . '.name', $age);
 	}
 	while (true) {
-		sleep(1); // Pause for 1 second in each iteration
+		sleep(1);
 	}
 }
 

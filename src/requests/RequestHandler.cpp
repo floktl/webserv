@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 16:23:48 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/17 13:40:31 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,8 @@ void RequestHandler::parseRequest(RequestState &req)
 	if (server.getCgiHandler()->needsCGI(req.associated_conf, req.requested_path))
 	{
 		req.state = RequestState::STATE_PREPARE_CGI;
-		server.getCgiHandler()->startCGI(req, method, query);
+		Logger::file("addCgiTunnel");
+		server.getCgiHandler()->addCgiTunnel(req, method, query);
 	}
 	else
 	{
@@ -74,7 +75,7 @@ void RequestHandler::parseRequest(RequestState &req)
 		Logger::file("here we dont !");
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		Logger::file("here we dont go!");
-		server.modEpoll(server.getGlobalFds().epoll_FD, req.client_fd, EPOLLOUT);
+		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 		Logger::file("here we dont go further!");
 	}
 }
