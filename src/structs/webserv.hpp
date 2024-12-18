@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/14 17:31:47 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/17 13:47:50 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/17 17:56:37 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,6 +83,8 @@ struct CgiTunnel {
 	int out_fd = -1;
 	int client_fd = -1;
 	int server_fd = -1;
+	const ServerBlock* config = NULL;
+	const Location* location = NULL;
 	std::chrono::steady_clock::time_point last_used;
 	bool is_busy = false;
 	std::string script_path;
