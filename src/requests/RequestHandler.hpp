@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:13 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/17 10:40:01 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/18 10:39:46 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ class RequestHandler {
 
 		void buildResponse(RequestState &req);
 		void parseRequest(RequestState &req);
+		void buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req);
 	private:
 		Server& server;
 };
