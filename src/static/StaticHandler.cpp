@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   StaticHandler.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/16 16:41:04 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/17 12:10:30 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,7 +92,6 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 			server.delFromEpoll(epfd, fd);
 			return;
 		}
-
 		ssize_t n = send(fd, req.response_buffer.data(), req.response_buffer.size(), MSG_NOSIGNAL);
 
 		if (n > 0)
@@ -130,4 +129,3 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 		}
 	}
 }
-
