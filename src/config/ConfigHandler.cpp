@@ -6,12 +6,11 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 10:14:20 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/17 10:46:12 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./ConfigHandler.hpp"
-#include "./Sanitizer.hpp"
 
 // initialize handler with necessary flags
 ConfigHandler::ConfigHandler()

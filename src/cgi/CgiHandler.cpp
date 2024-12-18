@@ -6,12 +6,11 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/18 08:39:37 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/18 08:52:50 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CgiHandler.hpp"
-#include "../main.hpp"
 
 CgiHandler::CgiHandler(Server& _server) : server(_server) {}
 
