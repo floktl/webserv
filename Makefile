@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
+#    By: jonathaneberle <jonathaneberle@student.    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/18 12:19:13 by jeberle          ###   ########.fr        #
+#    Updated: 2024/12/19 15:57:11 by jonathanebe      ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -87,7 +87,7 @@ vpath %.d $(DEP_DIR)
 SRCS=	src/main.cpp \
 		src/error/ErrorHandler.cpp \
 		src/utils/Logger.cpp \
-		src/utils/ConfigHandler.cpp \
+		src/config/ConfigHandler.cpp \
 		src/utils/Sanitizer.cpp \
 		src/static/StaticHandler.cpp \
 		src/server/Server.cpp \
