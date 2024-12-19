@@ -3,15 +3,24 @@
 /*                                                        :::      ::::::::   */
 /*   main.hpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jonathaneberle <jonathaneberle@student.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/17 17:53:30 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/19 16:27:39 by jonathanebe      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+# ifndef MAIN_HPP
+#  define MAIN_HPP
+
 # ifndef DEBUG
 #  define DEBUG 1
+# endif
+
+# ifndef CHUNK_SIZE
+#  define CHUNK_SIZE 8192
+# endif
+ 
 
 #include <sys/epoll.h>
 #include <fcntl.h>
