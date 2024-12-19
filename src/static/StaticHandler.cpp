@@ -6,7 +6,7 @@
 /*   By: jonathaneberle <jonathaneberle@student.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/19 16:41:53 by jonathanebe      ###   ########.fr       */
+/*   Updated: 2024/12/19 16:56:23 by jonathanebe      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -152,7 +152,6 @@ void StaticHandler::handleClientWrite(int epfd, int fd) {
 			server.delFromEpoll(epfd, fd);
 			return;
 		}
-
 		ssize_t n = send(fd, req.response_buffer.data(), req.response_buffer.size(), MSG_NOSIGNAL);
 
 		if (n > 0) {
