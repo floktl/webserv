@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jonathaneberle <jonathaneberle@student.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/18 08:52:50 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/19 16:48:18 by jonathanebe      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -271,10 +271,11 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events) {
 	}
 
 	ss.str("");
-	ss << "Writing " << req.request_buffer.size() << " bytes to CGI process";
+	ss << "Writing request buffer, size: " << req.request_buffer.size();
 	Logger::file(ss.str());
 
-	ssize_t written = write(fd, req.request_buffer.data(), req.request_buffer.size());
+	size_t to_write = std::min(static_cast<size_t>(CHUNK_SIZE), req.request_buffer.size());
+	ssize_t written = write(fd, req.request_buffer.data(), to_write);
 
 	if (written < 0) {
 		ss.str("");
@@ -292,7 +293,8 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events) {
 	}
 
 	if (written > 0) {
-		req.request_buffer.erase(req.request_buffer.begin(), req.request_buffer.begin() + written);
+		req.request_buffer.erase(req.request_buffer.begin(),
+                                req.request_buffer.begin() + written);
 		ss.str("");
 		ss << "Successfully wrote " << written << " bytes";
 		Logger::file(ss.str());
@@ -304,6 +306,8 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events) {
 			tunnel->in_fd = -1;
 			server.getGlobalFds().svFD_to_clFD_map.erase(fd);
 			fd_to_tunnel.erase(fd);
+		} else {
+			server.modEpoll(epfd, fd, EPOLLOUT);
 		}
 	}
 
@@ -331,7 +335,7 @@ void CgiHandler::handleCGIRead(int epfd, int fd) {
 	}
 	RequestState &req = req_it->second;
 
-	char buf[4096];
+	char buf[CHUNK_SIZE];
 	ssize_t n = read(fd, buf, sizeof(buf));
 
 	ss.str("");
@@ -342,39 +346,74 @@ void CgiHandler::handleCGIRead(int epfd, int fd) {
 	Logger::file(ss.str());
 
 	if (n > 0) {
-		req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
-	} else if (n == 0) {
-		Logger::file("CGI process finished writing");
-		if (!req.cgi_output_buffer.empty()) {
-			std::string cgi_output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
+		if (!req.headers_sent) {
+			req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
 
-			size_t header_end = cgi_output.find("\r\n\r\n");
-			if (header_end == std::string::npos) {
-				header_end = 0;
+			std::string temp(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
+			size_t header_end = temp.find("\r\n\r\n");
+
+			if (header_end != std::string::npos) {
+				std::string headers = temp.substr(0, header_end);
+				std::string body = temp.substr(header_end + 4);
+
+				std::string response = "HTTP/1.1 200 OK\r\n";
+				if (!headers.empty()) {
+					response += headers + "\r\n";
+				} else {
+					response += "Content-Type: text/html\r\n";
+				}
+				response += "Transfer-Encoding: chunked\r\n";
+				response += "Connection: close\r\n\r\n";
+
+				if (!body.empty()) {
+					std::stringstream chunk;
+					chunk << std::hex << body.length() << "\r\n" << body << "\r\n";
+					response += chunk.str();
+				}
+
+				req.response_buffer.assign(response.begin(), response.end());
+				req.headers_sent = true;
+				req.cgi_output_buffer.clear();
+
+				server.modEpoll(epfd, client_fd, EPOLLOUT);
 			}
+		} else {
+			std::stringstream chunk;
+			chunk << std::hex << n << "\r\n";
+			std::string chunk_header = chunk.str();
 
-			std::string cgi_headers = header_end > 0 ? cgi_output.substr(0, header_end) : "";
-			std::string cgi_body = header_end > 0 ?
-				cgi_output.substr(header_end + 4) : cgi_output;
+			req.response_buffer.insert(req.response_buffer.end(),
+				chunk_header.begin(), chunk_header.end());
+			req.response_buffer.insert(req.response_buffer.end(), buf, buf + n);
+			req.response_buffer.insert(req.response_buffer.end(), '\r');
+			req.response_buffer.insert(req.response_buffer.end(), '\n');
 
-			std::string response = "HTTP/1.1 200 OK\r\n";
-			response += "Content-Length: " + std::to_string(cgi_body.length()) + "\r\n";
-			response += "Connection: close\r\n";
-
-			if (!cgi_headers.empty()) {
-				response += cgi_headers + "\r\n";
-			} else {
-				response += "Content-Type: text/html\r\n";
-			}
-
-			response += "\r\n" + cgi_body;
-
-			Logger::file("Final response headers:\n" + response.substr(0, response.find("\r\n\r\n")));
-
-			req.response_buffer.assign(response.begin(), response.end());
-			req.state = RequestState::STATE_SENDING_RESPONSE;
 			server.modEpoll(epfd, client_fd, EPOLLOUT);
 		}
+	} else if (n == 0) {
+		Logger::file("CGI process finished writing");
+		if (!req.headers_sent) {
+			std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
+			std::string response = "HTTP/1.1 200 OK\r\n"
+				"Content-Type: text/html\r\n"
+				"Connection: close\r\n";
+
+			if (!output.empty()) {
+				response += "Content-Length: " + std::to_string(output.length()) + "\r\n\r\n"
+					+ output;
+			} else {
+				response += "Content-Length: 0\r\n\r\n";
+			}
+
+			req.response_buffer.assign(response.begin(), response.end());
+		} else {
+			std::string chunk_end = "0\r\n\r\n";
+			req.response_buffer.insert(req.response_buffer.end(),
+				chunk_end.begin(), chunk_end.end());
+		}
+
+		req.state = RequestState::STATE_SENDING_RESPONSE;
+		server.modEpoll(epfd, client_fd, EPOLLOUT);
 		cleanup_tunnel(*tunnel);
 	} else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
 		Logger::file("Error reading from CGI: " + std::string(strerror(errno)));
