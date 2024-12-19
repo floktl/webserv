@@ -6,7 +6,7 @@
 /*   By: jonathaneberle <jonathaneberle@student.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/19 16:27:39 by jonathanebe      ###   ########.fr       */
+/*   Updated: 2024/12/19 16:56:35 by jonathanebe      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 # ifndef CHUNK_SIZE
 #  define CHUNK_SIZE 8192
 # endif
- 
+
 
 #include <sys/epoll.h>
 #include <fcntl.h>
