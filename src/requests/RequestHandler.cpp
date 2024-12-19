@@ -3,16 +3,107 @@
 /*                                                        :::      ::::::::   */
 /*   RequestHandler.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jonathaneberle <jonathaneberle@student.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/18 08:53:20 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/19 16:56:10 by jonathanebe      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "RequestHandler.hpp"
 
-RequestHandler::RequestHandler(Server& _server) : server(_server){}
+RequestHandler::RequestHandler(Server& _server)
+    : server(_server) {}
+
+//#include <fstream>    // For file operations
+//#include <sstream>    // For std::stringstream
+//#include <iostream>   // For std::cout
+//#include <string>     // For std::string
+
+
+//		// Kombinierte Error Page Logik
+//		if (conf.error_pages.empty()) {
+//			// Füge alle gefundenen Error Pages hinzu
+//			for (const auto& errorPage : errorPageDefaults) {
+//				conf.error_pages[errorPage.first] = errorPage.second;
+//			}
+
+//			// Fallback für häufige Fehler-Codes, falls nicht gefunden
+//			const int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};
+//			for (int errorCode : defaultErrorCodes) {
+//				if (conf.error_pages.find(errorCode) == conf.error_pages.end()) {
+//					conf.error_pages[errorCode] = "/50x.html";
+//				}
+//			}
+//		}
+
+//		// error_pages - now handled as a map
+//		for (size_t j = 0; j < registeredServerConfs.size(); ++j) {
+//			ServerBlock& conf = registeredServerConfs[j];
+//			std::map<int, std::string> errorPagesToValidate = conf.error_pages;
+
+//			for (std::map<int, std::string>::const_iterator it = errorPagesToValidate.begin();
+//				it != errorPagesToValidate.end(); ++it) {
+//				int code = it->first;
+//				std::string path = it->second;
+
+//				// Validierung des Pfads und der Fehlercodes
+//				std::string normalizedPath = path; // Kopie für Validierung
+//				std::ostringstream errorPageDef;
+//				errorPageDef << code << " " << normalizedPath;
+
+//				std::string errorPageString = errorPageDef.str();
+//				if (!Sanitizer::sanitize_errorPage(errorPageString, expandEnvironmentVariables("$PWD", env))) {
+//					configFileValid = false;
+//					return false;
+//				}
+
+//				// Pfad nach Validierung aktualisieren
+//				conf.error_pages[code] = normalizedPath;
+//			}
+//		}
+
+//void RequestHandler::sendErrorResponse(int statusCode,
+//	const std::string& message, const std::map<int, std::string>& errorPages)
+//{
+//	auto it = errorPages.find(statusCode);
+//	if (it != errorPages.end()) {
+//		std::ifstream errorFile(it->second);
+//		if (errorFile.is_open()) {
+//			std::stringstream fileContent;
+//			fileContent << errorFile.rdbuf();
+//			std::string response = "HTTP/1.1 " + std::to_string(statusCode) + " " + message + "\r\n"
+//								"Content-Type: text/html\r\n\r\n" + fileContent.str();
+//			send(client_fd, response.c_str(), response.size(), 0);
+//			return;
+//		} else {
+//			Logger::red("Error loading custom error page: " + it->second);
+//		}
+//	}
+
+//	std::ostringstream response;
+//	response << "HTTP/1.1 " << statusCode << " " << message << "\r\n"
+//			<< "Content-Type: text/html\r\n\r\n"
+//			<< "<html><body><h1>" << statusCode << " " << message << "</h1></body></html>";
+//	send(client_fd, response.str().c_str(), response.str().size(), 0);
+//}
+
+void RequestHandler::buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req)
+{
+    // Access the ErrorHandler instance via the Server class
+    ErrorHandler* errorHandler = server.getErrorHandler();
+    if (errorHandler)
+    {
+        *response << errorHandler->generateErrorResponse(statusCode, message, req);
+    }
+    else
+    {
+        // Fallback if ErrorHandler is not available
+        *response << "HTTP/1.1 " << statusCode << " " << message << "\r\n"
+			<< "Content-Type: text/html\r\n\r\n"
+			<< "<html><body><h1>" << statusCode << " " << message << "</h1></body></html>";
+    }
+}
 
 
 #include <fstream>    // For file operations
@@ -58,42 +149,26 @@ void RequestHandler::buildResponse(RequestState &req)
     std::string file_content;
     std::ifstream file(file_path.c_str());
 
-	 std::stringstream buffer;
+	std::stringstream buffer;
 
+	std::stringstream response;
     if (file.is_open())
     {
         // Read the file's content into file_content
         buffer << file.rdbuf();
         file_content = buffer.str();
         file.close();
+		 // Construct HTTP response
+		response << "HTTP/1.1 " << (file.is_open() ? "200 OK" : "404 Not Found") << "\r\n";
+		response << "Content-Length: " << file_content.size() << "\r\n";
+		response << "\r\n";
+		response << file_content;
     }
     else
     {
-        // File not found, set to 404 error file
-        std::string error_file_path = root_path + "40x.html";
-
-        std::ifstream error_file(error_file_path);
-        if (error_file.is_open())
-        {
-            buffer.str(""); // Clear the buffer
-            buffer.clear();
-            buffer << error_file.rdbuf();
-            file_content = buffer.str();
-            error_file.close();
-        }
-        else
-        {
-            // If even the error file is not found
-            file_content = "<h1>404 Not Found</h1>";
-        }
+		RequestHandler::buildErrorResponse(404, "error 404 file not found", &response, req);
     }
 
-    // Construct HTTP response
-    std::stringstream response;
-    response << "HTTP/1.1 " << (file.is_open() ? "200 OK" : "404 Not Found") << "\r\n";
-    response << "Content-Length: " << file_content.size() << "\r\n";
-    response << "\r\n";
-    response << file_content;
 
     std::string response_str = response.str();
 

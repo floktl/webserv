@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/16 12:38:49 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/17 11:32:50 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/17 19:50:11 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,7 @@ class Server
 		CgiHandler* cgiHandler;
 		RequestHandler* requestHandler;
 		ErrorHandler* errorHandler;
+		//int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};
 		void handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf);
 };
 

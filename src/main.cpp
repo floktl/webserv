@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
+/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/26 12:58:21 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/16 16:07:31 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/18 09:35:10 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,8 +19,6 @@ int main(int argc, char **argv, char **envp)
 	Server server(globalFDS);
 	StaticHandler staticHandler(server);
 	CgiHandler cgiHandler(server);
-	RequestHandler requestHandler(server);
-	ErrorHandler errorHandler(server);
 
 	(void)server;
 	try
