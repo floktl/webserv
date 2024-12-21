@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/14 17:31:47 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/17 20:01:22 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/18 12:29:21 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,26 +49,31 @@ struct ServerBlock
 
 struct RequestState
 {
-	int client_fd;
-	int cgi_in_fd;
-	int cgi_out_fd;
-	pid_t cgi_pid;
-	bool cgi_done;
+    int client_fd;
+    int cgi_in_fd;
+    int cgi_out_fd;
+    pid_t cgi_pid;
+    bool cgi_done;
 
-	enum State {
-		STATE_READING_REQUEST,
-		STATE_PREPARE_CGI,
-		STATE_CGI_RUNNING,
-		STATE_SENDING_RESPONSE
-	} state;
+    enum State {
+        STATE_READING_REQUEST,
+        STATE_PREPARE_CGI,
+        STATE_CGI_RUNNING,
+        STATE_SENDING_RESPONSE
+    } state;
 
-	std::vector<char> request_buffer;
-	std::vector<char> response_buffer;
-	std::vector<char> cgi_output_buffer;
+    std::vector<char> request_buffer;
+    std::vector<char> response_buffer;
+    std::vector<char> cgi_output_buffer;
 
-	const ServerBlock* associated_conf;
-	std::string requested_path;
+    std::chrono::steady_clock::time_point last_activity;
+
+    static constexpr std::chrono::seconds TIMEOUT_DURATION{5}; // Correct initialization
+
+    const ServerBlock* associated_conf;
+    std::string requested_path;
 };
+
 
 struct GlobalFDS
 {
@@ -91,3 +96,63 @@ struct CgiTunnel {
 };
 
 #endif
+
+//void StaticHandler::handleClientWrite(int epfd, int fd)
+//{
+//	std::stringstream ss;
+//	ss << "Handling client write on fd " << fd;
+//	Logger::file(ss.str());
+
+//	RequestState &req = server.getGlobalFds().request_state_map[fd];
+//	if (req.state == RequestState::STATE_SENDING_RESPONSE)
+//	{
+//		ss.str("");
+//		ss << "Attempting to write response, buffer size: " << req.response_buffer.size()
+//		<< ", content: " << std::string(req.response_buffer.begin(), req.response_buffer.end());
+//		Logger::file(ss.str());
+
+//		int error = 0;
+//		socklen_t len = sizeof(error);
+//		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0)
+//		{
+//			Logger::file("Socket error detected: " + std::string(strerror(error)));
+//			server.delFromEpoll(epfd, fd);
+//			return;
+//		}
+//		ssize_t n = send(fd, req.response_buffer.data(), req.response_buffer.size(), MSG_NOSIGNAL);
+
+//		if (n > 0)
+//		{
+//			ss.str("");
+//			ss << "Successfully wrote " << n << " bytes to client";
+//			Logger::file(ss.str());
+
+//			req.response_buffer.erase(
+//				req.response_buffer.begin(),
+//				req.response_buffer.begin() + n
+//			);
+
+//			if (req.response_buffer.empty())
+//			{
+//				Logger::file("Response fully sent, closing connection");
+//				server.delFromEpoll(epfd, fd);
+//			} else {
+//				server.modEpoll(epfd, fd, EPOLLOUT);
+//			}
+//		}
+//		else if (n < 0)
+//		{
+//			if (errno != EAGAIN && errno != EWOULDBLOCK)
+//			{
+//				ss.str("");
+//				ss << "Write error: " << strerror(errno);
+//				Logger::file(ss.str());
+//				server.delFromEpoll(epfd, fd);
+//			}
+//			else
+//			{
+//				server.modEpoll(epfd, fd, EPOLLOUT);
+//			}
+//		}
+//	}
+//}
