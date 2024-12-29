@@ -1,15 +1,3 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/29 11:31:12 by jeberle          ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
-
 #------------------------------------------------------------------------------#
 #--------------                       PRINT                       -------------#
 #------------------------------------------------------------------------------#
@@ -86,7 +74,7 @@ vpath %.d $(DEP_DIR)
 SRCS=	src/main.cpp \
 		src/error/ErrorHandler.cpp \
 		src/utils/Logger.cpp \
-		src/config/ConfigHandler.cpp \
+		src/utils/ConfigHandler.cpp \
 		src/utils/Sanitizer.cpp \
 		src/static/StaticHandler.cpp \
 		src/server/Server.cpp \
