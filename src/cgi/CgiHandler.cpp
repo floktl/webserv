@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   CgiHandler.cpp                                     :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/29 14:59:30 by jeberle          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "CgiHandler.hpp"
 
 CgiHandler::CgiHandler(Server& _server) : server(_server) {}
@@ -515,6 +503,7 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	}
 
 	char* const args[] = {
+		(char*)php_cgi,
 		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.script_path.c_str(),

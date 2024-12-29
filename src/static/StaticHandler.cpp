@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   StaticHandler.cpp                                  :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/29 14:58:10 by jeberle          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "StaticHandler.hpp"
 
 StaticHandler::StaticHandler(Server& _server) : server(_server) {}
@@ -80,8 +68,8 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 	if (now - req.last_activity > RequestState::TIMEOUT_DURATION)
 	{
 		Logger::file("Timeout detected for fd " + std::to_string(fd) + ", closing connection.");
-	server.delFromEpoll(epfd, fd);
-	return;
+	// server.delFromEpoll(epfd, fd);
+	// return;
 	}
 
 	if (req.state == RequestState::STATE_SENDING_RESPONSE)
