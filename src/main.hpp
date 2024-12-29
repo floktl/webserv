@@ -1,17 +1,14 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   main.hpp                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/29 11:29:57 by jeberle          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
+# ifndef MAIN_HPP
+#  define MAIN_HPP
 
 # ifndef DEBUG
 #  define DEBUG 1
+# endif
+
+# ifndef CHUNK_SIZE
+#  define CHUNK_SIZE 8192
+# endif
+
 
 #include <sys/epoll.h>
 #include <fcntl.h>
