@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/17 17:53:34 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/18 08:52:50 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,8 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
 	tunnel.out_fd = pipe_out[0];
 	tunnel.client_fd = req.client_fd;
 	tunnel.server_fd = req.associated_conf->server_fd;
+	tunnel.config = req.associated_conf;
+	tunnel.location = findMatchingLocation(req.associated_conf, req.requested_path);
 	tunnel.is_busy = true;
 	tunnel.last_used = std::chrono::steady_clock::now();
 	tunnel.pid = -1;
@@ -200,10 +202,6 @@ bool CgiHandler::needsCGI(const ServerBlock* conf, const std::string &path) {
 	}
 
 	const Location* loc = findMatchingLocation(conf, path);
-	if (conf->port == 8001)
-	{
-		return true;
-	}
 	if (!loc)
 		return false;
 	if (!loc->cgi.empty())
@@ -435,7 +433,7 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 		"HTTP_ACCEPT=*/*",
 		"REMOTE_ADDR=127.0.0.1",
 		"REMOTE_PORT=0",
-		"SERVER_PORT=8001"
+		"SERVER_PORT=" + tunnel.config->port
 	};
 
 	for (const auto& env_var : env_vars) {
@@ -444,8 +442,6 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 }
 
 void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
-	const char* php_cgi = "/usr/bin/php-cgi";
-
 	Logger::file("Child process environment:");
 	for (char** env = environ; *env != nullptr; env++) {
 		Logger::file(*env);
@@ -456,12 +452,17 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	Logger::file("STDOUT: " + std::to_string(fcntl(STDOUT_FILENO, F_GETFD)));
 	Logger::file("STDERR: " + std::to_string(fcntl(STDERR_FILENO, F_GETFD)));
 
+	if (!tunnel.location) {
+		Logger::file("No matching location found for CGI execution");
+		_exit(1);
+	}
+
 	Logger::file("Executing CGI with:");
-	Logger::file("- PHP-CGI path: " + std::string(php_cgi));
+	Logger::file("- PHP-CGI path: " + tunnel.location->cgi);
 	Logger::file("- Script path: " + tunnel.script_path);
 
-	if (access(php_cgi, X_OK) != 0) {
-		Logger::file("PHP-CGI binary not executable or not found at " + std::string(php_cgi) +
+	if (access(tunnel.location->cgi.c_str(), X_OK) != 0) {
+		Logger::file("PHP-CGI binary not executable or not found at " + tunnel.location->cgi +
 					": " + std::string(strerror(errno)));
 		_exit(1);
 	}
@@ -473,13 +474,13 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	}
 
 	char* const args[] = {
-		(char*)php_cgi,
+		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.script_path.c_str(),
 		nullptr
 	};
 
 	execve(args[0], args, environ);
-	Logger::file("execve failed for " + std::string(php_cgi) + ": " + std::string(strerror(errno)));
+	Logger::file("execve failed for " + tunnel.location->cgi + ": " + std::string(strerror(errno)));
 	_exit(1);
 }
 
