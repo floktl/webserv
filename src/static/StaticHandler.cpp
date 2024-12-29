@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/29 11:30:03 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/29 14:19:21 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,18 +54,18 @@ void StaticHandler::handleClientRead(int epfd, int fd)
 			Logger::file("Complete request received, parsing");
 			server.getRequestHandler()->parseRequest(req);
 
-			if (!server.getCgiHandler()->needsCGI(req.associated_conf, req.requested_path))
-			{
-				Logger::file("Processing as normal request");
-				server.getRequestHandler()->buildResponse(req);
-				req.state = RequestState::STATE_SENDING_RESPONSE;
-				req.last_activity = std::chrono::steady_clock::now();
-				server.modEpoll(epfd, fd, EPOLLOUT);
-			}
-			else
-			{
-				Logger::file("Request requires CGI processing");
-			}
+			// if (!server.getCgiHandler()->needsCGI(req.associated_conf, req.requested_path))
+			// {
+			// 	Logger::file("Processing as normal request");
+			// 	server.getRequestHandler()->buildResponse(req);
+			// 	req.state = RequestState::STATE_SENDING_RESPONSE;
+			// 	req.last_activity = std::chrono::steady_clock::now();
+			// 	server.modEpoll(epfd, fd, EPOLLOUT);
+			// }
+			// else
+			// {
+			// 	Logger::file("Request requires CGI processing");
+			// }
 		}
 	}
 }
@@ -85,8 +85,8 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
     if (now - req.last_activity > RequestState::TIMEOUT_DURATION)
     {
         Logger::file("Timeout detected for fd " + std::to_string(fd) + ", closing connection.");
-        server.delFromEpoll(epfd, fd);
-        return;
+       // server.delFromEpoll(epfd, fd);
+       // return;
     }
 
     if (req.state == RequestState::STATE_SENDING_RESPONSE)
