@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/14 17:31:47 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/21 13:20:12 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/29 11:11:59 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,6 +88,11 @@ struct CgiTunnel {
 	int out_fd = -1;
 	int client_fd = -1;
 	int server_fd = -1;
+<<<<<<< HEAD
+=======
+	const ServerBlock* config = NULL;
+	const Location* location = NULL;
+>>>>>>> fef1c8d92a892423b590b47aa737866309467c4c
 	std::chrono::steady_clock::time_point last_used;
 	bool is_busy = false;
 	std::string script_path;
