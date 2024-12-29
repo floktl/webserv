@@ -10,8 +10,4 @@ WORKDIR /app
 
 COPY ./ /app
 
-<<<<<<< HEAD
 CMD ["bash"]
-=======
-CMD ["bash"]
->>>>>>> c627d561f7dffc7f10d43c042ffb173efb2ed733
