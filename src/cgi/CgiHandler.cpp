@@ -503,7 +503,7 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	}
 
 	char* const args[] = {
-		(char*)php_cgi,
+		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.script_path.c_str(),

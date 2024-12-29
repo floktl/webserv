@@ -68,8 +68,8 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 	if (now - req.last_activity > RequestState::TIMEOUT_DURATION)
 	{
 		Logger::file("Timeout detected for fd " + std::to_string(fd) + ", closing connection.");
-	// server.delFromEpoll(epfd, fd);
-	// return;
+		server.delFromEpoll(epfd, fd);
+		return;
 	}
 
 	if (req.state == RequestState::STATE_SENDING_RESPONSE)
