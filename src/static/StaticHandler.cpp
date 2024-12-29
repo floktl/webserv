@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/18 12:29:46 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/21 12:23:43 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -93,7 +93,7 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
     {
         ss.str("");
         ss << "Attempting to write response, buffer size: " << req.response_buffer.size()
-           << ", content: " << std::string(req.response_buffer.begin(), req.response_buffer.end());
+			<< ", content: " << std::string(req.response_buffer.begin(), req.response_buffer.end());
         Logger::file(ss.str());
 
         int error = 0;
