@@ -5,3 +5,4 @@ var/www/python/data/*
 ./webserv.log
 ./obj
 webserv
+**/.DS_Store
