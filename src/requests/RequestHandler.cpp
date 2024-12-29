@@ -6,30 +6,30 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/29 14:29:37 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/29 14:58:07 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "RequestHandler.hpp"
 
 RequestHandler::RequestHandler(Server& _server)
-    : server(_server) {}
+	: server(_server) {}
 
 void RequestHandler::buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req)
 {
-    // Access the ErrorHandler instance via the Server class
-    ErrorHandler* errorHandler = server.getErrorHandler();
-    if (errorHandler)
-    {
-        *response << errorHandler->generateErrorResponse(statusCode, message, req);
-    }
-    else
-    {
-        // Fallback if ErrorHandler is not available
-        *response << "HTTP/1.1 " << statusCode << " " << message << "\r\n"
+	// Access the ErrorHandler instance via the Server class
+	ErrorHandler* errorHandler = server.getErrorHandler();
+	if (errorHandler)
+	{
+		*response << errorHandler->generateErrorResponse(statusCode, message, req);
+	}
+	else
+	{
+		// Fallback if ErrorHandler is not available
+		*response << "HTTP/1.1 " << statusCode << " " << message << "\r\n"
 			<< "Content-Type: text/html\r\n\r\n"
 			<< "<html><body><h1>" << statusCode << " " << message << "</h1></body></html>";
-    }
+	}
 }
 
 
@@ -40,62 +40,62 @@ void RequestHandler::buildErrorResponse(int statusCode, const std::string& messa
 
 void RequestHandler::buildResponse(RequestState &req)
 {
-    const ServerBlock* conf = req.associated_conf;
+	const ServerBlock* conf = req.associated_conf;
 
-    if (!conf) return;
+	if (!conf) return;
 
-    // Ensure the root path ends with a '/'
-    std::string root_path = conf->root;
-    if (root_path.empty())
-        root_path = conf->index;
-    if (root_path.back() != '/')
-        root_path += '/';
+	// Ensure the root path ends with a '/'
+	std::string root_path = conf->root;
+	if (root_path.empty())
+		root_path = conf->index;
+	if (root_path.back() != '/')
+		root_path += '/';
 
-    // Extract the relative path from req.requested_path (e.g., "/team/florian")
-    std::string relative_path = req.requested_path.substr(req.requested_path.find_first_of('/', 7));
+	// Extract the relative path from req.requested_path (e.g., "/team/florian")
+	std::string relative_path = req.requested_path.substr(req.requested_path.find_first_of('/', 7));
 
-    // Remove the leading slash from relative_path
-    if (!relative_path.empty() && relative_path.front() == '/')
-        relative_path.erase(0, 1);
+	// Remove the leading slash from relative_path
+	if (!relative_path.empty() && relative_path.front() == '/')
+		relative_path.erase(0, 1);
 
-	  // If relative_path is empty or "/", default to the index file
-    if (relative_path.empty())
-        relative_path = conf->index;
+	// If relative_path is empty or "/", default to the index file
+	if (relative_path.empty())
+		relative_path = conf->index;
 
 	// Final check: If file_path does not end with ".html", append it
-    //if (relative_path.size() < 5 || relative_path.substr(relative_path.size() - 5) != ".html")
-    //    relative_path += ".html";
+	//if (relative_path.size() < 5 || relative_path.substr(relative_path.size() - 5) != ".html")
+	//    relative_path += ".html";
 
-    // Combine root path with the relative path
-    std::string file_path = root_path + relative_path;
+	// Combine root path with the relative path
+	std::string file_path = root_path + relative_path;
 
-    // Try to open the file at the constructed path
-    std::string file_content;
-    std::ifstream file(file_path.c_str());
+	// Try to open the file at the constructed path
+	std::string file_content;
+	std::ifstream file(file_path.c_str());
 
 	std::stringstream buffer;
 
 	std::cout << "File: " << file_path << std::endl;
 	std::stringstream response;
-    if (file.is_open())
-    {
-        // Read the file's content into file_content
-        buffer << file.rdbuf();
-        file_content = buffer.str();
-        file.close();
-		 // Construct HTTP response
+	if (file.is_open())
+	{
+		// Read the file's content into file_content
+		buffer << file.rdbuf();
+		file_content = buffer.str();
+		file.close();
+		// Construct HTTP response
 		response << "HTTP/1.1 " << (file.is_open() ? "200 OK" : "404 Not Found") << "\r\n";
 		response << "Content-Length: " << file_content.size() << "\r\n";
 		response << "\r\n";
 		response << file_content;
-    }
-    else
-    {
+	}
+	else
+	{
 		RequestHandler::buildErrorResponse(404, "error 404 file not found", &response, req);
-    }
-    std::string response_str = response.str();
-    // Assign response to req.response_buffer
-    req.response_buffer.assign(response_str.begin(), response_str.end());
+	}
+	std::string response_str = response.str();
+	// Assign response to req.response_buffer
+	req.response_buffer.assign(response_str.begin(), response_str.end());
 }
 
 void RequestHandler::parseRequest(RequestState &req)
