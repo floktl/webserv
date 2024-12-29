@@ -74,7 +74,7 @@ vpath %.d $(DEP_DIR)
 SRCS=	src/main.cpp \
 		src/error/ErrorHandler.cpp \
 		src/utils/Logger.cpp \
-		src/utils/ConfigHandler.cpp \
+		src/config/ConfigHandler.cpp \
 		src/utils/Sanitizer.cpp \
 		src/static/StaticHandler.cpp \
 		src/server/Server.cpp \
