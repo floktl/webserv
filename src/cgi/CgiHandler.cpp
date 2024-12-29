@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/29 11:23:17 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/29 11:29:02 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -442,6 +442,8 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 }
 
 void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
+	const char* php_cgi = "/usr/bin/php-cgi";
+
 	Logger::file("Child process environment:");
 	for (char** env = environ; *env != nullptr; env++) {
 		Logger::file(*env);
@@ -451,6 +453,13 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	Logger::file("STDIN: " + std::to_string(fcntl(STDIN_FILENO, F_GETFD)));
 	Logger::file("STDOUT: " + std::to_string(fcntl(STDOUT_FILENO, F_GETFD)));
 	Logger::file("STDERR: " + std::to_string(fcntl(STDERR_FILENO, F_GETFD)));
+
+	Logger::file("Executing CGI with:");
+	Logger::file("- PHP-CGI path: " + std::string(php_cgi));
+	Logger::file("- Script path: " + tunnel.script_path);
+
+	if (access(php_cgi, X_OK) != 0) {
+		Logger::file("PHP-CGI binary not executable or not found at " + std::string(php_cgi) +
 
 	if (!tunnel.location) {
 		Logger::file("No matching location found for CGI execution");
@@ -474,6 +483,7 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	}
 
 	char* const args[] = {
+		(char*)php_cgi,
 		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.script_path.c_str(),
 		nullptr
