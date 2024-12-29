@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jonathaneberle <jonathaneberle@student.    +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/19 16:55:50 by jonathanebe      ###   ########.fr       */
+/*   Updated: 2024/12/29 14:29:35 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,7 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
 	tunnel.client_fd = req.client_fd;
 	tunnel.server_fd = req.associated_conf->server_fd;
 	tunnel.config = req.associated_conf;
-	tunnel.location = findMatchingLocation(req.associated_conf, req.requested_path);
+	tunnel.location = findMatchingLocation(req.associated_conf, req.location_path);
 	tunnel.is_busy = true;
 	tunnel.last_used = std::chrono::steady_clock::now();
 	tunnel.pid = -1;
@@ -62,8 +62,8 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
 	if (requested_file.empty() || requested_file == "?") {
 		requested_file = "index.php";
 	}
-	tunnel.script_path = "/app/var/www/php/" + requested_file;
-
+	tunnel.script_path = tunnel.config->root + "/" + requested_file;
+	Logger::file("FORK IT BABY!!!!");
 	pid_t pid = fork();
 	if (pid < 0) {
 		Logger::file("Fork failed: " + std::string(strerror(errno)));
@@ -190,6 +190,10 @@ const Location* CgiHandler::findMatchingLocation(const ServerBlock* conf, const 
 	for (size_t i = 0; i < conf->locations.size(); i++) {
 		const Location &loc = conf->locations[i];
 		if (path.find(loc.path) == 0) {
+		Logger::file(path);
+		Logger::file(loc.path);
+		Logger::file("DAS IST CGI: " + loc.cgi);
+		Logger::file(loc.cgi_param);
 			return &loc;
 		}
 	}
@@ -201,11 +205,20 @@ bool CgiHandler::needsCGI(const ServerBlock* conf, const std::string &path) {
 		return true;
 	}
 
+	Logger::file("MAEAEAEAEEEHHHHHH!!!!!!!");
 	const Location* loc = findMatchingLocation(conf, path);
 	if (!loc)
+	{
+	Logger::file("LOG NICHT DA!!!!!!!");
 		return false;
+	}
+		Logger::file("DAS IST CGI OUTER: " + loc->cgi);
 	if (!loc->cgi.empty())
+	{
+		Logger::file("CGI NICHT LEER, CGI WIRD VERWENDET!!!!!!!");
 		return true;
+	}
+	Logger::file("after maeaeae");
 	return false;
 }
 
@@ -271,7 +284,8 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events) {
 	}
 
 	ss.str("");
-	ss << "Writing request buffer, size: " << req.request_buffer.size();
+	ss << "Writing " << req.request_buffer.size() << " bytes to CGI process";
+	ss << std::string(req.request_buffer.begin(), req.request_buffer.end()) << "\n";
 	Logger::file(ss.str());
 
 	size_t to_write = std::min(static_cast<size_t>(CHUNK_SIZE), req.request_buffer.size());
@@ -315,112 +329,94 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events) {
 }
 
 void CgiHandler::handleCGIRead(int epfd, int fd) {
-	std::stringstream ss;
-	ss << "\n=== CGI Read Handler Start ===\n"
-	<< "Handling fd=" << fd;
-	Logger::file(ss.str());
+    std::stringstream ss;
+    ss << "\n=== CGI Read Handler Start ===\n"
+       << "Handling fd=" << fd;
+    Logger::file(ss.str());
 
-	auto tunnel_it = fd_to_tunnel.find(fd);
-	if (tunnel_it == fd_to_tunnel.end() || !tunnel_it->second) {
-		Logger::file("No tunnel found for fd " + std::to_string(fd));
-		return;
-	}
-	CgiTunnel* tunnel = tunnel_it->second;
+    auto tunnel_it = fd_to_tunnel.find(fd);
+    if (tunnel_it == fd_to_tunnel.end() || !tunnel_it->second) {
+        Logger::file("No tunnel found for fd " + std::to_string(fd));
+        return;
+    }
+    CgiTunnel* tunnel = tunnel_it->second;
 
-	int client_fd = tunnel->client_fd;
-	auto req_it = server.getGlobalFds().request_state_map.find(client_fd);
-	if (req_it == server.getGlobalFds().request_state_map.end()) {
-		Logger::file("No request state found for client_fd " + std::to_string(client_fd));
-		return;
-	}
-	RequestState &req = req_it->second;
+    auto req_it = server.getGlobalFds().request_state_map.find(tunnel->client_fd);
+    if (req_it == server.getGlobalFds().request_state_map.end()) {
+        Logger::file("No request state found for client_fd " + std::to_string(tunnel->client_fd));
+        return;
+    }
+    RequestState &req = req_it->second;
 
-	char buf[CHUNK_SIZE];
-	ssize_t n = read(fd, buf, sizeof(buf));
+    // Nicht-statische Variable!
+    std::string output;
+    char buf[4096];
+    ssize_t n;
 
-	ss.str("");
-	ss << "Read attempt returned: " << n;
-	if (n < 0) {
-		ss << " (errno: " << errno << " - " << strerror(errno) << ")";
-	}
-	Logger::file(ss.str());
+    ss.str("");
+    ss << "Attempting to read from CGI output pipe";
+    Logger::file(ss.str());
 
-	if (n > 0) {
-		if (!req.headers_sent) {
-			req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
+    while ((n = read(fd, buf, sizeof(buf))) > 0) {
+        output.append(buf, n);
+        ss.str("");
+        ss << "Read " << n << " bytes from CGI";
+        Logger::file(ss.str());
+    }
 
-			std::string temp(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-			size_t header_end = temp.find("\r\n\r\n");
+    if (n == 0) {  // EOF erreicht
+        ss.str("");
+        ss << "EOF reached, total bytes read: " << output.size();
+        Logger::file(ss.str());
 
-			if (header_end != std::string::npos) {
-				std::string headers = temp.substr(0, header_end);
-				std::string body = temp.substr(header_end + 4);
+        size_t header_end = output.find("\r\n\r\n");
+        if (header_end == std::string::npos) {
+            header_end = 0;
+        }
 
-				std::string response = "HTTP/1.1 200 OK\r\n";
-				if (!headers.empty()) {
-					response += headers + "\r\n";
-				} else {
-					response += "Content-Type: text/html\r\n";
-				}
-				response += "Transfer-Encoding: chunked\r\n";
-				response += "Connection: close\r\n\r\n";
+        std::string cgi_headers = header_end > 0 ?
+            output.substr(0, header_end) : "";
+        std::string cgi_body = header_end > 0 ?
+            output.substr(header_end + 4) : output;
 
-				if (!body.empty()) {
-					std::stringstream chunk;
-					chunk << std::hex << body.length() << "\r\n" << body << "\r\n";
-					response += chunk.str();
-				}
+        ss.str("");
+        ss << "Parsed CGI output:\n"
+           << "Headers (" << cgi_headers.length() << " bytes):\n" << cgi_headers << "\n"
+           << "Body (" << cgi_body.length() << " bytes)";
+        Logger::file(ss.str());
 
-				req.response_buffer.assign(response.begin(), response.end());
-				req.headers_sent = true;
-				req.cgi_output_buffer.clear();
+        std::string response = "HTTP/1.1 200 OK\r\n";
+        response += "Content-Length: " + std::to_string(cgi_body.length()) + "\r\n";
+        response += "Connection: close\r\n";
 
-				server.modEpoll(epfd, client_fd, EPOLLOUT);
-			}
-		} else {
-			std::stringstream chunk;
-			chunk << std::hex << n << "\r\n";
-			std::string chunk_header = chunk.str();
+        if (!cgi_headers.empty()) {
+            response += cgi_headers + "\r\n";
+        } else {
+            response += "Content-Type: text/html\r\n";
+        }
 
-			req.response_buffer.insert(req.response_buffer.end(),
-				chunk_header.begin(), chunk_header.end());
-			req.response_buffer.insert(req.response_buffer.end(), buf, buf + n);
-			req.response_buffer.insert(req.response_buffer.end(), '\r');
-			req.response_buffer.insert(req.response_buffer.end(), '\n');
+        response += "\r\n" + cgi_body;
 
-			server.modEpoll(epfd, client_fd, EPOLLOUT);
-		}
-	} else if (n == 0) {
-		Logger::file("CGI process finished writing");
-		if (!req.headers_sent) {
-			std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-			std::string response = "HTTP/1.1 200 OK\r\n"
-				"Content-Type: text/html\r\n"
-				"Connection: close\r\n";
+        ss.str("");
+        ss << "Final response headers:\n" << response.substr(0, response.find("\r\n\r\n"));
+        Logger::file(ss.str());
 
-			if (!output.empty()) {
-				response += "Content-Length: " + std::to_string(output.length()) + "\r\n\r\n"
-					+ output;
-			} else {
-				response += "Content-Length: 0\r\n\r\n";
-			}
+        req.response_buffer.assign(response.begin(), response.end());
+        req.state = RequestState::STATE_SENDING_RESPONSE;
+        server.modEpoll(epfd, tunnel->client_fd, EPOLLOUT);
 
-			req.response_buffer.assign(response.begin(), response.end());
-		} else {
-			std::string chunk_end = "0\r\n\r\n";
-			req.response_buffer.insert(req.response_buffer.end(),
-				chunk_end.begin(), chunk_end.end());
-		}
+        cleanup_tunnel(*tunnel);
+    }
+    else if (n < 0) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            ss.str("");
+            ss << "Read error: " << strerror(errno);
+            Logger::file(ss.str());
+            cleanup_tunnel(*tunnel);
+        }
+    }
 
-		req.state = RequestState::STATE_SENDING_RESPONSE;
-		server.modEpoll(epfd, client_fd, EPOLLOUT);
-		cleanup_tunnel(*tunnel);
-	} else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-		Logger::file("Error reading from CGI: " + std::string(strerror(errno)));
-		cleanup_tunnel(*tunnel);
-	}
-
-	Logger::file("=== CGI Read Handler End ===\n");
+    Logger::file("=== CGI Read Handler End ===\n");
 }
 
 void CgiHandler::cleanup_tunnel(CgiTunnel &tunnel) {
@@ -458,21 +454,19 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 	clearenv();
 
 	std::vector<std::string> env_vars = {
-		"REQUEST_METHOD=" + method,
-		"QUERY_STRING=" + query,
-		"SCRIPT_FILENAME=" + tunnel.script_path,
+		"REDIRECT_STATUS=200",
 		"GATEWAY_INTERFACE=CGI/1.1",
 		"SERVER_PROTOCOL=HTTP/1.1",
-		"SERVER_SOFTWARE=MySimpleWebServer/1.0",
+		"REQUEST_METHOD=" + method,
+		"QUERY_STRING=" + query,
+		"SCRIPT_FILENAME=" + tunnel.script_path,  // Full path is important
+		"SCRIPT_NAME=" + tunnel.script_path,
+		"DOCUMENT_ROOT=" + tunnel.config->root,
+		"SERVER_SOFTWARE=webserv/1.0",
 		"SERVER_NAME=localhost",
-		"REDIRECT_STATUS=200",
-		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-		"DOCUMENT_ROOT=/app/var/www/php",
+		"SERVER_PORT=" + tunnel.config->port,
 		"CONTENT_TYPE=application/x-www-form-urlencoded",
-		"HTTP_ACCEPT=*/*",
-		"REMOTE_ADDR=127.0.0.1",
-		"REMOTE_PORT=0",
-		"SERVER_PORT=" + tunnel.config->port
+		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 	};
 
 	for (const auto& env_var : env_vars) {
@@ -500,6 +494,20 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	Logger::file("- PHP-CGI path: " + tunnel.location->cgi);
 	Logger::file("- Script path: " + tunnel.script_path);
 
+	if (access(php_cgi, X_OK) != 0) {
+		Logger::file("PHP-CGI binary not executable or not found at " + std::string(php_cgi));
+		_exit(1);
+	}
+
+	if (!tunnel.location) {
+		Logger::file("No matching location found for CGI execution");
+		_exit(1);
+	}
+
+	Logger::file("Executing CGI with:");
+	Logger::file("- PHP-CGI path: " + tunnel.location->cgi);
+	Logger::file("- Script path: " + tunnel.script_path);
+
 	if (access(tunnel.location->cgi.c_str(), X_OK) != 0) {
 		Logger::file("PHP-CGI binary not executable or not found at " + tunnel.location->cgi +
 					": " + std::string(strerror(errno)));
@@ -513,6 +521,7 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	}
 
 	char* const args[] = {
+		(char*)php_cgi,
 		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.script_path.c_str(),
 		nullptr
