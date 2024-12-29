@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/14 17:31:47 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/29 11:29:43 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/29 14:08:22 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,6 +71,7 @@ struct RequestState
     static constexpr std::chrono::seconds TIMEOUT_DURATION{5}; // Correct initialization
 
     const ServerBlock* associated_conf;
+    std::string location_path;
     std::string requested_path;
 };
 

@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/16 12:38:47 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/29 11:30:01 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/29 14:17:43 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -137,7 +137,7 @@ int Server::server_init(std::vector<ServerBlock> configs)
 		}
 		else if (n == 0)
 		{
-			// Timeout occurred
+			Logger::file("timeout");
 			continue; // Continue to the next loop iteration
 		}
 		std::stringstream ewrew;
