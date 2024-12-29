@@ -6,7 +6,7 @@
 /*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/17 17:53:30 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/21 13:12:45 by fkeitel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,5 +50,12 @@
 # include "./error/ErrorHandler.hpp"
 # include "./server/Server.hpp"
 # include "structs/webserv.hpp"
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <iomanip> // For formattin
+void printServerBlock(const ServerBlock& serverBlock);
+void printRequestState(const RequestState& req);
 
 # endif
