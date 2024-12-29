@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/11 14:42:00 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/29 11:30:34 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/29 11:56:35 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,7 +62,7 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
 	if (requested_file.empty() || requested_file == "?") {
 		requested_file = "index.php";
 	}
-	tunnel.script_path = "/app/var/www/php/" + requested_file;
+	tunnel.script_path = tunnel.config->root + "/" + requested_file;
 
 	pid_t pid = fork();
 	if (pid < 0) {
@@ -419,21 +419,19 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 	clearenv();
 
 	std::vector<std::string> env_vars = {
-		"REQUEST_METHOD=" + method,
-		"QUERY_STRING=" + query,
-		"SCRIPT_FILENAME=" + tunnel.script_path,
+		"REDIRECT_STATUS=200",  // Important for PHP-CGI
 		"GATEWAY_INTERFACE=CGI/1.1",
 		"SERVER_PROTOCOL=HTTP/1.1",
-		"SERVER_SOFTWARE=MySimpleWebServer/1.0",
+		"REQUEST_METHOD=" + method,
+		"QUERY_STRING=" + query,
+		"SCRIPT_FILENAME=" + tunnel.script_path,  // Full path is important
+		"SCRIPT_NAME=" + tunnel.script_path,
+		"DOCUMENT_ROOT=" + tunnel.config->root,
+		"SERVER_SOFTWARE=webserv/1.0",
 		"SERVER_NAME=localhost",
-		"REDIRECT_STATUS=200",
-		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-		"DOCUMENT_ROOT=/app/var/www/php",
+		"SERVER_PORT=" + tunnel.config->port,
 		"CONTENT_TYPE=application/x-www-form-urlencoded",
-		"HTTP_ACCEPT=*/*",
-		"REMOTE_ADDR=127.0.0.1",
-		"REMOTE_PORT=0",
-		"SERVER_PORT=" + tunnel.config->port
+		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 	};
 
 	for (const auto& env_var : env_vars) {
@@ -459,7 +457,9 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	Logger::file("- Script path: " + tunnel.script_path);
 
 	if (access(php_cgi, X_OK) != 0) {
-		Logger::file("PHP-CGI binary not executable or not found at " + std::string(php_cgi) +
+		Logger::file("PHP-CGI binary not executable or not found at " + std::string(php_cgi));
+		_exit(1);  // <--- HIER FEHLTE DIE Klammer
+	}  // <--- FEHLENDE Klammer hinzugefügt
 
 	if (!tunnel.location) {
 		Logger::file("No matching location found for CGI execution");
