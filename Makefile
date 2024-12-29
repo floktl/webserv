@@ -6,7 +6,7 @@
 #    By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/26 12:56:51 by jeberle           #+#    #+#              #
-#    Updated: 2024/12/17 18:09:57 by fkeitel          ###   ########.fr        #
+#    Updated: 2024/12/29 11:11:49 by fkeitel          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -86,7 +86,15 @@ vpath %.d $(DEP_DIR)
 SRCS=	src/main.cpp \
 		src/error/ErrorHandler.cpp \
 		src/utils/Logger.cpp \
+<<<<<<< HEAD
 		src/config/ConfigHandler.cpp \
+=======
+<<<<<<< HEAD
+		src/config/ConfigHandler.cpp \
+=======
+		src/utils/ConfigHandler.cpp \
+>>>>>>> c627d561f7dffc7f10d43c042ffb173efb2ed733
+>>>>>>> fef1c8d92a892423b590b47aa737866309467c4c
 		src/utils/Sanitizer.cpp \
 		src/static/StaticHandler.cpp \
 		src/server/Server.cpp \
