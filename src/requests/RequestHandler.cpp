@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/29 12:41:17 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/29 11:29:59 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/29 14:08:08 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -122,16 +122,15 @@ void RequestHandler::parseRequest(RequestState &req)
 		path = path.substr(0, qpos);
 	}
 
+	req.location_path = path;
 	req.requested_path = "http://localhost:" + std::to_string(req.associated_conf->port) + path;
 	req.cgi_output_buffer.clear();
-
-	if (server.getCgiHandler()->needsCGI(req.associated_conf, req.requested_path))
+	if (server.getCgiHandler()->needsCGI(req.associated_conf, path))
 	{
 		req.state = RequestState::STATE_PREPARE_CGI;
-		Logger::file("addCgiTunnel");
 		server.getCgiHandler()->addCgiTunnel(req, method, query);
 	}
-	else // handle static pages
+	else
 	{
 		printRequestState(req);
 		buildResponse(req);
