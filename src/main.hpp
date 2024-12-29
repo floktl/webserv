@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.hpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jonathaneberle <jonathaneberle@student.    +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/28 10:35:17 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/19 16:56:35 by jonathanebe      ###   ########.fr       */
+/*   Updated: 2024/12/29 14:29:17 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,5 +59,12 @@
 # include "./error/ErrorHandler.hpp"
 # include "./server/Server.hpp"
 # include "structs/webserv.hpp"
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <iomanip> // For formattin
+void printServerBlock(const ServerBlock& serverBlock);
+void printRequestState(const RequestState& req);
 
 # endif

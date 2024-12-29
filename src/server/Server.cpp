@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
+/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/16 12:38:47 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/18 09:50:32 by fkeitel          ###   ########.fr       */
+/*   Updated: 2024/12/29 14:17:43 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -115,166 +115,171 @@ int Server::server_init(std::vector<ServerBlock> configs)
 		Logger::green() << ss.str() << "\n";
 		Logger::file(ss.str());
 	}
-		const int max_events = 64;
-		struct epoll_event events[max_events];
+	const int max_events = 64;
+	struct epoll_event events[max_events];
 
-		while (true)
+	const int timeout_ms = 5000;
+	while (true)
+	{
+		int n = epoll_wait(epoll_fd, events, max_events, timeout_ms);
+
+		std::stringstream wer;
+		wer << "epoll_wait n " << n;
+		Logger::file(wer.str());
+		if (n < 0)
 		{
-			int n = epoll_wait(epoll_fd, events, max_events, -1);
+			std::stringstream ss;
+			ss << "epoll_wait error: " << strerror(errno);
+			Logger::file(ss.str());
+			if (errno == EINTR)
+				continue;
+			break;
+		}
+		else if (n == 0)
+		{
+			Logger::file("timeout");
+			continue; // Continue to the next loop iteration
+		}
+		std::stringstream ewrew;
+		ewrew << "Event Loop Iteration: " << n << " events";
+		Logger::file(ewrew.str());
 
-			std::stringstream wer;
-			wer << "epoll_wait n " << n;
-			Logger::file(wer.str());
-			if (n < 0)
+		for (int i = 0; i < n; i++)
+		{
+			int fd = events[i].data.fd;
+			uint32_t ev = events[i].events;
+
+			std::stringstream ss;
+			ss << "\n=== Event Processing Start ===\n"
+			<< "Processing fd=" << fd << " events=" << ev << "\n"
+			<< "EPOLLIN=" << (ev & EPOLLIN) << "\n"
+			<< "EPOLLOUT=" << (ev & EPOLLOUT) << "\n"
+			<< "EPOLLHUP=" << (ev & EPOLLHUP) << "\n"
+			<< "EPOLLERR=" << (ev & EPOLLERR);
+			Logger::file(ss.str());
+
+			const ServerBlock* associated_conf = nullptr;
+			for (const auto &conf : configs)
 			{
-				std::stringstream ss;
-				ss << "epoll_wait error: " << strerror(errno);
-				Logger::file(ss.str());
-				if (errno == EINTR)
-					continue;
-				break;
+				if (conf.server_fd == fd)
+				{
+					associated_conf = &conf;
+					break;
+				}
 			}
 
-			std::stringstream ewrew;
-			ewrew << "Event Loop Iteration: " << n << " events";
-			Logger::file(ewrew.str());
-
-			for (int i = 0; i < n; i++)
+			if (associated_conf)
 			{
-				int fd = events[i].data.fd;
-				uint32_t ev = events[i].events;
+				handleNewConnection(epoll_fd, fd, *associated_conf);
+				continue;
+			}
 
-				std::stringstream ss;
-				ss << "\n=== Event Processing Start ===\n"
-				<< "Processing fd=" << fd << " events=" << ev << "\n"
-				<< "EPOLLIN=" << (ev & EPOLLIN) << "\n"
-				<< "EPOLLOUT=" << (ev & EPOLLOUT) << "\n"
-				<< "EPOLLHUP=" << (ev & EPOLLHUP) << "\n"
-				<< "EPOLLERR=" << (ev & EPOLLERR);
+			auto client_it = globalFDS.request_state_map.find(fd);
+			if (client_it != globalFDS.request_state_map.end())
+			{
+				if (ev & (EPOLLHUP | EPOLLERR))
+				{
+					Logger::file("Client socket error/hangup detected");
+					delFromEpoll(epoll_fd, fd);
+					continue;
+				}
+				if (ev & EPOLLIN) staticHandler->handleClientRead(epoll_fd, fd);
+				if (ev & EPOLLOUT) staticHandler->handleClientWrite(epoll_fd, fd);
+				continue;
+			}
+
+			auto cgi_it = globalFDS.svFD_to_clFD_map.find(fd);
+			if (cgi_it != globalFDS.svFD_to_clFD_map.end())
+			{
+				int client_fd = cgi_it->second;
+				RequestState &req = globalFDS.request_state_map[client_fd];
+
+				ss.str("");
+				ss << "CGI pipe event:\n"
+				<< "- Related client_fd: " << client_fd << "\n"
+				<< "- CGI in_fd: " << req.cgi_in_fd << "\n"
+				<< "- CGI out_fd: " << req.cgi_out_fd << "\n"
+				<< "- Current state: " << req.state;
 				Logger::file(ss.str());
 
-				const ServerBlock* associated_conf = nullptr;
-				for (const auto &conf : configs)
+				if (fd == req.cgi_out_fd)
 				{
-					if (conf.server_fd == fd)
+					if (ev & EPOLLIN)
 					{
-						associated_conf = &conf;
-						break;
+						cgiHandler->handleCGIRead(epoll_fd, fd);
+					}
+					if (ev & EPOLLHUP)
+					{
+						Logger::file("CGI output pipe hangup detected, finalizing response");
+
+						if (!req.cgi_output_buffer.empty())
+						{
+							std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
+							ss.str("");
+							ss << "Preparing final response with " << output.length() << " bytes";
+							Logger::file(ss.str());
+
+							std::string response;
+							size_t header_end = output.find("\r\n\r\n");
+
+							if (output.find("Content-type:") != std::string::npos ||
+								output.find("Content-Type:") != std::string::npos)
+							{
+								std::string headers = output.substr(0, header_end);
+								std::string body = output.substr(header_end + 4);
+
+								response = "HTTP/1.1 200 OK\r\n";
+								if (headers.find("Content-Length:") == std::string::npos)
+								{
+									response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
+								}
+								if (headers.find("Connection:") == std::string::npos)
+								{
+									response += "Connection: close\r\n";
+								}
+								response += headers + "\r\n" + body;
+							}
+							else
+							{
+								response = "HTTP/1.1 200 OK\r\n"
+										"Content-Type: text/html\r\n"
+										"Content-Length: " + std::to_string(output.length()) + "\r\n"
+										"Connection: close\r\n"
+										"\r\n" + output;
+							}
+
+							ss.str("");
+							ss << "Final response headers:\n" << response.substr(0, response.find("\r\n\r\n") + 4);
+							Logger::file(ss.str());
+
+							req.response_buffer.assign(response.begin(), response.end());
+							req.state = RequestState::STATE_SENDING_RESPONSE;
+							modEpoll(epoll_fd, client_fd, EPOLLOUT);
+						}
+						cgiHandler->cleanupCGI(req);
 					}
 				}
-
-				if (associated_conf)
+				else if (fd == req.cgi_in_fd)
 				{
-					handleNewConnection(epoll_fd, fd, *associated_conf);
-					continue;
-				}
-
-				auto client_it = globalFDS.request_state_map.find(fd);
-				if (client_it != globalFDS.request_state_map.end())
-				{
+					if (ev & EPOLLOUT)
+					{
+						cgiHandler->handleCGIWrite(epoll_fd, fd, ev);
+					}
 					if (ev & (EPOLLHUP | EPOLLERR))
 					{
-						Logger::file("Client socket error/hangup detected");
-						delFromEpoll(epoll_fd, fd);
-						continue;
+						Logger::file("CGI input pipe error/hangup detected");
+						epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+						close(fd);
+						req.cgi_in_fd = -1;
+						globalFDS.svFD_to_clFD_map.erase(fd);
 					}
-					if (ev & EPOLLIN) staticHandler->handleClientRead(epoll_fd, fd);
-					if (ev & EPOLLOUT) staticHandler->handleClientWrite(epoll_fd, fd);
-					continue;
 				}
+				continue;
+			}
 
-				auto cgi_it = globalFDS.svFD_to_clFD_map.find(fd);
-				if (cgi_it != globalFDS.svFD_to_clFD_map.end())
-				{
-					int client_fd = cgi_it->second;
-					RequestState &req = globalFDS.request_state_map[client_fd];
-
-					ss.str("");
-					ss << "CGI pipe event:\n"
-					<< "- Related client_fd: " << client_fd << "\n"
-					<< "- CGI in_fd: " << req.cgi_in_fd << "\n"
-					<< "- CGI out_fd: " << req.cgi_out_fd << "\n"
-					<< "- Current state: " << req.state;
-					Logger::file(ss.str());
-
-					if (fd == req.cgi_out_fd)
-					{
-						if (ev & EPOLLIN)
-						{
-							cgiHandler->handleCGIRead(epoll_fd, fd);
-						}
-						if (ev & EPOLLHUP)
-						{
-							Logger::file("CGI output pipe hangup detected, finalizing response");
-
-							if (!req.cgi_output_buffer.empty())
-							{
-								std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-								ss.str("");
-								ss << "Preparing final response with " << output.length() << " bytes";
-								Logger::file(ss.str());
-
-								std::string response;
-								size_t header_end = output.find("\r\n\r\n");
-
-								if (output.find("Content-type:") != std::string::npos ||
-									output.find("Content-Type:") != std::string::npos)
-								{
-									std::string headers = output.substr(0, header_end);
-									std::string body = output.substr(header_end + 4);
-
-									response = "HTTP/1.1 200 OK\r\n";
-									if (headers.find("Content-Length:") == std::string::npos)
-									{
-										response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
-									}
-									if (headers.find("Connection:") == std::string::npos)
-									{
-										response += "Connection: close\r\n";
-									}
-									response += headers + "\r\n" + body;
-								}
-								else
-								{
-									response = "HTTP/1.1 200 OK\r\n"
-											"Content-Type: text/html\r\n"
-											"Content-Length: " + std::to_string(output.length()) + "\r\n"
-											"Connection: close\r\n"
-											"\r\n" + output;
-								}
-
-								ss.str("");
-								ss << "Final response headers:\n" << response.substr(0, response.find("\r\n\r\n") + 4);
-								Logger::file(ss.str());
-
-								req.response_buffer.assign(response.begin(), response.end());
-								req.state = RequestState::STATE_SENDING_RESPONSE;
-								modEpoll(epoll_fd, client_fd, EPOLLOUT);
-							}
-							cgiHandler->cleanupCGI(req);
-						}
-					}
-					else if (fd == req.cgi_in_fd)
-					{
-						if (ev & EPOLLOUT)
-						{
-							cgiHandler->handleCGIWrite(epoll_fd, fd, ev);
-						}
-						if (ev & (EPOLLHUP | EPOLLERR))
-						{
-							Logger::file("CGI input pipe error/hangup detected");
-							epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-							close(fd);
-							req.cgi_in_fd = -1;
-							globalFDS.svFD_to_clFD_map.erase(fd);
-						}
-					}
-					continue;
-				}
-
-				Logger::file("Unknown fd encountered, removing from epoll");
-				epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-				Logger::file("=== Event Processing End ===\n");
+			Logger::file("Unknown fd encountered, removing from epoll");
+			epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+			Logger::file("=== Event Processing End ===\n");
 			}
 		}
 		Logger::file("Server shutting down");
