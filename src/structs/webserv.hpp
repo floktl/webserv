@@ -6,7 +6,7 @@
 /*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/14 17:31:47 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/29 14:28:51 by jeberle          ###   ########.fr       */
+/*   Updated: 2024/12/29 14:58:13 by jeberle          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,30 +49,30 @@ struct ServerBlock
 
 struct RequestState
 {
-    int client_fd;
-    int cgi_in_fd;
-    int cgi_out_fd;
-    pid_t cgi_pid;
-    bool cgi_done;
+	int client_fd;
+	int cgi_in_fd;
+	int cgi_out_fd;
+	pid_t cgi_pid;
+	bool cgi_done;
 
-    enum State {
-        STATE_READING_REQUEST,
-        STATE_PREPARE_CGI,
-        STATE_CGI_RUNNING,
-        STATE_SENDING_RESPONSE
-    } state;
+	enum State {
+		STATE_READING_REQUEST,
+		STATE_PREPARE_CGI,
+		STATE_CGI_RUNNING,
+		STATE_SENDING_RESPONSE
+	} state;
 
-    std::vector<char> request_buffer;
-    std::vector<char> response_buffer;
-    std::vector<char> cgi_output_buffer;
+	std::vector<char> request_buffer;
+	std::vector<char> response_buffer;
+	std::vector<char> cgi_output_buffer;
 
-    std::chrono::steady_clock::time_point last_activity;
+	std::chrono::steady_clock::time_point last_activity;
 
-    static constexpr std::chrono::seconds TIMEOUT_DURATION{5}; // Correct initialization
+	static constexpr std::chrono::seconds TIMEOUT_DURATION{5}; // Correct initialization
 
-    const ServerBlock* associated_conf;
-    std::string location_path;
-    std::string requested_path;
+	const ServerBlock* associated_conf;
+	std::string location_path;
+	std::string requested_path;
 };
 
 
