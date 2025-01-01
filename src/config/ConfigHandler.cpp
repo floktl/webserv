@@ -612,7 +612,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd) 
 			const int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};
 			for (int errorCode : defaultErrorCodes) {
 				if (conf.errorPages.find(errorCode) == conf.errorPages.end()) {
-					conf.errorPages[errorCode] = "/50x.html";
+					conf.errorPages[errorCode] = "/app/err_page_defaults/50x.html";
 				}
 			}
 
