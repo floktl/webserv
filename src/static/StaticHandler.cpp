@@ -1,21 +1,8 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   StaticHandler.cpp                                  :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/11/29 12:40:26 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/29 14:19:21 by jeberle          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "StaticHandler.hpp"
 
-StaticHandler::StaticHandler(Server& _server) : server(_server){}
+StaticHandler::StaticHandler(Server& _server) : server(_server) {}
 
-void StaticHandler::handleClientRead(int epfd, int fd)
-{
+void StaticHandler::handleClientRead(int epfd, int fd) {
 	std::stringstream ss;
 	ss << "Handling client read on fd " << fd;
 	Logger::file(ss.str());
@@ -24,17 +11,14 @@ void StaticHandler::handleClientRead(int epfd, int fd)
 	char buf[1024];
 	ssize_t n = read(fd, buf, sizeof(buf));
 
-	if (n == 0)
-	{
+	if (n == 0) {
 		Logger::file("Client closed connection");
 		server.delFromEpoll(epfd, fd);
 		return;
 	}
 
-	if (n < 0)
-	{
-		if (errno != EAGAIN && errno != EWOULDBLOCK)
-		{
+	if (n < 0) {
+		if (errno != EAGAIN && errno != EWOULDBLOCK) {
 			Logger::file("Read error: " + std::string(strerror(errno)));
 			server.delFromEpoll(epfd, fd);
 		}
@@ -47,8 +31,7 @@ void StaticHandler::handleClientRead(int epfd, int fd)
 
 	req.request_buffer.insert(req.request_buffer.end(), buf, buf + n);
 
-	if (req.request_buffer.size() > 4)
-	{
+	if (req.request_buffer.size() > 4) {
 		std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
 		if (req_str.find("\r\n\r\n") != std::string::npos) {
 			Logger::file("Complete request received, parsing");
@@ -74,14 +57,15 @@ constexpr std::chrono::seconds RequestState::TIMEOUT_DURATION;
 
 void StaticHandler::handleClientWrite(int epfd, int fd)
 {
-    std::stringstream ss;
-    ss << "Handling client write on fd " << fd;
-    Logger::file(ss.str());
+	std::stringstream ss;
+	ss << "Handling client write on fd " << fd;
+	Logger::file(ss.str());
 
-    RequestState &req = server.getGlobalFds().request_state_map[fd];
+	RequestState &req = server.getGlobalFds().request_state_map[fd];
 
-    // Check for timeout
+	// Check for timeout
 	auto now = std::chrono::steady_clock::now();
+<<<<<<< HEAD
     if (now - req.last_activity > RequestState::TIMEOUT_DURATION)
     {
         Logger::file("Timeout detected for fd " + std::to_string(fd) + ", closing connection.");
@@ -93,56 +77,69 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
     {
         ss.str("");
         ss << "Attempting to write response, buffer size: " << req.response_buffer.size()
+=======
+	if (now - req.last_activity > RequestState::TIMEOUT_DURATION)
+	{
+		Logger::file("Timeout detected for fd " + std::to_string(fd) + ", closing connection.");
+		server.delFromEpoll(epfd, fd);
+		return;
+	}
+
+	if (req.state == RequestState::STATE_SENDING_RESPONSE)
+	{
+		ss.str("");
+		ss << "Attempting to write response, buffer size: " << req.response_buffer.size()
+>>>>>>> 66f44f1ce5c6af38f79bc399667599aaf9d1a087
 			<< ", content: " << std::string(req.response_buffer.begin(), req.response_buffer.end());
-        Logger::file(ss.str());
+		Logger::file(ss.str());
 
-        int error = 0;
-        socklen_t len = sizeof(error);
-        if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0)
-        {
-            Logger::file("Socket error detected: " + std::string(strerror(error)));
-            server.delFromEpoll(epfd, fd);
-            return;
-        }
+		int error = 0;
+		socklen_t len = sizeof(error);
+		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0)
+		{
+			Logger::file("Socket error detected: " + std::string(strerror(error)));
+			server.delFromEpoll(epfd, fd);
+			return;
+		}
 
-        ssize_t n = send(fd, req.response_buffer.data(), req.response_buffer.size(), MSG_NOSIGNAL);
+		ssize_t n = send(fd, req.response_buffer.data(), req.response_buffer.size(), MSG_NOSIGNAL);
 
-        if (n > 0)
-        {
-            ss.str("");
-            ss << "Successfully wrote " << n << " bytes to client";
-            Logger::file(ss.str());
+		if (n > 0)
+		{
+			ss.str("");
+			ss << "Successfully wrote " << n << " bytes to client";
+			Logger::file(ss.str());
 
-            req.response_buffer.erase(
-                req.response_buffer.begin(),
-                req.response_buffer.begin() + n
-            );
+			req.response_buffer.erase(
+				req.response_buffer.begin(),
+				req.response_buffer.begin() + n
+			);
 
-            req.last_activity = now; // Update last activity timestamp
+			req.last_activity = now; // Update last activity timestamp
 
-            if (req.response_buffer.empty())
-            {
-                Logger::file("Response fully sent, closing connection");
-                server.delFromEpoll(epfd, fd);
-            }
-            else
-            {
-                server.modEpoll(epfd, fd, EPOLLOUT);
-            }
-        }
-        else if (n < 0)
-        {
-            if (errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                ss.str("");
-                ss << "Write error: " << strerror(errno);
-                Logger::file(ss.str());
-                server.delFromEpoll(epfd, fd);
-            }
-            else
-            {
-                server.modEpoll(epfd, fd, EPOLLOUT);
-            }
-        }
-    }
+			if (req.response_buffer.empty())
+			{
+				Logger::file("Response fully sent, closing connection");
+				server.delFromEpoll(epfd, fd);
+			}
+			else
+			{
+				server.modEpoll(epfd, fd, EPOLLOUT);
+			}
+		}
+		else if (n < 0)
+		{
+			if (errno != EAGAIN && errno != EWOULDBLOCK)
+			{
+				ss.str("");
+				ss << "Write error: " << strerror(errno);
+				Logger::file(ss.str());
+				server.delFromEpoll(epfd, fd);
+			}
+			else
+			{
+				server.modEpoll(epfd, fd, EPOLLOUT);
+			}
+		}
+	}
 }
