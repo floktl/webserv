@@ -12,6 +12,12 @@ if (is_dir($dir)) {
 		}
 	}
 }
+
+$start = time();
+while ((time() - $start) < 3) {
+    // Loop for 6 seconds, doing nothing
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">

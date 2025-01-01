@@ -32,10 +32,6 @@ std::string ErrorHandler::generateErrorResponse(int statusCode, const std::strin
 	if (it != req.associated_conf->errorPages.end())
 	{
 		content = loadErrorPage(it->second);
-		if (content.empty())
-		{
-			std::cerr << "Failed to load custom error page: " << it->second << std::endl;
-		}
 	}
 
 	if (content.empty())
