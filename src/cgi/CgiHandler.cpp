@@ -314,17 +314,17 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events) {
 }
 
 void CgiHandler::handleCGIRead(int epfd, int fd) {
-    std::stringstream ss;
-    ss << "\n=== CGI Read Handler Start ===\n"
-       << "Handling fd=" << fd;
-    Logger::file(ss.str());
+	std::stringstream ss;
+	ss << "\n=== CGI Read Handler Start ===\n"
+	<< "Handling fd=" << fd;
+	Logger::file(ss.str());
 
-    auto tunnel_it = fd_to_tunnel.find(fd);
-    if (tunnel_it == fd_to_tunnel.end() || !tunnel_it->second) {
-        Logger::file("No tunnel found for fd " + std::to_string(fd));
-        return;
-    }
-    CgiTunnel* tunnel = tunnel_it->second;
+	auto tunnel_it = fd_to_tunnel.find(fd);
+	if (tunnel_it == fd_to_tunnel.end() || !tunnel_it->second) {
+		Logger::file("No tunnel found for fd " + std::to_string(fd));
+		return;
+	}
+	CgiTunnel* tunnel = tunnel_it->second;
 
 	auto req_it = server.getGlobalFds().request_state_map.find(tunnel->client_fd);
 	if (req_it == server.getGlobalFds().request_state_map.end()) {
@@ -333,57 +333,75 @@ void CgiHandler::handleCGIRead(int epfd, int fd) {
 	}
 	RequestState &req = req_it->second;
 
+	// Nicht-statische Variable!
+	std::string output;
 	char buf[4096];
-	ssize_t n = read(fd, buf, sizeof(buf));
+	ssize_t n;
 
 	ss.str("");
-	ss << "Read attempt returned: " << n;
-	if (n < 0) {
-		ss << " (errno: " << errno << " - " << strerror(errno) << ")";
-	}
+	ss << "Attempting to read from CGI output pipe";
 	Logger::file(ss.str());
 
-	if (n > 0) {
-		req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
-	} else if (n == 0) {
-		Logger::file("CGI process finished writing");
-		if (!req.cgi_output_buffer.empty()) {
-			std::string cgi_output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-
-			size_t header_end = cgi_output.find("\r\n\r\n");
-			if (header_end == std::string::npos) {
-				header_end = 0;
-			}
-
-			std::string cgi_headers = header_end > 0 ? cgi_output.substr(0, header_end) : "";
-			std::string cgi_body = header_end > 0 ?
-				cgi_output.substr(header_end + 4) : cgi_output;
-
-			std::string response = "HTTP/1.1 200 OK\r\n";
-			response += "Content-Length: " + std::to_string(cgi_body.length()) + "\r\n";
-			response += "Connection: close\r\n";
-
-			if (!cgi_headers.empty()) {
-				response += cgi_headers + "\r\n";
-			} else {
-				response += "Content-Type: text/html\r\n";
-			}
-
-			response += "\r\n" + cgi_body;
-
-			Logger::file("Final response headers:\n" + response.substr(0, response.find("\r\n\r\n")));
-
-			req.response_buffer.assign(response.begin(), response.end());
-			req.state = RequestState::STATE_SENDING_RESPONSE;
-			server.modEpoll(epfd, client_fd, EPOLLOUT);
-		}
-		cleanup_tunnel(*tunnel);
-	} else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-		Logger::file("Error reading from CGI: " + std::string(strerror(errno)));
-		cleanup_tunnel(*tunnel);
+	while ((n = read(fd, buf, sizeof(buf))) > 0) {
+		output.append(buf, n);
+		ss.str("");
+		ss << "Read " << n << " bytes from CGI";
+		Logger::file(ss.str());
 	}
 
-    Logger::file("=== CGI Read Handler End ===\n");
+	if (n == 0) {  // EOF erreicht
+		ss.str("");
+		ss << "EOF reached, total bytes read: " << output.size();
+		Logger::file(ss.str());
+
+		size_t header_end = output.find("\r\n\r\n");
+		if (header_end == std::string::npos) {
+			header_end = 0;
+		}
+
+		std::string cgi_headers = header_end > 0 ?
+			output.substr(0, header_end) : "";
+		std::string cgi_body = header_end > 0 ?
+			output.substr(header_end + 4) : output;
+
+		ss.str("");
+		ss << "Parsed CGI output:\n"
+		<< "Headers (" << cgi_headers.length() << " bytes):\n" << cgi_headers << "\n"
+		<< "Body (" << cgi_body.length() << " bytes)";
+		Logger::file(ss.str());
+
+		std::string response = "HTTP/1.1 200 OK\r\n";
+		response += "Content-Length: " + std::to_string(cgi_body.length()) + "\r\n";
+		response += "Connection: close\r\n";
+
+		if (!cgi_headers.empty()) {
+			response += cgi_headers + "\r\n";
+		} else {
+			response += "Content-Type: text/html\r\n";
+		}
+
+		response += "\r\n" + cgi_body;
+
+		ss.str("");
+		ss << "Final response headers:\n" << response.substr(0, response.find("\r\n\r\n"));
+		Logger::file(ss.str());
+
+		req.response_buffer.assign(response.begin(), response.end());
+		req.state = RequestState::STATE_SENDING_RESPONSE;
+		server.modEpoll(epfd, tunnel->client_fd, EPOLLOUT);
+
+		cleanup_tunnel(*tunnel);
+	}
+	else if (n < 0) {
+		if (errno != EAGAIN && errno != EWOULDBLOCK) {
+			ss.str("");
+			ss << "Read error: " << strerror(errno);
+			Logger::file(ss.str());
+			cleanup_tunnel(*tunnel);
+		}
+	}
+
+	Logger::file("=== CGI Read Handler End ===\n");
 }
 
 void CgiHandler::cleanup_tunnel(CgiTunnel &tunnel) {
@@ -442,6 +460,8 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 }
 
 void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
+	// const char* tunnel.location->cgi.c_str() = "/usr/bin/php-cgi";
+
 	Logger::file("Child process environment:");
 	for (char** env = environ; *env != nullptr; env++) {
 		Logger::file(*env);
@@ -451,6 +471,15 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	Logger::file("STDIN: " + std::to_string(fcntl(STDIN_FILENO, F_GETFD)));
 	Logger::file("STDOUT: " + std::to_string(fcntl(STDOUT_FILENO, F_GETFD)));
 	Logger::file("STDERR: " + std::to_string(fcntl(STDERR_FILENO, F_GETFD)));
+
+	Logger::file("Executing CGI with:");
+	Logger::file("- PHP-CGI path: " + std::string(tunnel.location->cgi.c_str()));
+	Logger::file("- Script path: " + tunnel.script_path);
+
+	if (access(tunnel.location->cgi.c_str(), X_OK) != 0) {
+		Logger::file("PHP-CGI binary not executable or not found at " + std::string(tunnel.location->cgi.c_str()));
+		_exit(1);
+	}
 
 	if (!tunnel.location) {
 		Logger::file("No matching location found for CGI execution");
@@ -474,6 +503,8 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	}
 
 	char* const args[] = {
+		(char*)tunnel.location->cgi.c_str(),
+		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.script_path.c_str(),
 		nullptr

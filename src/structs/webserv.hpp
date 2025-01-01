@@ -19,6 +19,10 @@ struct Location
 	std::string	cgi;
 	std::string	cgi_param;
 	std::string	redirect;
+	bool allowGet{true};
+	bool allowPost{false};
+	bool allowDelete{false};
+	bool allowCookie{false};
 };
 
 struct ServerBlock
