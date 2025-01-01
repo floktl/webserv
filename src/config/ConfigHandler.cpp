@@ -462,7 +462,7 @@ bool ConfigHandler::sanitizeConfData(void) {
 			}
 
 			if (!loc.cgi.empty() &&
-				!Sanitizer::sanitize_locationCgi(loc.cgi, expandEnvironmentVariables("$PWD", env))) {
+				!Sanitizer::sanitize_locationCgi(loc.cgi, loc.cgi_filetype, expandEnvironmentVariables("$PWD", env))) {
 				configFileValid = false;
 				return false;
 			}

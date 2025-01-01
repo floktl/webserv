@@ -85,31 +85,11 @@ void RequestHandler::buildResponse(RequestState &req)
 	if (root_path.back() != '/')
 		root_path += '/';
 
-	// Extract the relative path from req.requested_path (e.g., "/team/florian")
-	std::string relative_path = req.requested_path.substr(req.requested_path.find_first_of('/', 7));
-
-	// Remove the leading slash from relative_path
-	if (!relative_path.empty() && relative_path.front() == '/')
-		relative_path.erase(0, 1);
-
-	// If relative_path is empty or "/", default to the index file
-	if (relative_path.empty())
-		relative_path = conf->index;
-
-	// Final check: If file_path does not end with ".html", append it
-	//if (relative_path.size() < 5 || relative_path.substr(relative_path.size() - 5) != ".html")
-	//    relative_path += ".html";
-
-	// Combine root path with the relative path
-	std::string file_path = root_path + relative_path;
-
-	// Try to open the file at the constructed path
 	std::string file_content;
-	std::ifstream file(file_path.c_str());
+	std::ifstream file(req.requested_path.c_str());
 
 	std::stringstream buffer;
 
-	std::cout << "File: " << file_path << std::endl;
 	std::stringstream response;
 	if (file.is_open())
 	{
@@ -130,6 +110,29 @@ void RequestHandler::buildResponse(RequestState &req)
 	std::string response_str = response.str();
 	// Assign response to req.response_buffer
 	req.response_buffer.assign(response_str.begin(), response_str.end());
+}
+
+std::string RequestHandler::buildRequestedPath(RequestState &req, const std::string &rawPath)
+{
+	const Location* loc = findMatchingLocation(req.associated_conf, rawPath);
+
+	std::string usedRoot = (loc && !loc->root.empty()) ? loc->root : req.associated_conf->root;
+	if (!usedRoot.empty() && usedRoot.back() != '/')
+		usedRoot += '/';
+
+	std::string relativePath = rawPath;
+	if (!relativePath.empty() && relativePath.front() == '/')
+		relativePath.erase(0, 1);
+
+	if (relativePath.empty())
+	{
+		std::string usedIndex = (loc && !loc->default_file.empty())
+								? loc->default_file
+								: req.associated_conf->index;
+		relativePath = !usedIndex.empty() ? usedIndex : "index.html";
+	}
+	Logger::file(">>>>> " + usedRoot + relativePath);
+	return usedRoot + relativePath;
 }
 
 void RequestHandler::parseRequest(RequestState &req)
@@ -163,9 +166,9 @@ void RequestHandler::parseRequest(RequestState &req)
 	}
 
 	req.location_path = path;
-	req.requested_path = "http://localhost:" + std::to_string(req.associated_conf->port) + path;
+	req.requested_path = buildRequestedPath(req, path);
 	req.cgi_output_buffer.clear();
-	if (server.getCgiHandler()->needsCGI(req.associated_conf, path))
+	if (server.getCgiHandler()->needsCGI(req, path))
 	{
 		req.state = RequestState::STATE_PREPARE_CGI;
 		server.getCgiHandler()->addCgiTunnel(req, method, query);
