@@ -178,3 +178,14 @@ void RequestHandler::parseRequest(RequestState &req)
 		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 	}
 }
+
+std::string RequestHandler::getMethod(const std::vector<char>& request_buffer) {
+	if (request_buffer.empty()) return "";
+
+	std::string request(request_buffer.begin(), request_buffer.end());
+	std::istringstream iss(request);
+	std::string method;
+	iss >> method;
+
+	return method;
+}
