@@ -257,7 +257,8 @@ bool Sanitizer::sanitize_locationClMaxBodSize(std::string& locationClMaxBodSize)
 	return sanitize_clMaxBodSize(locationClMaxBodSize);
 }
 
-bool Sanitizer::sanitize_locationCgi(std::string& locationCgi, const std::string& pwd) {
+
+bool Sanitizer::sanitize_locationCgi(std::string& locationCgi, std::string& locationCgiFileType, const std::string& pwd) {
 	if (locationCgi.empty())
 		return true;
 
@@ -286,6 +287,12 @@ bool Sanitizer::sanitize_locationCgi(std::string& locationCgi, const std::string
 	if (access(locationCgi.c_str(), X_OK) == -1) {
 		Logger::error("[CGI] File is not executable: " + locationCgi + " (" + strerror(errno) + ")");
 		return false;
+	}
+
+	if (locationCgi.size() >= 7 && locationCgi.compare(locationCgi.size() - 7, 7, "php-cgi") == 0) {
+		locationCgiFileType = ".php";
+	} else if (locationCgi.size() >= 7 && locationCgi.compare(locationCgi.size() - 7, 7, "python3") == 0) {
+		locationCgiFileType = ".py";
 	}
 
 	return true;

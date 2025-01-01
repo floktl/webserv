@@ -29,6 +29,7 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
 	CgiTunnel tunnel;
 	tunnel.in_fd = pipe_in[1];
 	tunnel.out_fd = pipe_out[0];
+	tunnel.server_name = req.associated_conf->name;
 	tunnel.client_fd = req.client_fd;
 	tunnel.server_fd = req.associated_conf->server_fd;
 	tunnel.config = req.associated_conf;
@@ -36,20 +37,7 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
 	tunnel.is_busy = true;
 	tunnel.last_used = std::chrono::steady_clock::now();
 	tunnel.pid = -1;
-	Logger::file("cgiTunnel allowGet " + std::to_string(tunnel.location->allowGet));
-	Logger::file("cgiTunnel allowPost " + std::to_string(tunnel.location->allowPost));
-	Logger::file("cgiTunnel allowDelete " + std::to_string(tunnel.location->allowDelete));
-	Logger::file("cgiTunnel allowCookie " + std::to_string(tunnel.location->allowCookie));
-
-	std::string requested_file = req.requested_path;
-	size_t last_slash = requested_file.find_last_of('/');
-	if (last_slash != std::string::npos) {
-		requested_file = requested_file.substr(last_slash + 1);
-	}
-	if (requested_file.empty() || requested_file == "?") {
-		requested_file = "index.php";
-	}
-	tunnel.script_path = tunnel.config->root + "/" + requested_file;
+	tunnel.script_path = req.requested_path;
 	pid_t pid = fork();
 	if (pid < 0) {
 		cleanup_pipes(pipe_in, pipe_out);
@@ -133,17 +121,17 @@ void CgiHandler::cleanupCGI(RequestState &req) {
 	}
 }
 
-bool CgiHandler::needsCGI(const ServerBlock* conf, const std::string &path) {
-	if (path.length() >= 4 && path.substr(path.length() - 4) == ".php") {
-		return true;
-	}
-	const Location* loc = server.getRequestHandler()->findMatchingLocation(conf, path);
+bool CgiHandler::needsCGI(RequestState &req, const std::string &path) {
+	const Location* loc = server.getRequestHandler()->findMatchingLocation(req.associated_conf, path);
 	if (!loc)
 	{
 		return false;
 	}
 	if (!loc->cgi.empty())
 	{
+		if (path.length() >= loc->cgi_filetype.length() && path.substr(path.length() - loc->cgi_filetype.length()) == loc->cgi_filetype) {
+			return true;
+		}
 		return true;
 	}
 	return false;
@@ -322,7 +310,7 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 		"SERVER_PROTOCOL=HTTP/1.1",
 		"REQUEST_METHOD=" + method,
 		"QUERY_STRING=" + query,
-		"SCRIPT_FILENAME=" + tunnel.script_path,  // Full path is important
+		"SCRIPT_FILENAME=" + tunnel.script_path,
 		"SCRIPT_NAME=" + tunnel.script_path,
 		"DOCUMENT_ROOT=" + tunnel.config->root,
 		"SERVER_SOFTWARE=webserv/1.0",
