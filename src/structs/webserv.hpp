@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   webserv.hpp                                        :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/12/14 17:31:47 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/29 14:08:22 by jeberle          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef STRUCTS_WEBSERV_HPP
 # define STRUCTS_WEBSERV_HPP
 
@@ -31,6 +19,10 @@ struct Location
 	std::string	cgi;
 	std::string	cgi_param;
 	std::string	redirect;
+	bool allowGet{true};
+	bool allowPost{false};
+	bool allowDelete{false};
+	bool allowCookie{false};
 };
 
 struct ServerBlock
@@ -49,6 +41,7 @@ struct ServerBlock
 
 struct RequestState
 {
+<<<<<<< HEAD
     int client_fd;
     int cgi_in_fd;
     int cgi_out_fd;
@@ -73,6 +66,32 @@ struct RequestState
     const ServerBlock* associated_conf;
     std::string location_path;
     std::string requested_path;
+=======
+	int client_fd;
+	int cgi_in_fd;
+	int cgi_out_fd;
+	pid_t cgi_pid;
+	bool cgi_done;
+
+	enum State {
+		STATE_READING_REQUEST,
+		STATE_PREPARE_CGI,
+		STATE_CGI_RUNNING,
+		STATE_SENDING_RESPONSE
+	} state;
+
+	std::vector<char> request_buffer;
+	std::vector<char> response_buffer;
+	std::vector<char> cgi_output_buffer;
+
+	std::chrono::steady_clock::time_point last_activity;
+
+	static constexpr std::chrono::seconds TIMEOUT_DURATION{5}; // Correct initialization
+
+	const ServerBlock* associated_conf;
+	std::string location_path;
+	std::string requested_path;
+>>>>>>> 66f44f1ce5c6af38f79bc399667599aaf9d1a087
 };
 
 

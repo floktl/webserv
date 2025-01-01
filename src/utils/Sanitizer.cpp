@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Sanitizer.cpp                                      :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/11/28 15:33:15 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/14 18:11:12 by jeberle          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "./Sanitizer.hpp"
 
 Sanitizer::Sanitizer() {}
@@ -218,7 +206,7 @@ bool Sanitizer::sanitize_locationMethods(std::string& locationMethods) {
 
 	std::istringstream stream(locationMethods);
 	std::string method;
-	std::set<std::string> validMethods = {"GET", "POST", "DELETE"};
+	std::set<std::string> validMethods = {"GET", "POST", "DELETE", "COOKIE"};
 	std::set<std::string> seenMethods;
 
 	while (stream >> method) {
