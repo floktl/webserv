@@ -32,7 +32,10 @@ class Server
 		CgiHandler* cgiHandler;
 		RequestHandler* requestHandler;
 		ErrorHandler* errorHandler;
-		//int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};
+		int initializeEpoll();
+		int setupServerSocket(ServerBlock& conf);
+		void handleCGIEvent(int epoll_fd, int fd, uint32_t ev);
+		void handleClientEvent(int epoll_fd, int fd, uint32_t ev, RequestState &req);
 		void handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf);
 };
 

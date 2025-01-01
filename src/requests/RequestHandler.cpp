@@ -26,6 +26,52 @@ void RequestHandler::buildErrorResponse(int statusCode, const std::string& messa
 #include <iostream>   // For std::cout
 #include <string>     // For std::string
 
+
+const Location* RequestHandler::findMatchingLocation(const ServerBlock* conf, const std::string& path) {
+	if (!conf) return nullptr;
+
+	const Location* bestMatch = nullptr;
+	size_t bestMatchLength = 0;
+	bool hasExactMatch = false;
+
+	for (const auto& loc : conf->locations) {
+		if (path == loc.path) {
+			bestMatch = &loc;
+			hasExactMatch = true;
+			break;
+		}
+	}
+
+	if (hasExactMatch) {
+		return bestMatch;
+	}
+
+	for (const auto& loc : conf->locations) {
+		bool isPrefix = loc.path.back() == '/';
+
+		if (isPrefix) {
+			if (path.compare(0, loc.path.length(), loc.path) == 0) {
+				if (loc.path.length() > bestMatchLength) {
+					bestMatch = &loc;
+					bestMatchLength = loc.path.length();
+				}
+			}
+		} else {
+			if (path.length() >= loc.path.length() &&
+				path.compare(0, loc.path.length(), loc.path) == 0 &&
+				(path.length() == loc.path.length() || path[loc.path.length()] == '/')) {
+
+				if (loc.path.length() > bestMatchLength) {
+					bestMatch = &loc;
+					bestMatchLength = loc.path.length();
+				}
+			}
+		}
+	}
+
+	return bestMatch;
+}
+
 void RequestHandler::buildResponse(RequestState &req)
 {
 	const ServerBlock* conf = req.associated_conf;

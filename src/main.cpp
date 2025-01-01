@@ -124,7 +124,7 @@ int main(int argc, char **argv, char **envp)
 		if (!utils.getconfigFileValid())
 		{
 			Logger::red() << "Invalid configuration file!";
-			Logger::file("Invalid configuration file");
+			//Logger::file("Invalid configuration file");
 			return EXIT_FAILURE;
 		}
 
@@ -132,7 +132,7 @@ int main(int argc, char **argv, char **envp)
 		if (configs.empty())
 		{
 			Logger::red() << "No configurations found!";
-			Logger::file("No configurations found");
+			//Logger::file("No configurations found");
 			return EXIT_FAILURE;
 		}
 		if (server.server_init(configs) == EXIT_FAILURE)
@@ -142,7 +142,7 @@ int main(int argc, char **argv, char **envp)
 	{
 		std::string err_msg = "Error: " + std::string(e.what());
 		Logger::red() << err_msg;
-		Logger::file(err_msg);
+		//Logger::file(err_msg);
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
