@@ -60,7 +60,7 @@ struct RequestState
 
 	std::chrono::steady_clock::time_point last_activity;
 
-	static constexpr std::chrono::seconds TIMEOUT_DURATION{5}; // Correct initialization
+	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
 
 	const ServerBlock* associated_conf;
 	std::string location_path;
