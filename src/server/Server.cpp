@@ -18,22 +18,22 @@ Server::~Server()
 
 StaticHandler* Server::getStaticHandler(void)
 {
-	return (staticHandler);
+	return staticHandler;
 }
 
 CgiHandler* Server::getCgiHandler(void)
 {
-	return (cgiHandler);
+	return cgiHandler;
 }
 
 RequestHandler* Server::getRequestHandler(void)
 {
-	return (requestHandler);
+	return requestHandler;
 }
 
 ErrorHandler* Server::getErrorHandler(void)
 {
-	return (errorHandler);
+	return errorHandler;
 }
 
 GlobalFDS& Server::getGlobalFds(void)
@@ -41,199 +41,308 @@ GlobalFDS& Server::getGlobalFds(void)
 	return globalFDS;
 }
 
-int Server::initializeEpoll() {
+int Server::initEpoll()
+{
 	int epoll_fd = epoll_create1(0);
-	if (epoll_fd < 0) {
+	if (epoll_fd < 0)
+	{
 		Logger::red() << "Failed to create epoll\n";
+		Logger::file("Failed to create epoll: " + std::string(strerror(errno)));
 		return -1;
 	}
 	globalFDS.epoll_fd = epoll_fd;
+	Logger::file("Server starting");
 	return epoll_fd;
 }
 
-int Server::setupServerSocket(ServerBlock& conf) {
-	conf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (conf.server_fd < 0) {
-		Logger::red() << "Failed to create socket on port: " << conf.port;
-		return -1;
-	}
+bool Server::isMethodAllowed(const RequestState &req, const std::string &method) const
+{
+	const Location* loc = requestHandler->findMatchingLocation(req.associated_conf, req.location_path);
+	if (!loc)
+		return false;
 
-	int opt = 1;
-	setsockopt(conf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-	struct sockaddr_in addr;
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(conf.port);
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-	if (bind(conf.server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		Logger::red() << "Failed to bind socket on port: " << conf.port;
-		close(conf.server_fd);
-		return -1;
-	}
-
-	if (listen(conf.server_fd, SOMAXCONN) < 0) {
-		Logger::red() << "Failed to listen on port: " << conf.port;
-		close(conf.server_fd);
-		return -1;
-	}
-
-	setNonBlocking(conf.server_fd);
-	Logger::green() << "Server listening on port: " << conf.port << "\n";
-	return conf.server_fd;
+	if (method == "GET"    && loc->allowGet)    return true;
+	if (method == "POST"   && loc->allowPost)   return true;
+	if (method == "DELETE" && loc->allowDelete) return true;
+	return false;
 }
 
-void Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev) {
+bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
+{
+	for (auto &conf : configs)
+	{
+		conf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
+		if (conf.server_fd < 0)
+		{
+			std::stringstream ss;
+			ss << "Failed to create socket on port: " << conf.port;
+			Logger::red() << ss.str();
+			Logger::file(ss.str());
+			return false;
+		}
+
+		int opt = 1;
+		setsockopt(conf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+		struct sockaddr_in addr;
+		memset(&addr, 0, sizeof(addr));
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons(conf.port);
+		addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+		if (bind(conf.server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+		{
+			std::stringstream ss;
+			ss << "Failed to bind socket on port: " << conf.port;
+			Logger::red() << ss.str();
+			Logger::file(ss.str());
+			close(conf.server_fd);
+			return false;
+		}
+
+		if (listen(conf.server_fd, SOMAXCONN) < 0)
+		{
+			std::stringstream ss;
+			ss << "Failed to listen on port: " << conf.port;
+			Logger::red() << ss.str();
+			Logger::file(ss.str());
+			close(conf.server_fd);
+			return false;
+		}
+
+		setNonBlocking(conf.server_fd);
+		modEpoll(epoll_fd, conf.server_fd, EPOLLIN);
+
+		std::stringstream ss;
+		ss << "Server listening on port: " << conf.port;
+		Logger::green() << ss.str() << "\n";
+		Logger::file(ss.str());
+	}
+	return true;
+}
+
+bool Server::processMethod(RequestState &req, int epoll_fd)
+{
+	if (req.request_buffer.empty())
+		return true;
+
+	std::string method = requestHandler->getMethod(req.request_buffer);
+	if (!isMethodAllowed(req, method))
+	{
+		std::string response = getErrorHandler()->generateErrorResponse(405, "Method Not Allowed", req);
+		req.response_buffer.assign(response.begin(), response.end());
+		req.state = RequestState::STATE_SENDING_RESPONSE;
+		modEpoll(epoll_fd, req.client_fd, EPOLLOUT);
+		return false;
+	}
+	return true;
+}
+
+bool Server::dispatchEvent(int epoll_fd, int fd, uint32_t ev, std::vector<ServerBlock> &configs)
+{
+	if (const ServerBlock* conf = findServerBlock(configs, fd))
+	{
+		handleNewConnection(epoll_fd, fd, *conf);
+		return true;
+	}
+
+	if (globalFDS.svFD_to_clFD_map.find(fd) != globalFDS.svFD_to_clFD_map.end())
+	{
+		handleCGIEvent(epoll_fd, fd, ev);
+		return true;
+	}
+
+	if (globalFDS.request_state_map.find(fd) != globalFDS.request_state_map.end())
+	{
+		handleClientEvent(epoll_fd, fd, ev);
+		return true;
+	}
+
+	Logger::file("Unknown fd encountered, removing from epoll");
+	epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+	return false;
+}
+
+int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
+{
+	const int max_events = 64;
+	struct epoll_event events[max_events];
+	const int timeout_ms = 5000;
+
+	while (true)
+	{
+		int n = epoll_wait(epoll_fd, events, max_events, timeout_ms);
+		Logger::file("epoll_wait returned: " + std::to_string(n));
+
+		if (n < 0)
+		{
+			Logger::file(std::string("epoll_wait error: ") + strerror(errno));
+			if (errno == EINTR)
+				continue;
+			break;
+		}
+		else if (n == 0)
+		{
+			Logger::file("timeout");
+			continue;
+		}
+
+		for (int i = 0; i < n; i++)
+		{
+			int fd = events[i].data.fd;
+			uint32_t ev = events[i].events;
+			std::stringstream ssev;
+			ssev << "Processing fd=" << fd << " events=" << ev;
+			Logger::file(ssev.str());
+
+			dispatchEvent(epoll_fd, fd, ev, configs);
+			Logger::file("=== Event Processing End ===\n");
+		}
+	}
+	Logger::file("Server shutting down");
+	close(epoll_fd);
+	return EXIT_SUCCESS;
+}
+
+const ServerBlock* Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd)
+{
+	for (const auto &conf : configs)
+	{
+		if (conf.server_fd == fd)
+			return &conf;
+	}
+	return nullptr;
+}
+
+bool Server::handleClientEvent(int epoll_fd, int fd, uint32_t ev)
+{
+	RequestState &req = globalFDS.request_state_map[fd];
+	req.last_activity = std::chrono::steady_clock::now();
+
+	if (ev & (EPOLLHUP | EPOLLERR))
+	{
+		Logger::file("Client socket error/hangup detected");
+		delFromEpoll(epoll_fd, fd);
+		return true;
+	}
+
+	if (ev & EPOLLIN)
+	{
+		staticHandler->handleClientRead(epoll_fd, fd);
+		if (!processMethod(req, epoll_fd))
+			return true;
+	}
+
+	if (req.state != RequestState::STATE_CGI_RUNNING &&
+		req.state != RequestState::STATE_PREPARE_CGI &&
+		(ev & EPOLLOUT))
+	{
+		staticHandler->handleClientWrite(epoll_fd, fd);
+	}
+
+	if ((req.state == RequestState::STATE_CGI_RUNNING ||
+		 req.state == RequestState::STATE_PREPARE_CGI) &&
+		(ev & EPOLLOUT) && !req.response_buffer.empty())
+	{
+		ssize_t written = write(fd, req.response_buffer.data(), req.response_buffer.size());
+		if (written > 0)
+		{
+			req.response_buffer.erase(req.response_buffer.begin(), req.response_buffer.begin() + written);
+			if (req.response_buffer.empty())
+				delFromEpoll(epoll_fd, fd);
+		}
+		else if (written < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+			delFromEpoll(epoll_fd, fd);
+	}
+
+	return true;
+}
+
+bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev)
+{
 	int client_fd = globalFDS.svFD_to_clFD_map[fd];
 	RequestState &req = globalFDS.request_state_map[client_fd];
 
-	if (fd == req.cgi_out_fd) {
-		if (ev & EPOLLIN) {
-			cgiHandler->handleCGIRead(epoll_fd, fd);
-		}
-		if (ev & EPOLLHUP) {
-			if (!req.cgi_output_buffer.empty()) {
-				std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-				std::string response;
-				size_t header_end = output.find("\r\n\r\n");
+	if (ev & EPOLLIN)
+		cgiHandler->handleCGIRead(epoll_fd, fd);
 
-				if (output.find("Content-type:") != std::string::npos ||
-					output.find("Content-Type:") != std::string::npos) {
-					std::string headers = output.substr(0, header_end);
-					std::string body = output.substr(header_end + 4);
-					response = "HTTP/1.1 200 OK\r\n";
-					if (headers.find("Content-Length:") == std::string::npos)
-						response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
-					if (headers.find("Connection:") == std::string::npos)
-						response += "Connection: close\r\n";
-					response += headers + "\r\n" + body;
-				} else {
-					response = "HTTP/1.1 200 OK\r\n"
-							"Content-Type: text/html\r\n"
-							"Content-Length: " + std::to_string(output.length()) + "\r\n"
-							"Connection: close\r\n"
-							"\r\n" + output;
-				}
-				req.response_buffer.assign(response.begin(), response.end());
-				req.state = RequestState::STATE_SENDING_RESPONSE;
-				modEpoll(epoll_fd, client_fd, EPOLLOUT);
-			}
-			cgiHandler->cleanupCGI(req);
-		}
+	if (!processMethod(req, epoll_fd))
+		return true;
+
+	if (fd == req.cgi_out_fd && (ev & EPOLLHUP))
+	{
+		Logger::file("CGI output pipe hangup detected, finalizing response");
+		if (!req.cgi_output_buffer.empty())
+			finalizeCgiResponse(req, epoll_fd, client_fd);
+		cgiHandler->cleanupCGI(req);
 	}
-	else if (fd == req.cgi_in_fd) {
-		if (ev & EPOLLOUT) {
+
+	if (fd == req.cgi_in_fd)
+	{
+		if (ev & EPOLLOUT)
 			cgiHandler->handleCGIWrite(epoll_fd, fd, ev);
-		}
-		if (ev & (EPOLLHUP | EPOLLERR)) {
+
+		if (ev & (EPOLLHUP | EPOLLERR))
+		{
+			Logger::file("CGI input pipe error/hangup detected");
 			epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
 			close(fd);
 			req.cgi_in_fd = -1;
 			globalFDS.svFD_to_clFD_map.erase(fd);
 		}
 	}
+
+	return true;
 }
 
-void Server::handleClientEvent(int epoll_fd, int fd, uint32_t ev, RequestState &req) {
-	req.last_activity = std::chrono::steady_clock::now();
+void Server::finalizeCgiResponse(RequestState &req, int epoll_fd, int client_fd)
+{
+	std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
+	Logger::file("Preparing final CGI response with length: " + std::to_string(output.size()));
 
-	if (ev & (EPOLLHUP | EPOLLERR)) {
-		delFromEpoll(epoll_fd, fd);
-		return;
+	size_t header_end = output.find("\r\n\r\n");
+	std::string response;
+	if (header_end != std::string::npos &&
+		(output.find("Content-type:") != std::string::npos ||
+		 output.find("Content-Type:") != std::string::npos))
+	{
+		std::string headers = output.substr(0, header_end);
+		std::string body    = output.substr(header_end + 4);
+
+		response  = "HTTP/1.1 200 OK\r\n";
+		if (headers.find("Content-Length:") == std::string::npos)
+			response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
+		if (headers.find("Connection:") == std::string::npos)
+			response += "Connection: close\r\n";
+		response += headers + "\r\n" + body;
+	}
+	else
+	{
+		response =
+			"HTTP/1.1 200 OK\r\n"
+			"Content-Type: text/html\r\n"
+			"Content-Length: " + std::to_string(output.size()) + "\r\n"
+			"Connection: close\r\n\r\n" + output;
 	}
 
-	if (ev & EPOLLIN) {
-		staticHandler->handleClientRead(epoll_fd, fd);
-	}
-
-	if (ev & EPOLLOUT) {
-		if (req.state == RequestState::STATE_CGI_RUNNING ||
-			req.state == RequestState::STATE_PREPARE_CGI) {
-			if (!req.response_buffer.empty()) {
-				ssize_t written = write(fd, req.response_buffer.data(), req.response_buffer.size());
-				if (written > 0) {
-					req.response_buffer.erase(req.response_buffer.begin(),
-											req.response_buffer.begin() + written);
-					if (req.response_buffer.empty()) {
-						delFromEpoll(epoll_fd, fd);
-					}
-				}
-				else if (written < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-					delFromEpoll(epoll_fd, fd);
-				}
-			}
-		} else {
-			const Location* loc = requestHandler->findMatchingLocation(req.associated_conf, req.location_path);
-
-			Logger::file("handleClientEvent allowGet " + std::to_string(loc->allowGet));
-			Logger::file("handleClientEvent allowPost " + std::to_string(loc->allowPost));
-			Logger::file("handleClientEvent allowDelete " + std::to_string(loc->allowDelete));
-			Logger::file("handleClientEvent allowCookie " + std::to_string(loc->allowCookie));
-			staticHandler->handleClientWrite(epoll_fd, fd);
-		}
-	}
+	req.response_buffer.assign(response.begin(), response.end());
+	req.state = RequestState::STATE_SENDING_RESPONSE;
+	modEpoll(epoll_fd, client_fd, EPOLLOUT);
 }
 
-int Server::server_init(std::vector<ServerBlock> configs) {
-	int epoll_fd = initializeEpoll();
-	if (epoll_fd < 0) return EXIT_FAILURE;
+int Server::server_init(std::vector<ServerBlock> configs)
+{
+	int epoll_fd = initEpoll();
+	if (epoll_fd < 0)
+		return EXIT_FAILURE;
 
-	for (auto &conf : configs) {
-		if (setupServerSocket(conf) < 0) return EXIT_FAILURE;
-		modEpoll(epoll_fd, conf.server_fd, EPOLLIN);
-	}
+	if (!initServerSockets(epoll_fd, configs))
+		return EXIT_FAILURE;
 
-	const int max_events = 64;
-	struct epoll_event events[max_events];
-	const int timeout_ms = 5000;
-
-	while (true) {
-		int n = epoll_wait(epoll_fd, events, max_events, timeout_ms);
-		if (n < 0) {
-			if (errno == EINTR) continue;
-			break;
-		}
-		if (n == 0) continue;
-
-		for (int i = 0; i < n; i++) {
-			int fd = events[i].data.fd;
-			uint32_t ev = events[i].events;
-
-			const ServerBlock* associated_conf = nullptr;
-			for (const auto &conf : configs) {
-				if (conf.server_fd == fd) {
-					associated_conf = &conf;
-					break;
-				}
-			}
-
-			if (associated_conf) {
-				handleNewConnection(epoll_fd, fd, *associated_conf);
-				continue;
-			}
-
-			auto client_it = globalFDS.request_state_map.find(fd);
-			if (client_it != globalFDS.request_state_map.end()) {
-				handleClientEvent(epoll_fd, fd, ev, client_it->second);
-				continue;
-			}
-
-			auto cgi_it = globalFDS.svFD_to_clFD_map.find(fd);
-			if (cgi_it != globalFDS.svFD_to_clFD_map.end()) {
-				handleCGIEvent(epoll_fd, fd, ev);
-				continue;
-			}
-
-			epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-		}
-	}
-
-	close(epoll_fd);
-	return EXIT_SUCCESS;
+	return runEventLoop(epoll_fd, configs);
 }
 
-void Server::handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf)
+void Server::handleNewConnection(int epoll_fd, int fd, const ServerBlock &conf)
 {
 	struct sockaddr_in client_addr;
 	socklen_t client_len = sizeof(client_addr);
@@ -257,9 +366,11 @@ void Server::handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf)
 	req.cgi_done = false;
 	req.associated_conf = &conf;
 	globalFDS.request_state_map[client_fd] = req;
+
+	std::stringstream ss;
+	ss << "New client connection on fd " << client_fd;
+	Logger::file(ss.str());
 }
-
-
 
 void Server::modEpoll(int epfd, int fd, uint32_t events)
 {
@@ -273,16 +384,23 @@ void Server::modEpoll(int epfd, int fd, uint32_t events)
 		if (errno == ENOENT)
 		{
 			if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev) < 0)
+			{
 				Logger::file("epoll_ctl ADD failed: " + std::string(strerror(errno)));
+			}
 		}
 		else
+		{
 			Logger::file("epoll_ctl MOD failed: " + std::string(strerror(errno)));
+		}
 	}
 }
 
-
 void Server::delFromEpoll(int epfd, int fd)
 {
+	std::stringstream ss;
+	ss << "Removing fd " << fd << " from epoll";
+	Logger::file(ss.str());
+
 	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 
 	std::map<int,int>::iterator it = globalFDS.svFD_to_clFD_map.find(fd);
@@ -291,27 +409,49 @@ void Server::delFromEpoll(int epfd, int fd)
 		int client_fd = it->second;
 		RequestState &req = globalFDS.request_state_map[client_fd];
 
-		if (fd == req.cgi_in_fd)
-			req.cgi_in_fd = -1;
-		if (fd == req.cgi_out_fd)
-			req.cgi_out_fd = -1;
+		ss.str("");
+		ss << "Found associated client fd " << client_fd;
+		Logger::file(ss.str());
 
-		if (req.cgi_in_fd == -1 && req.cgi_out_fd == -1 && req.state != RequestState::STATE_SENDING_RESPONSE)
+		if (fd == req.cgi_in_fd)
+		{
+			Logger::file("Closing CGI input pipe");
+			req.cgi_in_fd = -1;
+		}
+		if (fd == req.cgi_out_fd)
+		{
+			Logger::file("Closing CGI output pipe");
+			req.cgi_out_fd = -1;
+		}
+
+		if (req.cgi_in_fd == -1 && req.cgi_out_fd == -1 &&
+			req.state != RequestState::STATE_SENDING_RESPONSE)
+		{
+			Logger::file("Cleaning up request state");
 			globalFDS.request_state_map.erase(client_fd);
+		}
 
 		globalFDS.svFD_to_clFD_map.erase(it);
 	}
 	else
 	{
 		RequestState &req = globalFDS.request_state_map[fd];
+		Logger::file("Cleaning up client connection resources");
+
 		if (req.cgi_in_fd != -1)
 		{
+			ss.str("");
+			ss << "Cleaning up CGI input pipe " << req.cgi_in_fd;
+			Logger::file(ss.str());
 			epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
 			close(req.cgi_in_fd);
 			globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
 		}
 		if (req.cgi_out_fd != -1)
 		{
+			ss.str("");
+			ss << "Cleaning up CGI output pipe " << req.cgi_out_fd;
+			Logger::file(ss.str());
 			epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
 			close(req.cgi_out_fd);
 			globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
@@ -319,7 +459,11 @@ void Server::delFromEpoll(int epfd, int fd)
 
 		globalFDS.request_state_map.erase(fd);
 	}
+
 	close(fd);
+	ss.str("");
+	ss << "Closed fd " << fd;
+	Logger::file(ss.str());
 }
 
 int Server::setNonBlocking(int fd)
