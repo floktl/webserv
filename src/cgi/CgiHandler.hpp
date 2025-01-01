@@ -18,7 +18,6 @@ class CgiHandler
 		void addCgiTunnel(RequestState& req, const std::string& method, const std::string& query);
 		void handleCGIWrite(int epfd, int fd, uint32_t events);
 		void handleCGIRead(int epfd, int fd);
-		const Location* findMatchingLocation(const ServerBlock* conf, const std::string& path);
 		bool needsCGI(const ServerBlock* conf, const std::string& path);
 		void cleanupCGI(RequestState &req);
 	private:
