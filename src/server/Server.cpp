@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Server.cpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: jeberle <jeberle@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/12/16 12:38:47 by fkeitel           #+#    #+#             */
-/*   Updated: 2024/12/29 14:17:43 by jeberle          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "Server.hpp"
 
 Server::Server(GlobalFDS &_globalFDS) :
@@ -138,7 +126,7 @@ int Server::server_init(std::vector<ServerBlock> configs)
 		else if (n == 0)
 		{
 			Logger::file("timeout");
-			continue; // Continue to the next loop iteration
+			continue;
 		}
 		std::stringstream ewrew;
 		ewrew << "Event Loop Iteration: " << n << " events";
@@ -177,14 +165,46 @@ int Server::server_init(std::vector<ServerBlock> configs)
 			auto client_it = globalFDS.request_state_map.find(fd);
 			if (client_it != globalFDS.request_state_map.end())
 			{
+				RequestState &req = client_it->second;
+				req.last_activity =  std::chrono::steady_clock::now();
+
 				if (ev & (EPOLLHUP | EPOLLERR))
 				{
 					Logger::file("Client socket error/hangup detected");
 					delFromEpoll(epoll_fd, fd);
 					continue;
 				}
-				if (ev & EPOLLIN) staticHandler->handleClientRead(epoll_fd, fd);
-				if (ev & EPOLLOUT) staticHandler->handleClientWrite(epoll_fd, fd);
+
+				if (req.state == RequestState::STATE_CGI_RUNNING ||
+					req.state == RequestState::STATE_PREPARE_CGI)
+				{
+					if (ev & EPOLLIN)
+					{
+						staticHandler->handleClientRead(epoll_fd, fd);
+					}
+					if (ev & EPOLLOUT && !req.response_buffer.empty())
+					{
+						ssize_t written = write(fd, req.response_buffer.data(), req.response_buffer.size());
+						if (written > 0)
+						{
+							req.response_buffer.erase(req.response_buffer.begin(),
+													req.response_buffer.begin() + written);
+							if (req.response_buffer.empty())
+							{
+								delFromEpoll(epoll_fd, fd);
+							}
+						}
+						else if (written < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+						{
+							delFromEpoll(epoll_fd, fd);
+						}
+					}
+				}
+				else
+				{
+					if (ev & EPOLLIN) staticHandler->handleClientRead(epoll_fd, fd);
+					if (ev & EPOLLOUT) staticHandler->handleClientWrite(epoll_fd, fd);
+				}
 				continue;
 			}
 
@@ -211,7 +231,6 @@ int Server::server_init(std::vector<ServerBlock> configs)
 					if (ev & EPOLLHUP)
 					{
 						Logger::file("CGI output pipe hangup detected, finalizing response");
-
 						if (!req.cgi_output_buffer.empty())
 						{
 							std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
@@ -280,11 +299,11 @@ int Server::server_init(std::vector<ServerBlock> configs)
 			Logger::file("Unknown fd encountered, removing from epoll");
 			epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
 			Logger::file("=== Event Processing End ===\n");
-			}
 		}
-		Logger::file("Server shutting down");
-		close(epoll_fd);
-	return (EXIT_SUCCESS);
+	}
+	Logger::file("Server shutting down");
+	close(epoll_fd);
+	return EXIT_SUCCESS;
 }
 
 void Server::handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf)

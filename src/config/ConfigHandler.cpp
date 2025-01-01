@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   ConfigHandler.cpp                                  :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: fkeitel <fkeitel@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/11/27 11:28:08 by jeberle           #+#    #+#             */
-/*   Updated: 2024/12/17 10:46:12 by fkeitel          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "./ConfigHandler.hpp"
 
 // initialize handler with necessary flags
@@ -281,20 +269,36 @@ void ConfigHandler::parseLine(std::string line)
 			}
 		}
 	}
-	// Handle location-level directives
 	else {
 		if (std::find(locationOpts.begin(), locationOpts.end(), keyword) == locationOpts.end()) {
-			Logger::error("Error: Invalid location directive '" + keyword + "' at line " + std::to_string(linecount));
-			parsingErr = true;
-			return;
-		}
-		Location& currentLocation = registeredServerConfs.back().locations.back();
-		if (keyword == "methods")
-			currentLocation.methods = value;
-		else if (keyword == "cgi")
-			currentLocation.cgi = value;
-		else if (keyword == "cgi_param")
-			currentLocation.cgi_param = value;
+				Logger::error("Error: Invalid location directive '" + keyword + "' at line " + std::to_string(linecount));
+				parsingErr = true;
+				return;
+			}
+
+			Location& currentLocation = registeredServerConfs.back().locations.back();
+
+			if (keyword == "methods") {
+				currentLocation.allowGet = false;
+				currentLocation.allowPost = false;
+				currentLocation.allowDelete = false;
+				currentLocation.allowCookie = false;
+
+				currentLocation.methods = value;
+
+				std::istringstream iss(value);
+				std::string method;
+				while (iss >> method) {
+					if (method == "GET") currentLocation.allowGet = true;
+					if (method == "POST") currentLocation.allowPost = true;
+					if (method == "DELETE") currentLocation.allowDelete = true;
+					if (method == "COOKIE") currentLocation.allowCookie = true;
+				}
+			}
+			else if (keyword == "cgi")
+				currentLocation.cgi = value;
+			else if (keyword == "cgi_param")
+				currentLocation.cgi_param = value;
 	}
 }
 
