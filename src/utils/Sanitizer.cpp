@@ -206,7 +206,7 @@ bool Sanitizer::sanitize_locationMethods(std::string& locationMethods) {
 
 	std::istringstream stream(locationMethods);
 	std::string method;
-	std::set<std::string> validMethods = {"GET", "POST", "DELETE"};
+	std::set<std::string> validMethods = {"GET", "POST", "DELETE", "COOKIE"};
 	std::set<std::string> seenMethods;
 
 	while (stream >> method) {
