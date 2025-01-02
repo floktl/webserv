@@ -12,6 +12,7 @@ class RequestHandler {
 	public:
 		RequestHandler(Server& server);
 
+		void buildAutoindexResponse(std::stringstream* response, RequestState& req);
 		void buildResponse(RequestState &req);
 		void parseRequest(RequestState &req);
 		const Location* findMatchingLocation(const ServerBlock* conf, const std::string& path);
