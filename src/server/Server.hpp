@@ -32,8 +32,10 @@ class Server
 		CgiHandler* cgiHandler;
 		RequestHandler* requestHandler;
 		ErrorHandler* errorHandler;
-		//int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};
+		
 		void handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf);
+		void handleCGITimeouts(int epoll_fd, std::chrono::seconds CGI_TIMEOUT);
+		int initializeServer(int &epoll_fd, std::vector<ServerBlock> &configs);
 };
 
 #endif

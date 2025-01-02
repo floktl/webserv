@@ -41,28 +41,21 @@ GlobalFDS& Server::getGlobalFds(void)
 	return globalFDS;
 }
 
-int Server::server_init(std::vector<ServerBlock> configs)
+int Server::initializeServer(int &epoll_fd, std::vector<ServerBlock> &configs)
 {
-    int epoll_fd = epoll_create1(0);
+    epoll_fd = epoll_create1(0);
 
     if (epoll_fd < 0)
     {
-        Logger::red() << "Failed to create epoll\n";
-        Logger::file("Failed to create epoll: " + std::string(strerror(errno)));
         return EXIT_FAILURE;
     }
     globalFDS.epoll_fd = epoll_fd;
-    Logger::file("Server starting");
 
     for (auto &conf : configs)
     {
         conf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
         if (conf.server_fd < 0)
         {
-            std::stringstream ss;
-            ss << "Failed to create socket on port: " << conf.port;
-            Logger::red() << ss.str();
-            Logger::file(ss.str());
             return EXIT_FAILURE;
         }
 
@@ -77,31 +70,93 @@ int Server::server_init(std::vector<ServerBlock> configs)
 
         if (bind(conf.server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
         {
-            std::stringstream ss;
-            ss << "Failed to bind socket on port: " << conf.port;
-            Logger::red() << ss.str();
-            Logger::file(ss.str());
             close(conf.server_fd);
             return EXIT_FAILURE;
         }
 
         if (listen(conf.server_fd, SOMAXCONN) < 0)
         {
-            std::stringstream ss;
-            ss << "Failed to listen on port: " << conf.port;
-            Logger::red() << ss.str();
-            Logger::file(ss.str());
             close(conf.server_fd);
             return EXIT_FAILURE;
         }
 
         setNonBlocking(conf.server_fd);
         modEpoll(epoll_fd, conf.server_fd, EPOLLIN);
+    }
+    return EXIT_SUCCESS;
+}
 
-        std::stringstream ss;
-        ss << "Server listening on port: " << conf.port;
-        Logger::green() << ss.str() << "\n";
-        Logger::file(ss.str());
+void Server::handleCGITimeouts(int epoll_fd, std::chrono::seconds CGI_TIMEOUT)
+{
+    Logger::file("timeout");
+
+    for (auto it = globalFDS.request_state_map.begin(); it != globalFDS.request_state_map.end(); ++it)
+    {
+        int fd = it->first;
+        RequestState &req = it->second;
+
+        if (req.state == RequestState::STATE_CGI_RUNNING || req.state == RequestState::STATE_PREPARE_CGI)
+        {
+            auto elapsed = std::chrono::steady_clock::now() - req.last_activity;
+            if (elapsed > CGI_TIMEOUT)
+            {
+                Logger::file("CGI process timeout detected, terminating CGI");
+
+                // Kill the CGI process
+                if (req.cgi_pid > 0)
+                {
+                    kill(req.cgi_pid, SIGKILL);
+                    req.cgi_pid = -1;
+                }
+
+                // Close CGI file descriptors
+                if (req.cgi_in_fd != -1)
+                {
+                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
+                    close(req.cgi_in_fd);
+                    req.cgi_in_fd = -1;
+                }
+                if (req.cgi_out_fd != -1)
+                {
+                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
+                    close(req.cgi_out_fd);
+                    req.cgi_out_fd = -1;
+                }
+
+                // Remove from svFD_to_clFD_map
+                globalFDS.svFD_to_clFD_map.erase(fd);
+
+                // Use ErrorHandler to build the response directly
+                std::stringstream response_stream;
+                if (errorHandler)
+                {
+                    response_stream << errorHandler->generateErrorResponse(504, "Gateway Timeout", req);
+                }
+                else
+                {
+                    // Fallback if ErrorHandler is not available
+                    response_stream << "HTTP/1.1 504 Gateway Timeout\r\n"
+                                    << "Content-Type: text/html\r\n\r\n"
+                                    << "<html><body><h1>504 Gateway Timeout</h1></body></html>";
+                }
+
+                // Convert response_stream to a string and assign to response_buffer
+                std::string response_str = response_stream.str();
+                req.response_buffer.assign(response_str.begin(), response_str.end());
+                req.state = RequestState::STATE_SENDING_RESPONSE;
+                modEpoll(epoll_fd, req.client_fd, EPOLLOUT);
+            }
+        }
+    }
+}
+
+
+int Server::server_init(std::vector<ServerBlock> configs)
+{
+	int epoll_fd;
+    if (initializeServer(epoll_fd, configs) == EXIT_FAILURE)
+    {
+        return EXIT_FAILURE;
     }
 
     const int max_events = 64;
@@ -113,101 +168,22 @@ int Server::server_init(std::vector<ServerBlock> configs)
     {
         int n = epoll_wait(epoll_fd, events, max_events, timeout_ms);
 
-        std::stringstream wer;
-        wer << "epoll_wait n " << n;
-        Logger::file(wer.str());
-
         if (n < 0)
         {
-            std::stringstream ss;
-            ss << "epoll_wait error: " << strerror(errno);
-            Logger::file(ss.str());
             if (errno == EINTR)
                 continue;
             break;
         }
         else if (n == 0)
         {
-            Logger::file("timeout");
-
-            // Check for CGI timeouts
-            for (auto it = globalFDS.request_state_map.begin(); it != globalFDS.request_state_map.end(); ++it)
-            {
-                int fd = it->first;
-                RequestState &req = it->second;
-                if (req.state == RequestState::STATE_CGI_RUNNING || req.state == RequestState::STATE_PREPARE_CGI)
-                {
-                    auto elapsed = std::chrono::steady_clock::now() - req.last_activity;
-                    if (elapsed > CGI_TIMEOUT)
-                    {
-                        Logger::file("CGI process timeout detected, terminating CGI");
-
-                        // Kill the CGI process
-                        if (req.cgi_pid > 0)
-                        {
-                            kill(req.cgi_pid, SIGKILL);
-                            req.cgi_pid = -1;
-                        }
-
-                        // Close CGI file descriptors
-                        if (req.cgi_in_fd != -1)
-                        {
-                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
-                            close(req.cgi_in_fd);
-                            req.cgi_in_fd = -1;
-                        }
-                        if (req.cgi_out_fd != -1)
-                        {
-                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
-                            close(req.cgi_out_fd);
-                            req.cgi_out_fd = -1;
-                        }
-
-                        // Remove from svFD_to_clFD_map
-                        globalFDS.svFD_to_clFD_map.erase(fd);
-
-						// Use ErrorHandler to build the response directly
-						std::stringstream response_stream;
-						if (errorHandler)
-						{
-							response_stream << errorHandler->generateErrorResponse(504, "Gateway Timeout", req);
-						}
-						else
-						{
-							// Fallback if ErrorHandler is not available
-							response_stream << "HTTP/1.1 504 Gateway Timeout\r\n"
-											<< "Content-Type: text/html\r\n\r\n"
-											<< "<html><body><h1>504 Gateway Timeout</h1></body></html>";
-						}
-
-						// Convert response_stream to a string and assign to response_buffer
-						std::string response_str = response_stream.str();
-						req.response_buffer.assign(response_str.begin(), response_str.end());
-						req.state = RequestState::STATE_SENDING_RESPONSE;
-						modEpoll(epoll_fd, req.client_fd, EPOLLOUT);
-                    }
-                }
-            }
+			handleCGITimeouts(epoll_fd, CGI_TIMEOUT);
             continue;
         }
-
-        std::stringstream ewrew;
-        ewrew << "Event Loop Iteration: " << n << " events";
-        Logger::file(ewrew.str());
 
         for (int i = 0; i < n; i++)
         {
             int fd = events[i].data.fd;
             uint32_t ev = events[i].events;
-
-            std::stringstream ss;
-            ss << "\n=== Event Processing Start ===\n"
-				<< "Processing fd=" << fd << " events=" << ev << "\n"
-				<< "EPOLLIN=" << (ev & EPOLLIN) << "\n"
-				<< "EPOLLOUT=" << (ev & EPOLLOUT) << "\n"
-				<< "EPOLLHUP=" << (ev & EPOLLHUP) << "\n"
-				<< "EPOLLERR=" << (ev & EPOLLERR);
-            Logger::file(ss.str());
 
             const ServerBlock *associated_conf = nullptr;
             for (const auto &conf : configs)
@@ -233,7 +209,6 @@ int Server::server_init(std::vector<ServerBlock> configs)
 
                 if (ev & (EPOLLHUP | EPOLLERR))
                 {
-                    Logger::file("Client socket error/hangup detected");
                     delFromEpoll(epoll_fd, fd);
                     continue;
                 }
@@ -278,14 +253,6 @@ int Server::server_init(std::vector<ServerBlock> configs)
                 int client_fd = cgi_it->second;
                 RequestState &req = globalFDS.request_state_map[client_fd];
 
-                ss.str("");
-                ss << "CGI pipe event:\n"
-                   << "- Related client_fd: " << client_fd << "\n"
-                   << "- CGI in_fd: " << req.cgi_in_fd << "\n"
-                   << "- CGI out_fd: " << req.cgi_out_fd << "\n"
-                   << "- Current state: " << req.state;
-                Logger::file(ss.str());
-
                 if (fd == req.cgi_out_fd)
                 {
                     if (ev & EPOLLIN)
@@ -294,7 +261,6 @@ int Server::server_init(std::vector<ServerBlock> configs)
                     }
                     if (ev & EPOLLHUP)
                     {
-                        Logger::file("CGI output pipe hangup detected, finalizing response");
                         cgiHandler->cleanupCGI(req);
                     }
                 }
@@ -306,7 +272,6 @@ int Server::server_init(std::vector<ServerBlock> configs)
                     }
                     if (ev & (EPOLLHUP | EPOLLERR))
                     {
-                        Logger::file("CGI input pipe error/hangup detected");
                         epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
                         close(fd);
                         req.cgi_in_fd = -1;
@@ -315,13 +280,9 @@ int Server::server_init(std::vector<ServerBlock> configs)
                 }
                 continue;
             }
-
-            Logger::file("Unknown fd encountered, removing from epoll");
             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-            Logger::file("=== Event Processing End ===\n");
         }
     }
-    Logger::file("Server shutting down");
     close(epoll_fd);
     return EXIT_SUCCESS;
 }

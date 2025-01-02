@@ -123,16 +123,12 @@ int main(int argc, char **argv, char **envp)
 		utils.parseArgs(argc, argv, envp);
 		if (!utils.getconfigFileValid())
 		{
-			Logger::red() << "Invalid configuration file!";
-			Logger::file("Invalid configuration file");
 			return EXIT_FAILURE;
 		}
 
 		std::vector<ServerBlock> configs = utils.get_registeredServerConfs();
 		if (configs.empty())
 		{
-			Logger::red() << "No configurations found!";
-			Logger::file("No configurations found");
 			return EXIT_FAILURE;
 		}
 		if (server.server_init(configs) == EXIT_FAILURE)
@@ -140,9 +136,7 @@ int main(int argc, char **argv, char **envp)
 	}
 	catch (const std::exception &e)
 	{
-		std::string err_msg = "Error: " + std::string(e.what());
-		Logger::red() << err_msg;
-		Logger::file(err_msg);
+		std::cerr <<  "Error: " << std::string(e.what()) << std::endl;
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
