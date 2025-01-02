@@ -45,6 +45,7 @@
 # include "./utils/Logger.hpp"
 # include "./static/StaticHandler.hpp"
 # include "./error/ErrorHandler.hpp"
+#include "./server/TaskManager.hpp"
 # include "./server/Server.hpp"
 # include "structs/webserv.hpp"
 

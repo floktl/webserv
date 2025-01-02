@@ -51,7 +51,8 @@ struct RequestState
 		STATE_READING_REQUEST,
 		STATE_PREPARE_CGI,
 		STATE_CGI_RUNNING,
-		STATE_SENDING_RESPONSE
+		STATE_SENDING_RESPONSE,
+		STATE_HTTP_PROCESS,
 	} state;
 
 	std::vector<char> request_buffer;
@@ -62,6 +63,8 @@ struct RequestState
 
 	static constexpr std::chrono::seconds TIMEOUT_DURATION{5}; // Correct initialization
 
+	std::string method;  // e.g., "GET", "POST"
+    std::string path;    // e.g., "/start_task"
 	const ServerBlock* associated_conf;
 	std::string location_path;
 	std::string requested_path;

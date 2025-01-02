@@ -86,6 +86,17 @@ int Server::initializeServer(int &epoll_fd, std::vector<ServerBlock> &configs)
     return EXIT_SUCCESS;
 }
 
+void Server::handleTaskTimeouts()
+{
+    taskManager.cleanUpTasks(std::chrono::minutes(5));
+}
+
+TaskManager& Server::getTaskManager(void)
+{
+    return taskManager;
+}
+
+
 void Server::handleCGITimeouts(int epoll_fd, std::chrono::seconds CGI_TIMEOUT)
 {
     Logger::file("timeout");
@@ -150,10 +161,29 @@ void Server::handleCGITimeouts(int epoll_fd, std::chrono::seconds CGI_TIMEOUT)
     }
 }
 
-
-int Server::server_init(std::vector<ServerBlock> configs)
+std::string Server::handleStartTask()
 {
-	int epoll_fd;
+    std::string task_id = taskManager.createTask();
+    std::ostringstream response;
+    response << "{ \"status\": \"in_progress\", \"progress_url\": \"/task_status/" << task_id << "\" }";
+    return response.str();
+}
+
+std::string Server::handleTaskStatus(const std::string& task_id)
+{
+    auto task = taskManager.getTask(task_id);
+    if (task.status == "not_found")
+    {
+        return "{ \"error\": \"Task not found\" }";
+    }
+    std::ostringstream response;
+    response << "{ \"status\": \"" << task.status << "\", \"progress\": " << task.progress << " }";
+    return response.str();
+}
+
+int Server::server_loop(std::vector<ServerBlock> configs)
+{
+    int epoll_fd;
     if (initializeServer(epoll_fd, configs) == EXIT_FAILURE)
     {
         return EXIT_FAILURE;
@@ -176,7 +206,8 @@ int Server::server_init(std::vector<ServerBlock> configs)
         }
         else if (n == 0)
         {
-			handleCGITimeouts(epoll_fd, CGI_TIMEOUT);
+            handleCGITimeouts(epoll_fd, CGI_TIMEOUT);
+            handleTaskTimeouts();;
             continue;
         }
 
@@ -200,7 +231,6 @@ int Server::server_init(std::vector<ServerBlock> configs)
                 handleNewConnection(epoll_fd, fd, *associated_conf);
                 continue;
             }
-
             auto client_it = globalFDS.request_state_map.find(fd);
             if (client_it != globalFDS.request_state_map.end())
             {
@@ -212,9 +242,41 @@ int Server::server_init(std::vector<ServerBlock> configs)
                     delFromEpoll(epoll_fd, fd);
                     continue;
                 }
+				if (req.state == RequestState::STATE_HTTP_PROCESS)
+				{
+					std::string method = req.method;
+					std::string path = req.location_path;
+
+					Logger::file("HTTp");
+					if (method == "POST" && path == "/start_task")
+					{
+						std::string response = handleStartTask();  // Call member function
+						req.response_buffer.assign(("HTTP/1.1 202 Accepted\r\nContent-Type: application/json\r\n\r\n" + response).begin(),
+												("HTTP/1.1 202 Accepted\r\nContent-Type: application/json\r\n\r\n" + response).end());
+					}
+					else if (method == "GET" && path.find("/task_status/") == 0)
+					{
+						std::string task_id = path.substr(std::string("/task_status/").length());
+						std::string response = handleTaskStatus(task_id);  // Call member function
+						req.response_buffer.assign(("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n" + response).begin(),
+												("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n" + response).end());
+					}
+					else
+					{
+						staticHandler->handleClientRead(epoll_fd, fd);
+					}
+
+					if (!req.response_buffer.empty())
+					{
+						staticHandler->handleClientWrite(epoll_fd, fd);
+					}
+					continue;
+				}
 
                 if (req.state == RequestState::STATE_CGI_RUNNING || req.state == RequestState::STATE_PREPARE_CGI)
                 {
+					Logger::file("CGI");
+
                     if (ev & EPOLLIN)
                     {
                         staticHandler->handleClientRead(epoll_fd, fd);
@@ -224,8 +286,7 @@ int Server::server_init(std::vector<ServerBlock> configs)
                         ssize_t written = write(fd, req.response_buffer.data(), req.response_buffer.size());
                         if (written > 0)
                         {
-                            req.response_buffer.erase(req.response_buffer.begin(),
-                                req.response_buffer.begin() + written);
+                            req.response_buffer.erase(req.response_buffer.begin(), req.response_buffer.begin() + written);
                             if (req.response_buffer.empty())
                             {
                                 delFromEpoll(epoll_fd, fd);
@@ -237,7 +298,7 @@ int Server::server_init(std::vector<ServerBlock> configs)
                         }
                     }
                 }
-                else
+				else
                 {
                     if (ev & EPOLLIN)
                         staticHandler->handleClientRead(epoll_fd, fd);
@@ -253,6 +314,7 @@ int Server::server_init(std::vector<ServerBlock> configs)
                 int client_fd = cgi_it->second;
                 RequestState &req = globalFDS.request_state_map[client_fd];
 
+				Logger::file("process");
                 if (fd == req.cgi_out_fd)
                 {
                     if (ev & EPOLLIN)
@@ -289,6 +351,8 @@ int Server::server_init(std::vector<ServerBlock> configs)
 
 
 
+
+
 void Server::handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf)
 {
 	struct sockaddr_in client_addr;
@@ -318,8 +382,6 @@ void Server::handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf)
 	ss << "New client connection on fd " << client_fd;
 	Logger::file(ss.str());
 }
-
-
 
 void Server::modEpoll(int epfd, int fd, uint32_t events)
 {
