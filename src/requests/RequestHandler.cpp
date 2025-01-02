@@ -361,6 +361,21 @@ std::string RequestHandler::buildRequestedPath(RequestState &req, const std::str
 	bool isDirectoryRequest = relativePath.empty() || relativePath.back() == '/';
 
 	if (isDirectoryRequest) {
+		// First check for index file
+		std::string usedIndex = (loc && !loc->default_file.empty())
+							? loc->default_file
+							: req.associated_conf->index;
+
+		if (!usedIndex.empty()) {
+			std::string indexPath = usedRoot + relativePath + usedIndex;
+			struct stat index_stat;
+			if (stat(indexPath.c_str(), &index_stat) == 0 && S_ISREG(index_stat.st_mode)) {
+				// If index file exists, use it
+				return indexPath;
+			}
+		}
+
+		// Only use autoindex if index file doesn't exist
 		if (loc && loc->doAutoindex) {
 			std::string fullPath = usedRoot + relativePath;
 			struct stat path_stat;
@@ -368,13 +383,14 @@ std::string RequestHandler::buildRequestedPath(RequestState &req, const std::str
 				return fullPath;
 			}
 		}
-		std::string usedIndex = (loc && !loc->default_file.empty())
-							? loc->default_file
-							: req.associated_conf->index;
+
+		// If we get here and we had an index defined, still try to use it
+		// This maintains backward compatibility for cases where the directory might not exist
 		if (!usedIndex.empty()) {
 			relativePath += usedIndex;
 		}
 	}
+
 	return usedRoot + relativePath;
 }
 
