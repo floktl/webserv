@@ -20,6 +20,7 @@ struct Location
 	std::string	cgi_filetype;
 	std::string	cgi_param;
 	std::string	redirect;
+	bool doAutoindex{true};
 	bool allowGet{true};
 	bool allowPost{false};
 	bool allowDelete{false};
@@ -54,6 +55,9 @@ struct RequestState
 		STATE_CGI_RUNNING,
 		STATE_SENDING_RESPONSE
 	} state;
+
+	std::string content_type;
+	std::string request_body;
 
 	std::vector<char> request_buffer;
 	std::vector<char> response_buffer;

@@ -304,6 +304,30 @@ void CgiHandler::cleanup_tunnel(CgiTunnel &tunnel) {
 void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::string &method, const std::string &query) {
 	clearenv();
 
+	std::string content_length = "0";
+	std::string content_type = "application/x-www-form-urlencoded";
+
+	auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
+	if (req_it != server.getGlobalFds().request_state_map.end()) {
+		const RequestState &req = req_it->second;
+		if (method == "POST") {
+			std::string request(req.request_buffer.begin(), req.request_buffer.end());
+			size_t header_end = request.find("\r\n\r\n");
+			if (header_end != std::string::npos && header_end + 4 < request.length()) {
+				content_length = std::to_string(request.length() - (header_end + 4));
+			}
+
+			size_t content_type_pos = request.find("Content-Type: ");
+			if (content_type_pos != std::string::npos) {
+				size_t content_type_end = request.find("\r\n", content_type_pos);
+				if (content_type_end != std::string::npos) {
+					content_type = request.substr(content_type_pos + 14,
+						content_type_end - (content_type_pos + 14));
+				}
+			}
+		}
+	}
+
 	std::vector<std::string> env_vars = {
 		"REDIRECT_STATUS=200",
 		"GATEWAY_INTERFACE=CGI/1.1",
@@ -314,9 +338,10 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 		"SCRIPT_NAME=" + tunnel.script_path,
 		"DOCUMENT_ROOT=" + tunnel.config->root,
 		"SERVER_SOFTWARE=webserv/1.0",
-		"SERVER_NAME=localhost",
+		"SERVER_NAME=" + tunnel.server_name,
 		"SERVER_PORT=" + tunnel.config->port,
-		"CONTENT_TYPE=application/x-www-form-urlencoded",
+		"CONTENT_TYPE=" + content_type,
+		"CONTENT_LENGTH=" + content_length,
 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 	};
 

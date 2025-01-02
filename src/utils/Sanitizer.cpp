@@ -236,12 +236,20 @@ bool Sanitizer::sanitize_locationRoot(std::string& locationRoot, const std::stri
 	return locationRoot.empty() || isValidPath(locationRoot, "Location root", pwd);
 }
 
-bool Sanitizer::sanitize_locationAutoindex(std::string& locationAutoindex) {
-	if (locationAutoindex.empty()) return true;
+bool Sanitizer::sanitize_locationAutoindex(std::string& locationAutoindex, bool &doAutoindex) {
+	if (locationAutoindex.empty())
+	{
+		locationAutoindex = "off";
+		doAutoindex = false;
+		return true;
+	}
 
-	std::transform(locationAutoindex.begin(), locationAutoindex.end(),
-				locationAutoindex.begin(), ::tolower);
-	return (locationAutoindex == "on" || locationAutoindex == "off");
+	std::string lowerCase = locationAutoindex;
+	std::transform(lowerCase.begin(), lowerCase.end(), lowerCase.begin(), ::tolower);
+	doAutoindex = false;
+	if (lowerCase == "on")
+		doAutoindex = true;
+	return (lowerCase == "on" || lowerCase == "off");
 }
 
 bool Sanitizer::sanitize_locationDefaultFile(std::string& locationDefaultFile) {
