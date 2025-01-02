@@ -126,7 +126,7 @@ void RequestHandler::parseRequest(RequestState &req)
 	}
 	else
 	{
-		printRequestState(req);
+		//printRequestState(req);
 		buildResponse(req);
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
