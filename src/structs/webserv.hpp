@@ -17,8 +17,10 @@ struct Location
 	std::string	client_max_body_size;
 	std::string	root;
 	std::string	cgi;
+	std::string	cgi_filetype;
 	std::string	cgi_param;
 	std::string	redirect;
+	bool doAutoindex{true};
 	bool allowGet{true};
 	bool allowPost{false};
 	bool allowDelete{false};
@@ -54,6 +56,9 @@ struct RequestState
 		STATE_SENDING_RESPONSE
 	} state;
 
+	std::string content_type;
+	std::string request_body;
+
 	std::vector<char> request_buffer;
 	std::vector<char> response_buffer;
 	std::vector<char> cgi_output_buffer;
@@ -81,6 +86,7 @@ struct CgiTunnel {
 	int out_fd = -1;
 	int client_fd = -1;
 	int server_fd = -1;
+	std::string server_name;
 	const ServerBlock* config = NULL;
 	const Location* location = NULL;
 	std::chrono::steady_clock::time_point last_used;
