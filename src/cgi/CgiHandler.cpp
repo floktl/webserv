@@ -29,6 +29,7 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
 	CgiTunnel tunnel;
 	tunnel.in_fd = pipe_in[1];
 	tunnel.out_fd = pipe_out[0];
+	tunnel.server_name = req.associated_conf->name;
 	tunnel.client_fd = req.client_fd;
 	tunnel.server_fd = req.associated_conf->server_fd;
 	tunnel.config = req.associated_conf;
@@ -36,20 +37,7 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
 	tunnel.is_busy = true;
 	tunnel.last_used = std::chrono::steady_clock::now();
 	tunnel.pid = -1;
-	Logger::file("cgiTunnel allowGet " + std::to_string(tunnel.location->allowGet));
-	Logger::file("cgiTunnel allowPost " + std::to_string(tunnel.location->allowPost));
-	Logger::file("cgiTunnel allowDelete " + std::to_string(tunnel.location->allowDelete));
-	Logger::file("cgiTunnel allowCookie " + std::to_string(tunnel.location->allowCookie));
-
-	std::string requested_file = req.requested_path;
-	size_t last_slash = requested_file.find_last_of('/');
-	if (last_slash != std::string::npos) {
-		requested_file = requested_file.substr(last_slash + 1);
-	}
-	if (requested_file.empty() || requested_file == "?") {
-		requested_file = "index.php";
-	}
-	tunnel.script_path = tunnel.config->root + "/" + requested_file;
+	tunnel.script_path = req.requested_path;
 	pid_t pid = fork();
 	if (pid < 0) {
 		cleanup_pipes(pipe_in, pipe_out);
@@ -133,17 +121,17 @@ void CgiHandler::cleanupCGI(RequestState &req) {
 	}
 }
 
-bool CgiHandler::needsCGI(const ServerBlock* conf, const std::string &path) {
-	if (path.length() >= 4 && path.substr(path.length() - 4) == ".php") {
-		return true;
-	}
-	const Location* loc = server.getRequestHandler()->findMatchingLocation(conf, path);
+bool CgiHandler::needsCGI(RequestState &req, const std::string &path) {
+	const Location* loc = server.getRequestHandler()->findMatchingLocation(req.associated_conf, path);
 	if (!loc)
 	{
 		return false;
 	}
 	if (!loc->cgi.empty())
 	{
+		if (path.length() >= loc->cgi_filetype.length() && path.substr(path.length() - loc->cgi_filetype.length()) == loc->cgi_filetype) {
+			return true;
+		}
 		return true;
 	}
 	return false;
@@ -316,19 +304,44 @@ void CgiHandler::cleanup_tunnel(CgiTunnel &tunnel) {
 void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::string &method, const std::string &query) {
 	clearenv();
 
+	std::string content_length = "0";
+	std::string content_type = "application/x-www-form-urlencoded";
+
+	auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
+	if (req_it != server.getGlobalFds().request_state_map.end()) {
+		const RequestState &req = req_it->second;
+		if (method == "POST") {
+			std::string request(req.request_buffer.begin(), req.request_buffer.end());
+			size_t header_end = request.find("\r\n\r\n");
+			if (header_end != std::string::npos && header_end + 4 < request.length()) {
+				content_length = std::to_string(request.length() - (header_end + 4));
+			}
+
+			size_t content_type_pos = request.find("Content-Type: ");
+			if (content_type_pos != std::string::npos) {
+				size_t content_type_end = request.find("\r\n", content_type_pos);
+				if (content_type_end != std::string::npos) {
+					content_type = request.substr(content_type_pos + 14,
+						content_type_end - (content_type_pos + 14));
+				}
+			}
+		}
+	}
+
 	std::vector<std::string> env_vars = {
 		"REDIRECT_STATUS=200",
 		"GATEWAY_INTERFACE=CGI/1.1",
 		"SERVER_PROTOCOL=HTTP/1.1",
 		"REQUEST_METHOD=" + method,
 		"QUERY_STRING=" + query,
-		"SCRIPT_FILENAME=" + tunnel.script_path,  // Full path is important
+		"SCRIPT_FILENAME=" + tunnel.script_path,
 		"SCRIPT_NAME=" + tunnel.script_path,
 		"DOCUMENT_ROOT=" + tunnel.config->root,
 		"SERVER_SOFTWARE=webserv/1.0",
-		"SERVER_NAME=localhost",
+		"SERVER_NAME=" + tunnel.server_name,
 		"SERVER_PORT=" + tunnel.config->port,
-		"CONTENT_TYPE=application/x-www-form-urlencoded",
+		"CONTENT_TYPE=" + content_type,
+		"CONTENT_LENGTH=" + content_length,
 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 	};
 

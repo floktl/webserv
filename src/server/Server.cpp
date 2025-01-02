@@ -47,11 +47,11 @@ int Server::initEpoll()
 	if (epoll_fd < 0)
 	{
 		Logger::red() << "Failed to create epoll\n";
-		Logger::file("Failed to create epoll: " + std::string(strerror(errno)));
+		//Logger::file("Failed to create epoll: " + std::string(strerror(errno)));
 		return -1;
 	}
 	globalFDS.epoll_fd = epoll_fd;
-	Logger::file("Server starting");
+	//Logger::file("Server starting");
 	return epoll_fd;
 }
 
@@ -64,6 +64,7 @@ bool Server::isMethodAllowed(const RequestState &req, const std::string &method)
 	if (method == "GET"    && loc->allowGet)    return true;
 	if (method == "POST"   && loc->allowPost)   return true;
 	if (method == "DELETE" && loc->allowDelete) return true;
+	if (method == "COOKIE" && loc->allowCookie) return true;
 	return false;
 }
 
@@ -77,7 +78,7 @@ bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 			std::stringstream ss;
 			ss << "Failed to create socket on port: " << conf.port;
 			Logger::red() << ss.str();
-			Logger::file(ss.str());
+			//Logger::file(ss.str());
 			return false;
 		}
 
@@ -95,7 +96,7 @@ bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 			std::stringstream ss;
 			ss << "Failed to bind socket on port: " << conf.port;
 			Logger::red() << ss.str();
-			Logger::file(ss.str());
+			//Logger::file(ss.str());
 			close(conf.server_fd);
 			return false;
 		}
@@ -105,7 +106,7 @@ bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 			std::stringstream ss;
 			ss << "Failed to listen on port: " << conf.port;
 			Logger::red() << ss.str();
-			Logger::file(ss.str());
+			//Logger::file(ss.str());
 			close(conf.server_fd);
 			return false;
 		}
@@ -116,7 +117,7 @@ bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 		std::stringstream ss;
 		ss << "Server listening on port: " << conf.port;
 		Logger::green() << ss.str() << "\n";
-		Logger::file(ss.str());
+		//Logger::file(ss.str());
 	}
 	return true;
 }
@@ -158,7 +159,7 @@ bool Server::dispatchEvent(int epoll_fd, int fd, uint32_t ev, std::vector<Server
 		return true;
 	}
 
-	Logger::file("Unknown fd encountered, removing from epoll");
+	//Logger::file("Unknown fd encountered, removing from epoll");
 	epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
 	return false;
 }
@@ -172,18 +173,18 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 	while (true)
 	{
 		int n = epoll_wait(epoll_fd, events, max_events, timeout_ms);
-		Logger::file("epoll_wait returned: " + std::to_string(n));
+		//Logger::file("epoll_wait returned: " + std::to_string(n));
 
 		if (n < 0)
 		{
-			Logger::file(std::string("epoll_wait error: ") + strerror(errno));
+			//Logger::file(std::string("epoll_wait error: ") + strerror(errno));
 			if (errno == EINTR)
 				continue;
 			break;
 		}
 		else if (n == 0)
 		{
-			Logger::file("timeout");
+			//Logger::file("timeout");
 			continue;
 		}
 
@@ -193,13 +194,13 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 			uint32_t ev = events[i].events;
 			std::stringstream ssev;
 			ssev << "Processing fd=" << fd << " events=" << ev;
-			Logger::file(ssev.str());
+			//Logger::file(ssev.str());
 
 			dispatchEvent(epoll_fd, fd, ev, configs);
-			Logger::file("=== Event Processing End ===\n");
+			//Logger::file("=== Event Processing End ===\n");
 		}
 	}
-	Logger::file("Server shutting down");
+	//Logger::file("Server shutting down");
 	close(epoll_fd);
 	return EXIT_SUCCESS;
 }
@@ -221,7 +222,7 @@ bool Server::handleClientEvent(int epoll_fd, int fd, uint32_t ev)
 
 	if (ev & (EPOLLHUP | EPOLLERR))
 	{
-		Logger::file("Client socket error/hangup detected");
+		//Logger::file("Client socket error/hangup detected");
 		delFromEpoll(epoll_fd, fd);
 		return true;
 	}
@@ -271,7 +272,7 @@ bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev)
 
 	if (fd == req.cgi_out_fd && (ev & EPOLLHUP))
 	{
-		Logger::file("CGI output pipe hangup detected, finalizing response");
+		//Logger::file("CGI output pipe hangup detected, finalizing response");
 		if (!req.cgi_output_buffer.empty())
 			finalizeCgiResponse(req, epoll_fd, client_fd);
 		cgiHandler->cleanupCGI(req);
@@ -284,7 +285,7 @@ bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev)
 
 		if (ev & (EPOLLHUP | EPOLLERR))
 		{
-			Logger::file("CGI input pipe error/hangup detected");
+			//Logger::file("CGI input pipe error/hangup detected");
 			epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
 			close(fd);
 			req.cgi_in_fd = -1;
@@ -298,7 +299,7 @@ bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev)
 void Server::finalizeCgiResponse(RequestState &req, int epoll_fd, int client_fd)
 {
 	std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-	Logger::file("Preparing final CGI response with length: " + std::to_string(output.size()));
+	//Logger::file("Preparing final CGI response with length: " + std::to_string(output.size()));
 
 	size_t header_end = output.find("\r\n\r\n");
 	std::string response;
@@ -350,7 +351,7 @@ void Server::handleNewConnection(int epoll_fd, int fd, const ServerBlock &conf)
 
 	if (client_fd < 0)
 	{
-		Logger::file("Accept failed: " + std::string(strerror(errno)));
+		//Logger::file("Accept failed: " + std::string(strerror(errno)));
 		return;
 	}
 
@@ -369,7 +370,7 @@ void Server::handleNewConnection(int epoll_fd, int fd, const ServerBlock &conf)
 
 	std::stringstream ss;
 	ss << "New client connection on fd " << client_fd;
-	Logger::file(ss.str());
+	//Logger::file(ss.str());
 }
 
 void Server::modEpoll(int epfd, int fd, uint32_t events)
@@ -385,12 +386,12 @@ void Server::modEpoll(int epfd, int fd, uint32_t events)
 		{
 			if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev) < 0)
 			{
-				Logger::file("epoll_ctl ADD failed: " + std::string(strerror(errno)));
+				//Logger::file("epoll_ctl ADD failed: " + std::string(strerror(errno)));
 			}
 		}
 		else
 		{
-			Logger::file("epoll_ctl MOD failed: " + std::string(strerror(errno)));
+			//Logger::file("epoll_ctl MOD failed: " + std::string(strerror(errno)));
 		}
 	}
 }
@@ -399,7 +400,7 @@ void Server::delFromEpoll(int epfd, int fd)
 {
 	std::stringstream ss;
 	ss << "Removing fd " << fd << " from epoll";
-	Logger::file(ss.str());
+	//Logger::file(ss.str());
 
 	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 
@@ -411,23 +412,23 @@ void Server::delFromEpoll(int epfd, int fd)
 
 		ss.str("");
 		ss << "Found associated client fd " << client_fd;
-		Logger::file(ss.str());
+		//Logger::file(ss.str());
 
 		if (fd == req.cgi_in_fd)
 		{
-			Logger::file("Closing CGI input pipe");
+			//Logger::file("Closing CGI input pipe");
 			req.cgi_in_fd = -1;
 		}
 		if (fd == req.cgi_out_fd)
 		{
-			Logger::file("Closing CGI output pipe");
+			//Logger::file("Closing CGI output pipe");
 			req.cgi_out_fd = -1;
 		}
 
 		if (req.cgi_in_fd == -1 && req.cgi_out_fd == -1 &&
 			req.state != RequestState::STATE_SENDING_RESPONSE)
 		{
-			Logger::file("Cleaning up request state");
+			//Logger::file("Cleaning up request state");
 			globalFDS.request_state_map.erase(client_fd);
 		}
 
@@ -436,13 +437,13 @@ void Server::delFromEpoll(int epfd, int fd)
 	else
 	{
 		RequestState &req = globalFDS.request_state_map[fd];
-		Logger::file("Cleaning up client connection resources");
+		//Logger::file("Cleaning up client connection resources");
 
 		if (req.cgi_in_fd != -1)
 		{
 			ss.str("");
 			ss << "Cleaning up CGI input pipe " << req.cgi_in_fd;
-			Logger::file(ss.str());
+			//Logger::file(ss.str());
 			epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
 			close(req.cgi_in_fd);
 			globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
@@ -451,7 +452,7 @@ void Server::delFromEpoll(int epfd, int fd)
 		{
 			ss.str("");
 			ss << "Cleaning up CGI output pipe " << req.cgi_out_fd;
-			Logger::file(ss.str());
+			//Logger::file(ss.str());
 			epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
 			close(req.cgi_out_fd);
 			globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
@@ -463,7 +464,7 @@ void Server::delFromEpoll(int epfd, int fd)
 	close(fd);
 	ss.str("");
 	ss << "Closed fd " << fd;
-	Logger::file(ss.str());
+	//Logger::file(ss.str());
 }
 
 int Server::setNonBlocking(int fd)
