@@ -299,6 +299,8 @@ void ConfigHandler::parseLine(std::string line)
 				currentLocation.cgi = value;
 			else if (keyword == "cgi_param")
 				currentLocation.cgi_param = value;
+			else if (keyword == "autoindex")
+				currentLocation.autoindex = value;
 	}
 }
 
@@ -437,8 +439,7 @@ bool ConfigHandler::sanitizeConfData(void) {
 				return false;
 			}
 
-			if (!loc.autoindex.empty() &&
-				!Sanitizer::sanitize_locationAutoindex(loc.autoindex)) {
+			if (!Sanitizer::sanitize_locationAutoindex(loc.autoindex, loc.doAutoindex)) {
 				configFileValid = false;
 				return false;
 			}
@@ -462,7 +463,7 @@ bool ConfigHandler::sanitizeConfData(void) {
 			}
 
 			if (!loc.cgi.empty() &&
-				!Sanitizer::sanitize_locationCgi(loc.cgi, expandEnvironmentVariables("$PWD", env))) {
+				!Sanitizer::sanitize_locationCgi(loc.cgi, loc.cgi_filetype, expandEnvironmentVariables("$PWD", env))) {
 				configFileValid = false;
 				return false;
 			}
