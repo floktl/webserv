@@ -88,47 +88,55 @@ void RequestHandler::buildResponse(RequestState &req)
 
 void RequestHandler::parseRequest(RequestState &req)
 {
-	std::string request(req.request_buffer.begin(), req.request_buffer.end());
+    std::string request(req.request_buffer.begin(), req.request_buffer.end());
 
-	size_t pos = request.find("\r\n");
-	if (pos == std::string::npos)
-		return;
-	std::string requestLine = request.substr(0, pos);
+    size_t pos = request.find("\r\n");
+    if (pos == std::string::npos)
+        return;
+    std::string requestLine = request.substr(0, pos);
 
-	std::string method, path, version;
-	{
-		size_t firstSpace = requestLine.find(' ');
-		if (firstSpace == std::string::npos) return;
-		method = requestLine.substr(0, firstSpace);
+    std::string method, path, version;
+    {
+        size_t firstSpace = requestLine.find(' ');
+        if (firstSpace == std::string::npos) return;
+        method = requestLine.substr(0, firstSpace);
 
-		size_t secondSpace = requestLine.find(' ', firstSpace + 1);
-		if (secondSpace == std::string::npos) return;
-		path = requestLine.substr(firstSpace + 1, secondSpace - firstSpace - 1);
+        size_t secondSpace = requestLine.find(' ', firstSpace + 1);
+        if (secondSpace == std::string::npos) return;
+        path = requestLine.substr(firstSpace + 1, secondSpace - firstSpace - 1);
 
-		version = requestLine.substr(secondSpace + 1);
-	}
+        version = requestLine.substr(secondSpace + 1);
+    }
 
-	std::string query;
-	size_t qpos = path.find('?');
-	if (qpos != std::string::npos)
-	{
-		query = path.substr(qpos + 1);
-		path = path.substr(0, qpos);
-	}
+    std::string query;
+    size_t qpos = path.find('?');
+    if (qpos != std::string::npos)
+    {
+        query = path.substr(qpos + 1);
+        path = path.substr(0, qpos);
+    }
 
-	req.location_path = path;
-	req.requested_path = "http://localhost:" + std::to_string(req.associated_conf->port) + path;
-	req.cgi_output_buffer.clear();
-	if (server.getCgiHandler()->needsCGI(req.associated_conf, path))
-	{
-		req.state = RequestState::STATE_PREPARE_CGI;
-		server.getCgiHandler()->addCgiTunnel(req, method, query);
-	}
-	else
-	{
-		//printRequestState(req);
-		buildResponse(req);
-		req.state = RequestState::STATE_SENDING_RESPONSE;
-		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
-	}
+    req.method = method; // Store HTTP method
+    req.location_path = path;
+    req.requested_path = "http://localhost:" + std::to_string(req.associated_conf->port) + path;
+    req.cgi_output_buffer.clear();
+
+    // Check if the path requires CGI processing
+    if (server.getCgiHandler()->needsCGI(req.associated_conf, path))
+    {
+        req.state = RequestState::STATE_PREPARE_CGI;
+        server.getCgiHandler()->addCgiTunnel(req, method, query);
+    }
+    else if (method == "POST" || method == "GET") // Handle HTTP requests (state transition)
+    {
+        req.state = RequestState::STATE_HTTP_PROCESS; // Transition to HTTP processing state
+    }
+    else
+    {
+        // Build response for unsupported methods or other cases
+        buildResponse(req);
+        req.state = RequestState::STATE_SENDING_RESPONSE;
+        server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+    }
 }
+
