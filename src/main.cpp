@@ -4,7 +4,6 @@ void printServerBlock(const ServerBlock& serverBlock)
 {
 	std::cout << "---- ServerBlock Information ----" << std::endl;
 
-	// Print basic fields
 	std::cout << "Port: " << serverBlock.port << std::endl;
 	std::cout << "Server FD: " << serverBlock.server_fd << std::endl;
 	std::cout << "Name: " << serverBlock.name << std::endl;
@@ -12,7 +11,6 @@ void printServerBlock(const ServerBlock& serverBlock)
 	std::cout << "Index: " << serverBlock.index << std::endl;
 	std::cout << "Client Max Body Size: " << serverBlock.client_max_body_size << std::endl;
 
-	// Print errorPages map
 	std::cout << "Error Pages:" << std::endl;
 	for (std::map<int, std::string>::const_iterator it = serverBlock.errorPages.begin();
 		it != serverBlock.errorPages.end(); ++it)
@@ -20,14 +18,10 @@ void printServerBlock(const ServerBlock& serverBlock)
 		std::cout << "  Error Code: " << it->first << ", Page: " << it->second << std::endl;
 	}
 
-	// Print locations vector
 	std::cout << "Locations:" << std::endl;
 	for (size_t i = 0; i < serverBlock.locations.size(); ++i)
 	{
 		std::cout << "  Location " << i + 1 << ":" << std::endl;
-		// Assuming the Location struct has a `print` or similar method.
-		// Replace with the actual implementation.
-		// Example: serverBlock.locations[i].print();
 		std::cout << "    (Add Location details here)" << std::endl;
 	}
 
@@ -38,14 +32,12 @@ void printRequestState(const RequestState& req)
 {
 	std::cout << "---- RequestState Information ----" << std::endl;
 
-	// Print basic fields
 	std::cout << "Client FD: " << req.client_fd << std::endl;
 	std::cout << "CGI Input FD: " << req.cgi_in_fd << std::endl;
 	std::cout << "CGI Output FD: " << req.cgi_out_fd << std::endl;
 	std::cout << "CGI PID: " << req.cgi_pid << std::endl;
 	std::cout << "CGI Done: " << (req.cgi_done ? "true" : "false") << std::endl;
 
-	// Print State (enum as readable string)
 	std::cout << "State: ";
 	switch (req.state)
 	{
@@ -67,7 +59,6 @@ void printRequestState(const RequestState& req)
 	}
 	std::cout << std::endl;
 
-	// Print buffer sizes and first few characters (optional)
 	std::cout << "Request Buffer Size: " << req.request_buffer.size() << std::endl;
 	if (!req.request_buffer.empty())
 	{
@@ -124,7 +115,6 @@ int main(int argc, char **argv, char **envp)
 		if (!utils.getconfigFileValid())
 		{
 			Logger::red() << "Invalid configuration file!";
-			//Logger::file("Invalid configuration file");
 			return EXIT_FAILURE;
 		}
 
@@ -132,7 +122,6 @@ int main(int argc, char **argv, char **envp)
 		if (configs.empty())
 		{
 			Logger::red() << "No configurations found!";
-			//Logger::file("No configurations found");
 			return EXIT_FAILURE;
 		}
 		if (server.server_init(configs) == EXIT_FAILURE)
@@ -142,7 +131,6 @@ int main(int argc, char **argv, char **envp)
 	{
 		std::string err_msg = "Error: " + std::string(e.what());
 		Logger::red() << err_msg;
-		//Logger::file(err_msg);
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

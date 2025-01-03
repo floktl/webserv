@@ -91,20 +91,18 @@ if (is_dir($dir)) {
 	</header>
 	<main>
 		<h1>Hello, World!</h1>
-		<p>Dies ist die Startseite des Webservers.</p>
-		<p>Fühle dich frei, diese Seite zu erkunden und zu bearbeiten.</p>
-		<h2>Namen und Alter:</h2>
+		<h2>Name and age:</h2>
 		<form action="createName.php" method="post">
-			<input type="text" name="name" placeholder="Name" required>
-			<input type="number" name="age" placeholder="Alter" required>
-			<input type="submit" value="Neuen Namen hinzufügen">
+			<input type="text" name="name" placeholder="name" required>
+			<input type="number" name="age" placeholder="age" required>
+			<input type="submit" value="Add">
 		</form>
 		<ul>
 			<?php foreach ($names as $entry): ?>
 				<li><?php echo htmlspecialchars($entry['name']) . " (Alter: " . htmlspecialchars($entry['age']) . ")"; ?><button onclick="deleteName('<?php echo htmlspecialchars($entry['name']); ?>')" style="display: inline;">X</button></li>
 			<?php endforeach; ?>
 		</ul>
-		<a href="/about.php">Mehr über uns</a>
+		<a href="/about.php">About us</a>
 		<script>
 			function deleteName(name) {
 				fetch("./data/" + name + ".name", {

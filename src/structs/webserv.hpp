@@ -59,6 +59,7 @@ struct RequestState
 
 	std::string content_type;
 	std::string request_body;
+	std::string cookie_header;
 
 	std::vector<char> request_buffer;
 	std::vector<char> response_buffer;
