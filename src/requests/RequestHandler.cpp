@@ -234,6 +234,31 @@ void RequestHandler::buildAutoindexResponse(std::stringstream* response, Request
 	Logger::file("Generated directory listing with " + std::to_string(entries.size()) + " entries");
 }
 
+bool RequestHandler::checkRedirect(RequestState &req, std::stringstream *response) {
+	const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
+	if (!loc || loc->return_code.empty() || loc->return_url.empty()) {
+		return false;
+	}
+
+	// Baue Redirect Response
+	*response << "HTTP/1.1 " << loc->return_code << " ";
+
+	// Passende Status Messages
+	if (loc->return_code == "301")
+		*response << "Moved Permanently";
+	else if (loc->return_code == "302")
+		*response << "Found";
+
+	*response << "\r\n";
+	*response << "Location: " << loc->return_url << "\r\n";
+	*response << "Content-Length: 0\r\n";
+	*response << "\r\n";
+
+	std::string response_str = response->str();
+	req.response_buffer.assign(response_str.begin(), response_str.end());
+	return true;
+}
+
 const Location* RequestHandler::findMatchingLocation(const ServerBlock* conf, const std::string& path) {
 	if (!conf) return nullptr;
 
@@ -349,61 +374,121 @@ req.response_buffer.assign(response_str.begin(), response_str.end());
 std::string RequestHandler::buildRequestedPath(RequestState &req, const std::string &rawPath)
 {
 	Logger::file("BuildRequestedPath for: " + rawPath);
+
 	const Location* loc = findMatchingLocation(req.associated_conf, rawPath);
+	Logger::file("Found location: " + (loc ? loc->path : "none"));
 
-	std::string usedRoot = (loc && !loc->root.empty()) ? loc->root : req.associated_conf->root;
-	if (!usedRoot.empty() && usedRoot.back() != '/') {
-		usedRoot += '/';
+	std::string usedRoot = (loc && !loc->root.empty())
+		? loc->root
+		: req.associated_conf->root;
+	Logger::file("Using root: " + usedRoot);
+
+	if (!usedRoot.empty() && usedRoot.back() == '/')
+		usedRoot.pop_back();
+
+	std::string pathAfterLocation = rawPath;
+	if (loc)
+	{
+		std::string locPath = loc->path;
+		if (locPath.size() > 1 && locPath.back() == '/')
+			locPath.pop_back();
+
+		if (pathAfterLocation.rfind(locPath, 0) == 0)
+		{
+			pathAfterLocation.erase(0, locPath.size());
+		}
 	}
 
-	std::string relativePath = rawPath;
-	if (!relativePath.empty() && relativePath.front() == '/') {
-		relativePath.erase(0, 1);
+	if (!pathAfterLocation.empty() && pathAfterLocation.front() == '/')
+		pathAfterLocation.erase(0, 1);
+
+	Logger::file("Path after location removal: " + pathAfterLocation);
+
+	std::string fullPath = usedRoot + "/" + pathAfterLocation;
+	Logger::file("Final full path: " + fullPath);
+
+	if (loc && !loc->default_file.empty())
+	{
+		bool pathPointsToDirectory = false;
+		struct stat pathStat;
+		if (stat(fullPath.c_str(), &pathStat) == 0 && S_ISDIR(pathStat.st_mode))
+		{
+			pathPointsToDirectory = true;
+		}
+		if (pathAfterLocation.empty() || pathAfterLocation.back() == '/' || pathPointsToDirectory)
+		{
+			std::string defaultPath = fullPath;
+			if (!pathPointsToDirectory)
+			{
+				if (!defaultPath.empty() && defaultPath.back() != '/')
+					defaultPath += "/";
+			}
+			defaultPath += loc->default_file;
+
+			Logger::file("Trying default file path: " + defaultPath);
+			struct stat default_stat;
+			if (stat(defaultPath.c_str(), &default_stat) == 0 && S_ISREG(default_stat.st_mode))
+			{
+				Logger::file("Found default file: " + defaultPath);
+				req.is_directory = false;
+				return defaultPath;
+			}
+			Logger::file("Default file not found at: " + defaultPath);
+		}
 	}
 
-	bool isDirectoryRequest = relativePath.empty() || relativePath.back() == '/';
+	bool isDirectoryRequest = pathAfterLocation.empty()
+		|| pathAfterLocation.back() == '/'
+		|| (loc && loc->doAutoindex);
+
 	Logger::file("Is directory request: " + std::string(isDirectoryRequest ? "yes" : "no"));
 
-	if (isDirectoryRequest) {
-		// Check for index file
-		std::string usedIndex = (loc && !loc->default_file.empty())
-							? loc->default_file
-							: req.associated_conf->index;
+	if (isDirectoryRequest)
+	{
+		std::string usedIndex = req.associated_conf->index;
+		Logger::file("Using index file: " + usedIndex);
 
-		std::string fullDirPath = usedRoot + relativePath;
+		std::string fullDirPath = fullPath;
+		if (!fullDirPath.empty() && fullDirPath.back() == '/')
+			fullDirPath.pop_back();
+		Logger::file("Full dir path: " + fullDirPath);
 
-		// First check if directory exists
 		struct stat dir_stat;
-		if (stat(fullDirPath.c_str(), &dir_stat) == 0 && S_ISDIR(dir_stat.st_mode)) {
-			// Directory exists, check for index
-			if (!usedIndex.empty()) {
-				std::string indexPath = fullDirPath + usedIndex;
+		if (stat(fullDirPath.c_str(), &dir_stat) == 0 && S_ISDIR(dir_stat.st_mode))
+		{
+			Logger::file("Directory exists: " + fullDirPath);
+
+			if (!usedIndex.empty())
+			{
+				std::string indexPath = fullDirPath + "/" + usedIndex;
+				Logger::file("Trying index path: " + indexPath);
+
 				struct stat index_stat;
-				if (stat(indexPath.c_str(), &index_stat) == 0 && S_ISREG(index_stat.st_mode)) {
+				if (stat(indexPath.c_str(), &index_stat) == 0 && S_ISREG(index_stat.st_mode))
+				{
 					Logger::file("Found index file: " + indexPath);
-					req.is_directory = false;  // We're serving a file
+					req.is_directory = false;
 					return indexPath;
 				}
+				Logger::file("Index file not found at: " + indexPath);
 			}
-			// No index found or doesn't exist
-			if (loc && loc->doAutoindex) {
-				Logger::file("No index, using autoindex for: " + fullDirPath);
-				req.is_directory = true;  // Mark as directory for autoindex
+
+			if (loc && loc->doAutoindex)
+			{
+				Logger::file("Using autoindex for: " + fullDirPath);
+				req.is_directory = true;
 				return fullDirPath;
 			}
 		}
-
-		// If we're here, either directory doesn't exist or no autoindex
-		// Try index path anyway for proper 404 handling
-		if (!usedIndex.empty()) {
-			req.is_directory = false;
-			return usedRoot + relativePath + usedIndex;
-		}
+		Logger::file("Directory does not exist: " + fullDirPath);
 	}
 
-	// Normal file request
 	req.is_directory = false;
-	return usedRoot + relativePath;
+	if (!fullPath.empty() && fullPath.back() == '/')
+		fullPath.pop_back();
+
+	Logger::file("Final full path (non-dir): " + fullPath);
+	return fullPath;
 }
 
 void RequestHandler::parseRequest(RequestState &req)
@@ -445,6 +530,14 @@ void RequestHandler::parseRequest(RequestState &req)
 	}
 
 	req.location_path = path;
+
+	std::stringstream redirectResponse;
+	if (checkRedirect(req, &redirectResponse)) {
+		req.state = RequestState::STATE_SENDING_RESPONSE;
+		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+		return;
+	}
+
 	req.requested_path = buildRequestedPath(req, path);
 	req.cgi_output_buffer.clear();
 
