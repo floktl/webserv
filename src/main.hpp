@@ -9,7 +9,6 @@
 #  define CHUNK_SIZE 8192
 # endif
 
-
 #include <sys/epoll.h>
 #include <fcntl.h>
 #include <unistd.h>
