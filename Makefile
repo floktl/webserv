@@ -21,14 +21,11 @@ $(X)\n\
 █ █ █ █  █        █     █        █  █        █   █      █ █  $(X)\n\
 $(BLACK)_$(X)█   █   ███████  ██████   ███████  ███████  █    ██     █   $(X)\n\
 $(X) Wir muessen noch alle config werte im req handler abfangen!!!!!!\n\
-$(X) Und 404 Pages !!!!!!\n\
 $(X) Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
 $(X) Upload Files:    Make the route able to accept uploaded files and configure where they should be saved. !!!!!!\n\
 $(X) Stress test shell script das de kiste fickt!!!!!!!!!\n\
-$(X) Turn on or off directory listing.\n\
 $(X) Set a default file to answer if the request is a directory.\n\
 $(X) Large files into chunks!!!!!\n\
-$(X) Make shure EOF is set anywhere after eaxh output of default or cgi beahviour EOF\n\
 $(X) Your program should call the CGI with the file requested as first argument.\n\
 $(X) Cookies und Session managment\n\
 $(X) The first server for a host:port will be the default for this host:port (that means it will answer to all the requests that don’t belong to an other server).\n\

@@ -19,6 +19,7 @@ class RequestHandler {
 		void buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req);
 		std::string getMethod(const std::vector<char>& request_buffer);
 		std::string buildRequestedPath(RequestState &req, const std::string &rawPath);
+		bool checkRedirect(RequestState &req, std::stringstream *response);
 	private:
 		Server& server;
 };

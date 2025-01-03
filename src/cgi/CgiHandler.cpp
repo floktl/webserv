@@ -128,17 +128,15 @@ bool CgiHandler::needsCGI(RequestState &req, const std::string &path)
 	Logger::file("Requested path: " + req.requested_path);
 	Logger::file("Is directory?: " + std::string(req.is_directory ? "yes" : "no"));
 
-	// Erst prüfen ob die Datei existiert
 	struct stat file_stat;
 	if (stat(req.requested_path.c_str(), &file_stat) != 0) {
 		Logger::file("File does not exist, skipping CGI");
 		return false;
 	}
 
-	// Wenn es ein Directory ist, kein CGI
 	if (S_ISDIR(file_stat.st_mode)) {
 		Logger::file("Path is a directory, skipping CGI");
-		req.is_directory = true;  // Korrigiere is_directory falls nötig
+		req.is_directory = true;
 		return false;
 	}
 
@@ -153,10 +151,9 @@ bool CgiHandler::needsCGI(RequestState &req, const std::string &path)
 	Logger::file("- cgi_filetype: " + loc->cgi_filetype);
 	Logger::file("- path: " + loc->path);
 
-	// File existiert und ist kein Directory, prüfe Extension
 	size_t dot_pos = req.requested_path.find_last_of('.');
 	if (dot_pos != std::string::npos) {
-		std::string extension = req.requested_path.substr(dot_pos);  // Include the dot
+		std::string extension = req.requested_path.substr(dot_pos);
 		Logger::file("File extension (with dot): " + extension);
 		if (extension == loc->cgi_filetype) {
 			Logger::file("=== CGI needed ===");

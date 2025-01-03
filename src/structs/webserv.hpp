@@ -11,7 +11,6 @@ struct Location
 	std::string	path;
 	std::string	methods;
 	std::string	autoindex;
-	std::string	return_directive;
 	std::string	default_file;
 	std::string	upload_store;
 	std::string	client_max_body_size;
@@ -19,7 +18,8 @@ struct Location
 	std::string	cgi;
 	std::string	cgi_filetype;
 	std::string	cgi_param;
-	std::string	redirect;
+	std::string return_code;
+	std::string return_url;
 	bool doAutoindex{true};
 	bool allowGet{true};
 	bool allowPost{false};
