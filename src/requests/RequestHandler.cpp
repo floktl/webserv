@@ -47,22 +47,18 @@ void RequestHandler::buildErrorResponse(int statusCode, const std::string& messa
 #include <vector>
 
 void RequestHandler::buildAutoindexResponse(std::stringstream* response, RequestState& req) {
-	Logger::file("Attempting autoindex for path: " + req.requested_path);
 
 	// Check directory permissions first
 	if (access(req.requested_path.c_str(), R_OK) != 0) {
-		Logger::file("Directory not readable: " + req.requested_path + " - " + std::string(strerror(errno)));
 		buildErrorResponse(403, "Permission denied", response, req);
 		return;
 	}
 
 	DIR* dir = opendir(req.requested_path.c_str());
 	if (!dir) {
-		Logger::file("Failed to open directory: " + std::string(strerror(errno)));
 		buildErrorResponse(404, "Directory not found", response, req);
 		return;
 	}
-	Logger::file("Successfully opened directory: " + req.requested_path);
 
 	struct DirEntry {
 		std::string name;
@@ -230,8 +226,6 @@ void RequestHandler::buildAutoindexResponse(std::stringstream* response, Request
 	*response << "    </div>\n"
 			<< "</body>\n"
 			<< "</html>\n";
-
-	Logger::file("Generated directory listing with " + std::to_string(entries.size()) + " entries");
 }
 
 bool RequestHandler::checkRedirect(RequestState &req, std::stringstream *response) {
@@ -305,83 +299,77 @@ const Location* RequestHandler::findMatchingLocation(const ServerBlock* conf, co
 }
 
 void RequestHandler::buildResponse(RequestState &req) {
-const ServerBlock* conf = req.associated_conf;
-if (!conf) return;
-const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
+	const ServerBlock* conf = req.associated_conf;
+	if (!conf) return;
+	const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
 
-std::string method = getMethod(req.request_buffer);
+	std::string method = getMethod(req.request_buffer);
 
-if (method == "POST") {
-	std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
-	req.response_buffer.assign(response.begin(), response.end());
-	return;
-}
-
-if (method == "DELETE") {
-	if (access(req.requested_path.c_str(), F_OK) != 0) {
-		std::stringstream response;
-		buildErrorResponse(404, "Not Found", &response, req);
-		std::string resp_str = response.str();
-		req.response_buffer.assign(resp_str.begin(), resp_str.end());
+	if (method == "POST") {
+		std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+		req.response_buffer.assign(response.begin(), response.end());
 		return;
 	}
 
-	if (unlink(req.requested_path.c_str()) != 0) {
-		std::stringstream response;
-		buildErrorResponse(500, "Internal Server Error", &response, req);
-		std::string resp_str = response.str();
-		req.response_buffer.assign(resp_str.begin(), resp_str.end());
+	if (method == "DELETE") {
+		if (access(req.requested_path.c_str(), F_OK) != 0) {
+			std::stringstream response;
+			buildErrorResponse(404, "Not Found", &response, req);
+			std::string resp_str = response.str();
+			req.response_buffer.assign(resp_str.begin(), resp_str.end());
+			return;
+		}
+
+		if (unlink(req.requested_path.c_str()) != 0) {
+			std::stringstream response;
+			buildErrorResponse(500, "Internal Server Error", &response, req);
+			std::string resp_str = response.str();
+			req.response_buffer.assign(resp_str.begin(), resp_str.end());
+			return;
+		}
+
+		std::string response = "HTTP/1.1 204 No Content\r\n\r\n";
+		req.response_buffer.assign(response.begin(), response.end());
 		return;
 	}
 
-	std::string response = "HTTP/1.1 204 No Content\r\n\r\n";
-	req.response_buffer.assign(response.begin(), response.end());
-	return;
-}
+	std::stringstream buffer;
+	std::stringstream response;
 
-std::stringstream buffer;
-std::stringstream response;
-
-struct stat path_stat;
-if (stat(req.requested_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
-	if (loc && loc->doAutoindex) {
-		Logger::file("Directory detected, building autoindex...");
-		buildAutoindexResponse(&response, req);
+	struct stat path_stat;
+	if (stat(req.requested_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
+		if (loc && loc->doAutoindex) {
+			buildAutoindexResponse(&response, req);
+		} else {
+			buildErrorResponse(404, "Directory listing not allowed", &response, req);
+		}
 	} else {
-		buildErrorResponse(404, "Directory listing not allowed", &response, req);
-	}
-} else {
-	std::ifstream file(req.requested_path.c_str());
-	if (file.is_open()) {
-		Logger::file("File opened: " + req.requested_path);
-		buffer << file.rdbuf();
-		std::string file_content = buffer.str();
-		file.close();
+		std::ifstream file(req.requested_path.c_str());
+		if (file.is_open()) {
+			buffer << file.rdbuf();
+			std::string file_content = buffer.str();
+			file.close();
 
-		response << "HTTP/1.1 200 OK\r\n";
-		response << "Content-Length: " << file_content.size() << "\r\n";
-		response << "\r\n";
-		response << file_content;
-	} else {
-		buildErrorResponse(404, "error 404 file not found", &response, req);
+			response << "HTTP/1.1 200 OK\r\n";
+			response << "Content-Length: " << file_content.size() << "\r\n";
+			response << "\r\n";
+			response << file_content;
+		} else {
+			buildErrorResponse(404, "error 404 file not found", &response, req);
+		}
 	}
-}
 
-std::string response_str = response.str();
-req.response_buffer.assign(response_str.begin(), response_str.end());
+	std::string response_str = response.str();
+	req.response_buffer.assign(response_str.begin(), response_str.end());
 }
 
 std::string RequestHandler::buildRequestedPath(RequestState &req, const std::string &rawPath)
 {
-	Logger::file("BuildRequestedPath for: " + rawPath);
-
 	const Location* loc = findMatchingLocation(req.associated_conf, rawPath);
-	Logger::file("Found location: " + (loc ? loc->path : "none"));
 
 	std::string usedRoot = (loc && !loc->root.empty())
 		? loc->root
 		: req.associated_conf->root;
-	Logger::file("Using root: " + usedRoot);
 
 	if (!usedRoot.empty() && usedRoot.back() == '/')
 		usedRoot.pop_back();
@@ -402,10 +390,7 @@ std::string RequestHandler::buildRequestedPath(RequestState &req, const std::str
 	if (!pathAfterLocation.empty() && pathAfterLocation.front() == '/')
 		pathAfterLocation.erase(0, 1);
 
-	Logger::file("Path after location removal: " + pathAfterLocation);
-
 	std::string fullPath = usedRoot + "/" + pathAfterLocation;
-	Logger::file("Final full path: " + fullPath);
 
 	if (loc && !loc->default_file.empty())
 	{
@@ -425,15 +410,12 @@ std::string RequestHandler::buildRequestedPath(RequestState &req, const std::str
 			}
 			defaultPath += loc->default_file;
 
-			Logger::file("Trying default file path: " + defaultPath);
 			struct stat default_stat;
 			if (stat(defaultPath.c_str(), &default_stat) == 0 && S_ISREG(default_stat.st_mode))
 			{
-				Logger::file("Found default file: " + defaultPath);
 				req.is_directory = false;
 				return defaultPath;
 			}
-			Logger::file("Default file not found at: " + defaultPath);
 		}
 	}
 
@@ -441,60 +423,46 @@ std::string RequestHandler::buildRequestedPath(RequestState &req, const std::str
 		|| pathAfterLocation.back() == '/'
 		|| (loc && loc->doAutoindex);
 
-	Logger::file("Is directory request: " + std::string(isDirectoryRequest ? "yes" : "no"));
-
 	if (isDirectoryRequest)
 	{
 		std::string usedIndex = req.associated_conf->index;
-		Logger::file("Using index file: " + usedIndex);
 
 		std::string fullDirPath = fullPath;
 		if (!fullDirPath.empty() && fullDirPath.back() == '/')
 			fullDirPath.pop_back();
-		Logger::file("Full dir path: " + fullDirPath);
 
 		struct stat dir_stat;
 		if (stat(fullDirPath.c_str(), &dir_stat) == 0 && S_ISDIR(dir_stat.st_mode))
 		{
-			Logger::file("Directory exists: " + fullDirPath);
-
 			if (!usedIndex.empty())
 			{
 				std::string indexPath = fullDirPath + "/" + usedIndex;
-				Logger::file("Trying index path: " + indexPath);
 
 				struct stat index_stat;
 				if (stat(indexPath.c_str(), &index_stat) == 0 && S_ISREG(index_stat.st_mode))
 				{
-					Logger::file("Found index file: " + indexPath);
 					req.is_directory = false;
 					return indexPath;
 				}
-				Logger::file("Index file not found at: " + indexPath);
 			}
 
 			if (loc && loc->doAutoindex)
 			{
-				Logger::file("Using autoindex for: " + fullDirPath);
 				req.is_directory = true;
 				return fullDirPath;
 			}
 		}
-		Logger::file("Directory does not exist: " + fullDirPath);
 	}
 
 	req.is_directory = false;
 	if (!fullPath.empty() && fullPath.back() == '/')
 		fullPath.pop_back();
-
-	Logger::file("Final full path (non-dir): " + fullPath);
 	return fullPath;
 }
 
 void RequestHandler::parseRequest(RequestState &req)
 {
 	std::string request(req.request_buffer.begin(), req.request_buffer.end());
-
 	size_t header_end = request.find("\r\n\r\n");
 	if (header_end == std::string::npos)
 		return;
@@ -510,23 +478,21 @@ void RequestHandler::parseRequest(RequestState &req)
 
 	std::string query;
 	size_t qpos = path.find('?');
-	if (qpos != std::string::npos)
-	{
+	if (qpos != std::string::npos) {
 		query = path.substr(qpos + 1);
 		path = path.substr(0, qpos);
 	}
 
+	std::string line;
+	while (std::getline(header_stream, line) && !line.empty()) {
+		if (line.rfind("Cookie:", 0) == 0) {
+			std::string cookieValue = line.substr(strlen("Cookie: "));
+			req.cookie_header = cookieValue;
+		}
+	}
+
 	if (method == "POST") {
 		req.request_body = request.substr(header_end + 4);
-		std::string content_type_header = "Content-Type: ";
-		size_t content_type_pos = headers.find(content_type_header);
-		if (content_type_pos != std::string::npos) {
-			size_t content_type_end = headers.find("\r\n", content_type_pos);
-			req.content_type = headers.substr(
-				content_type_pos + content_type_header.length(),
-				content_type_end - (content_type_pos + content_type_header.length())
-			);
-		}
 	}
 
 	req.location_path = path;
@@ -541,13 +507,10 @@ void RequestHandler::parseRequest(RequestState &req)
 	req.requested_path = buildRequestedPath(req, path);
 	req.cgi_output_buffer.clear();
 
-	if (server.getCgiHandler()->needsCGI(req, path))
-	{
+	if (server.getCgiHandler()->needsCGI(req, path)) {
 		req.state = RequestState::STATE_PREPARE_CGI;
 		server.getCgiHandler()->addCgiTunnel(req, method, query);
-	}
-	else
-	{
+	} else {
 		buildResponse(req);
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);

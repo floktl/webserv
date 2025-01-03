@@ -51,7 +51,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <iomanip> // For formattin
+#include <iomanip>
 void printServerBlock(const ServerBlock& serverBlock);
 void printRequestState(const RequestState& req);
 

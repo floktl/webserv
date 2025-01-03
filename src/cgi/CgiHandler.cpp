@@ -10,6 +10,7 @@ CgiHandler::~CgiHandler() {
 
 void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, const std::string &query) {
 
+	Logger::file("addCgiTunnel");
 	int pipe_in[2] = {-1, -1};
 	int pipe_out[2] = {-1, -1};
 
@@ -123,50 +124,32 @@ void CgiHandler::cleanupCGI(RequestState &req) {
 
 bool CgiHandler::needsCGI(RequestState &req, const std::string &path)
 {
-	Logger::file("=== needsCGI Debug Start ===");
-	Logger::file("Input path: " + path);
-	Logger::file("Requested path: " + req.requested_path);
-	Logger::file("Is directory?: " + std::string(req.is_directory ? "yes" : "no"));
-
 	struct stat file_stat;
 	if (stat(req.requested_path.c_str(), &file_stat) != 0) {
-		Logger::file("File does not exist, skipping CGI");
 		return false;
 	}
 
 	if (S_ISDIR(file_stat.st_mode)) {
-		Logger::file("Path is a directory, skipping CGI");
 		req.is_directory = true;
 		return false;
 	}
 
 	const Location* loc = server.getRequestHandler()->findMatchingLocation(req.associated_conf, path);
 	if (!loc || loc->cgi.empty()) {
-		Logger::file("No location or CGI configuration found");
 		return false;
 	}
-
-	Logger::file("Location info:");
-	Logger::file("- cgi: " + loc->cgi);
-	Logger::file("- cgi_filetype: " + loc->cgi_filetype);
-	Logger::file("- path: " + loc->path);
 
 	size_t dot_pos = req.requested_path.find_last_of('.');
 	if (dot_pos != std::string::npos) {
 		std::string extension = req.requested_path.substr(dot_pos);
-		Logger::file("File extension (with dot): " + extension);
 		if (extension == loc->cgi_filetype) {
-			Logger::file("=== CGI needed ===");
 			return true;
 		}
 	}
-
-	Logger::file("=== No CGI needed ===");
 	return false;
 }
 
 void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events) {
-
 	if (events & (EPOLLERR | EPOLLHUP)) {
 		auto tunnel_it = fd_to_tunnel.find(fd);
 		if (tunnel_it != fd_to_tunnel.end() && tunnel_it->second) {
@@ -202,8 +185,8 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events) {
 
 	RequestState &req = req_it->second;
 
-	if (req.request_buffer.empty()) {
-		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+	if (req.request_body.empty()) {
+		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr);
 		close(fd);
 		tunnel->in_fd = -1;
 		server.getGlobalFds().svFD_to_clFD_map.erase(fd);
@@ -211,11 +194,9 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events) {
 		return;
 	}
 
-
-	ssize_t written = write(fd, req.request_buffer.data(), req.request_buffer.size());
+	ssize_t written = write(fd, req.request_body.data(), req.request_body.size());
 
 	if (written < 0) {
-
 		if (errno == EPIPE) {
 			cleanup_tunnel(*tunnel);
 		} else if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -225,77 +206,95 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events) {
 	}
 
 	if (written > 0) {
-		req.request_buffer.erase(req.request_buffer.begin(), req.request_buffer.begin() + written);
+		req.request_body.erase(req.request_body.begin(), req.request_body.begin() + written);
 
-
-		if (req.request_buffer.empty()) {
-			epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+		if (req.request_body.empty()) {
+			epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr);
 			close(fd);
 			tunnel->in_fd = -1;
 			server.getGlobalFds().svFD_to_clFD_map.erase(fd);
 			fd_to_tunnel.erase(fd);
 		}
 	}
-
 }
 
 void CgiHandler::handleCGIRead(int epfd, int fd) {
+	Logger::file("=== CGI Read Debug Start ===");
+
 	auto tunnel_it = fd_to_tunnel.find(fd);
 	if (tunnel_it == fd_to_tunnel.end() || !tunnel_it->second) {
+		Logger::file("Invalid tunnel");
 		return;
 	}
-	CgiTunnel* tunnel = tunnel_it->second;
 
+	CgiTunnel* tunnel = tunnel_it->second;
 	auto req_it = server.getGlobalFds().request_state_map.find(tunnel->client_fd);
 	if (req_it == server.getGlobalFds().request_state_map.end()) {
+		Logger::file("Invalid request state");
 		return;
 	}
 	RequestState &req = req_it->second;
 
 	char buf[4096];
-	ssize_t n = read(fd, buf, sizeof(buf));
-
-	if (n > 0) {
+	Logger::file("Starting read loop");
+	ssize_t n;
+	while ((n = read(fd, buf, sizeof(buf))) > 0) {
+		Logger::file("Read chunk: " + std::to_string(n) + " bytes");
+		Logger::file("Content: " + std::string(buf, n));
 		req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
-		return;
 	}
+	Logger::file("Read loop ended with n=" + std::to_string(n));
 
 	if (n == 0) {
 		std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
+		Logger::file("Complete CGI output: " + output);
 
 		size_t header_end = output.find("\r\n\r\n");
 		if (header_end == std::string::npos) {
+			Logger::file("No headers found");
 			header_end = 0;
 		}
 
-		std::string cgi_headers = header_end > 0 ?
-			output.substr(0, header_end) : "";
-		std::string cgi_body = header_end > 0 ?
-			output.substr(header_end + 4) : output;
+		std::string cgi_headers = header_end > 0 ? output.substr(0, header_end) : "";
+		std::string cgi_body = header_end > 0 ? output.substr(header_end + 4) : output;
 
-		std::string response = "HTTP/1.1 200 OK\r\n";
-		response += "Content-Length: " + std::to_string(cgi_body.length()) + "\r\n";
-		response += "Connection: close\r\n";
+		Logger::file("CGI Headers: " + cgi_headers);
+		Logger::file("CGI Body length: " + std::to_string(cgi_body.length()));
 
-		if (!cgi_headers.empty()) {
-			response += cgi_headers + "\r\n";
+		std::string response;
+		if (!cgi_headers.empty() && cgi_headers.find("Location:") != std::string::npos) {
+			Logger::file("Redirect detected, creating 302 response");
+			response = "HTTP/1.1 302 Found\r\n" + cgi_headers + "\r\n\r\n";
 		} else {
-			response += "Content-Type: text/html\r\n";
+			Logger::file("Normal response");
+			response = "HTTP/1.1 200 OK\r\n";
+			response += "Content-Length: " + std::to_string(cgi_body.length()) + "\r\n";
+			response += "Connection: close\r\n";
+
+			if (!cgi_headers.empty()) {
+				response += cgi_headers + "\r\n";
+			} else {
+				response += "Content-Type: text/html\r\n";
+			}
+			response += "\r\n" + cgi_body;
 		}
 
-		response += "\r\n" + cgi_body;
-
+		Logger::file("Final response headers: " + response.substr(0, response.find("\r\n\r\n")));
 		req.response_buffer.assign(response.begin(), response.end());
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		server.modEpoll(epfd, tunnel->client_fd, EPOLLOUT);
+		Logger::file("Response queued for sending");
 
 		cleanup_tunnel(*tunnel);
 	}
 	else if (n < 0) {
+		Logger::file("Read error: " + std::string(strerror(errno)));
 		if (errno != EAGAIN && errno != EWOULDBLOCK) {
 			cleanup_tunnel(*tunnel);
 		}
 	}
+
+	Logger::file("=== CGI Read Debug End ===");
 }
 
 void CgiHandler::cleanup_tunnel(CgiTunnel &tunnel) {

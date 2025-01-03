@@ -35,7 +35,7 @@ bool Sanitizer::isValidPath(std::string& path, const std::string& context, const
 		normalizedPath += seg + "/";
 	}
 	if (!segments.empty()) {
-		normalizedPath.pop_back(); // Remove the trailing slash
+		normalizedPath.pop_back();
 	}
 
 	// Check for invalid characters in the normalized path
