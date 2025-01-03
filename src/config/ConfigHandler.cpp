@@ -160,7 +160,9 @@ void ConfigHandler::parseLine(std::string line)
 
 			inLocationBlock = true;
 			registeredServerConfs.back().locations.push_back(Location());
-			registeredServerConfs.back().locations.back().path = location_path;
+			Location& newLocation = registeredServerConfs.back().locations.back();
+			newLocation.path = location_path;
+			newLocation.root = registeredServerConfs.back().root;  // Server-Root erben
 			return;
 		}
 	}
@@ -271,36 +273,65 @@ void ConfigHandler::parseLine(std::string line)
 	}
 	else {
 		if (std::find(locationOpts.begin(), locationOpts.end(), keyword) == locationOpts.end()) {
-				Logger::error("Error: Invalid location directive '" + keyword + "' at line " + std::to_string(linecount));
+			Logger::error("Error: Invalid location directive '" + keyword + "' at line " + std::to_string(linecount));
+			parsingErr = true;
+			return;
+		}
+
+		Location& currentLocation = registeredServerConfs.back().locations.back();
+
+		if (keyword == "methods") {
+			currentLocation.allowGet = false;
+			currentLocation.allowPost = false;
+			currentLocation.allowDelete = false;
+			currentLocation.allowCookie = false;
+
+			currentLocation.methods = value;
+
+			std::istringstream iss(value);
+			std::string method;
+			while (iss >> method) {
+				if (method == "GET") currentLocation.allowGet = true;
+				if (method == "POST") currentLocation.allowPost = true;
+				if (method == "DELETE") currentLocation.allowDelete = true;
+				if (method == "COOKIE") currentLocation.allowCookie = true;
+			}
+		}
+		else if (keyword == "cgi")
+			currentLocation.cgi = value;
+		else if (keyword == "cgi_param")
+			currentLocation.cgi_param = value;
+		else if (keyword == "autoindex")
+			currentLocation.autoindex = value;
+		else if (keyword == "default_file")
+			currentLocation.default_file = value;
+		else if (keyword == "root")
+			currentLocation.root = value;
+		else if (keyword == "return") {
+			std::istringstream iss(value);
+			std::string code, url;
+
+			iss >> code;
+
+			std::getline(iss >> std::ws, url);
+
+			try {
+				int status = std::stoi(code);
+				if ((status != 301 && status != 302) || url.empty()) {
+					Logger::error("Error: Invalid return directive at line "
+						+ std::to_string(linecount) + ". Format: return 301|302 URL;");
+					parsingErr = true;
+					return;
+				}
+				currentLocation.return_code = code;
+				currentLocation.return_url = url;
+			} catch (...) {
+				Logger::error("Error: Invalid return status code at line "
+					+ std::to_string(linecount));
 				parsingErr = true;
 				return;
 			}
-
-			Location& currentLocation = registeredServerConfs.back().locations.back();
-
-			if (keyword == "methods") {
-				currentLocation.allowGet = false;
-				currentLocation.allowPost = false;
-				currentLocation.allowDelete = false;
-				currentLocation.allowCookie = false;
-
-				currentLocation.methods = value;
-
-				std::istringstream iss(value);
-				std::string method;
-				while (iss >> method) {
-					if (method == "GET") currentLocation.allowGet = true;
-					if (method == "POST") currentLocation.allowPost = true;
-					if (method == "DELETE") currentLocation.allowDelete = true;
-					if (method == "COOKIE") currentLocation.allowCookie = true;
-				}
-			}
-			else if (keyword == "cgi")
-				currentLocation.cgi = value;
-			else if (keyword == "cgi_param")
-				currentLocation.cgi_param = value;
-			else if (keyword == "autoindex")
-				currentLocation.autoindex = value;
+		}
 	}
 }
 
@@ -427,10 +458,27 @@ bool ConfigHandler::sanitizeConfData(void) {
 				return false;
 			}
 
-			if (!loc.return_directive.empty() &&
-				!Sanitizer::sanitize_locationReturn(loc.return_directive)) {
-				configFileValid = false;
-				return false;
+			if (!loc.return_code.empty()) {
+				int code = std::stoi(loc.return_code);
+				if (code != 301 && code != 302) {
+					Logger::error("Invalid redirect status code: " + loc.return_code);
+					configFileValid = false;
+					return false;
+				}
+
+				if (loc.return_url.empty()) {
+					Logger::error("Return directive requires a URL");
+					configFileValid = false;
+					return false;
+				}
+
+				if (loc.return_url[0] != '/' &&
+					loc.return_url.substr(0, 7) != "http://" &&
+					loc.return_url.substr(0, 8) != "https://") {
+					Logger::error("Invalid return URL format");
+					configFileValid = false;
+					return false;
+				}
 			}
 
 			if (!loc.root.empty() &&
@@ -564,7 +612,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd) 
 	Logger::green("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
 	auto printValue = [](std::string& value, const std::string& label,
-						const std::string& default_value = "", int padding = 20) {
+						const std::string& default_value = "", int padding = 30) {
 		Logger::white(label, false, padding);
 		if (value.empty()) {
 			if (default_value.empty()) {
@@ -579,7 +627,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd) 
 	};
 
 	auto printIntValue = [](int& value, const std::string& label,
-						int default_value = 0, int padding = 20) {
+						int default_value = 0, int padding = 30) {
 		Logger::white(label, false, padding);
 		if (value == 0) {
 			if (default_value == 0) {
@@ -623,7 +671,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd) 
 		// show error pages
 		for (std::map<int, std::string>::const_iterator it = conf.errorPages.begin();
 			it != conf.errorPages.end(); ++it) {
-			Logger::white("    Error Page: ", false, 20);
+			Logger::white("    Error Page: ", false, 30);
 			Logger::yellow("Error " + std::to_string(it->first) + " -> " + it->second);
 		}
 
@@ -637,9 +685,9 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd) 
 				printValue(location.methods, "      Methods: ", "GET HEAD POST");
 				printValue(location.cgi, "      CGI: ");
 				printValue(location.cgi_param, "      CGI Param: ");
-				printValue(location.redirect, "      Redirect: ");
+				printValue(location.return_code, "      Redirect Code: ");
+				printValue(location.return_url, "      Redirect Url: ");
 				printValue(location.autoindex, "      Autoindex: ", "off");
-				printValue(location.return_directive, "      Return: ");
 				printValue(location.default_file, "      Default File: ");
 				printValue(location.upload_store, "      Upload Store: ");
 				printValue(location.root, "      Root: ", conf.root);
