@@ -305,7 +305,7 @@ void Server::finalizeCgiResponse(RequestState &req, int epoll_fd, int client_fd)
 	std::string response;
 	if (header_end != std::string::npos &&
 		(output.find("Content-type:") != std::string::npos ||
-		 output.find("Content-Type:") != std::string::npos))
+			output.find("Content-Type:") != std::string::npos))
 	{
 		std::string headers = output.substr(0, header_end);
 		std::string body    = output.substr(header_end + 4);

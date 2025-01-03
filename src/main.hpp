@@ -16,7 +16,6 @@
 #include <cstring>
 #include <vector>
 #include <map>
-#include <string>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -35,6 +34,7 @@
 #include <chrono>
 #include <iomanip>
 #include <system_error>
+#include <time.h>
 
 #include "./structs/webserv.hpp"
 #include "./config/ConfigHandler.hpp"

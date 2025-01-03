@@ -4,96 +4,108 @@
 #include "../main.hpp"
 
 
+// Represents a specific location block configuration
 struct Location
 {
-	int			port;
+    int port;
 
-	std::string	path;
-	std::string	methods;
-	std::string	autoindex;
-	std::string	return_directive;
-	std::string	default_file;
-	std::string	upload_store;
-	std::string	client_max_body_size;
-	std::string	root;
-	std::string	cgi;
-	std::string	cgi_filetype;
-	std::string	cgi_param;
-	std::string	redirect;
-	bool doAutoindex{true};
-	bool allowGet{true};
-	bool allowPost{false};
-	bool allowDelete{false};
-	bool allowCookie{false};
+    std::string	path;
+    std::string methods;
+    std::string autoindex;
+    std::string return_directive;
+    std::string default_file;
+    std::string upload_store;
+    std::string client_max_body_size;
+    std::string root;
+    std::string cgi;
+    std::string cgi_filetype;
+    std::string cgi_param;
+    std::string redirect;
+
+    bool doAutoindex = true;
+    bool allowGet = true;
+    bool allowPost = false;
+    bool allowDelete = false;
+    bool allowCookie = false;
 };
 
+// Represents the configuration of a single server block
 struct ServerBlock
 {
-	int						port;
-	int						server_fd;
+    int port;
+    int server_fd;
 
-	std::string				name;
-	std::string				root;
-	std::string				index;
+    std::string name;
+    std::string root;
+    std::string index;
 
-	std::map				<int, std::string> errorPages;
-	std::string				client_max_body_size;
-	std::vector<Location>	locations;
+    std::map<int, std::string> errorPages;
+    std::string client_max_body_size;
+
+    std::vector<Location> locations;
 };
 
+// Represents the state of an individual HTTP request
 struct RequestState
 {
-	int client_fd;
-	int cgi_in_fd;
-	int cgi_out_fd;
-	pid_t cgi_pid;
-	bool cgi_done;
+    int client_fd = -1;
+    int cgi_in_fd = -1;
+    int cgi_out_fd = -1;
+    pid_t cgi_pid = -1;
+    bool cgi_done = false;
 
-	enum State {
-		STATE_READING_REQUEST,
-		STATE_PREPARE_CGI,
-		STATE_CGI_RUNNING,
-		STATE_SENDING_RESPONSE
-	} state;
+    // States for request processing
+    enum State {
+        STATE_READING_REQUEST,
+        STATE_PREPARE_CGI,
+        STATE_CGI_RUNNING,
+        STATE_SENDING_RESPONSE
+    } state = STATE_READING_REQUEST;
 
-	std::string content_type;
-	std::string request_body;
+    std::string content_type;
+    std::string request_body;
 
-	std::vector<char> request_buffer;
-	std::vector<char> response_buffer;
-	std::vector<char> cgi_output_buffer;
+    std::vector<char> request_buffer;
+    std::vector<char> response_buffer;
+    std::vector<char> cgi_output_buffer;
 
-	std::chrono::steady_clock::time_point last_activity;
+    std::chrono::steady_clock::time_point last_activity;
 
-	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
+    static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
 
-	const ServerBlock* associated_conf;
-	std::string location_path;
-	std::string requested_path;
+    const ServerBlock* associated_conf = nullptr;
+    std::string location_path;
+    std::string requested_path;
 };
 
-
+// Represents global file descriptor mappings and states
 struct GlobalFDS
 {
-	int epoll_fd = -1;
-	std::map<int, RequestState> request_state_map;
-	std::map<int, int> svFD_to_clFD_map;
+    int epoll_fd = -1; // Epoll file descriptor
+    std::map<int, RequestState> request_state_map; // Maps client FDs to their request states
+    std::map<int, int> svFD_to_clFD_map; // Maps server FDs to client FDs
 };
 
-struct CgiTunnel {
-	pid_t pid = -1;
-	int in_fd = -1;
-	int out_fd = -1;
-	int client_fd = -1;
-	int server_fd = -1;
-	std::string server_name;
-	const ServerBlock* config = NULL;
-	const Location* location = NULL;
-	std::chrono::steady_clock::time_point last_used;
-	bool is_busy = false;
-	std::string script_path;
-	std::vector<char> buffer;
-	CgiTunnel() : last_used(std::chrono::steady_clock::now()) {}
+// Represents a CGI tunnel for handling CGI processes
+struct CgiTunnel
+{
+    pid_t pid = -1;
+    int in_fd = -1;
+    int out_fd = -1;
+    int client_fd = -1;
+    int server_fd = -1;
+
+    std::string server_name;
+    const ServerBlock* config = nullptr;
+    const Location* location = nullptr;
+
+    std::chrono::steady_clock::time_point last_used = std::chrono::steady_clock::now();
+    bool is_busy = false;
+    std::string script_path;
+
+    std::vector<char> buffer;
+
+    CgiTunnel() = default;
 };
 
 #endif

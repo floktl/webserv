@@ -2,130 +2,101 @@
 
 StaticHandler::StaticHandler(Server& _server) : server(_server) {}
 
-void StaticHandler::handleClientRead(int epfd, int fd) {
-	std::stringstream ss;
-	ss << "Handling client read on fd " << fd;
-	//Logger::file(ss.str());
+void StaticHandler::handleClientRead(int epfd, int fd)
+{
+    // Start handling a read request from the client
 
-	RequestState &req = server.getGlobalFds().request_state_map[fd];
-	char buf[1024];
-	ssize_t n = read(fd, buf, sizeof(buf));
+    // Get the associated request state for this client
+    RequestState &req = server.getGlobalFds().request_state_map[fd];
 
-	if (n == 0) {
-		//Logger::file("Client closed connection");
-		server.delFromEpoll(epfd, fd);
-		return;
-	}
+    // Read up to 1024 bytes from the client socket
+    char buf[1024];
+    ssize_t n = read(fd, buf, sizeof(buf));
 
-	if (n < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
-			//Logger::file("Read error: " + std::string(strerror(errno)));
-			server.delFromEpoll(epfd, fd);
-		}
-		return;
-	}
+    // If the client closed the connection, clean up and remove it from epoll
+    if (n == 0)
+	{
+        server.delFromEpoll(epfd, fd);
+        return;
+    }
 
-	ss.str("");
-	ss << "Read " << n << " bytes from client";
-	//Logger::file(ss.str());
+    // If an error occurred, remove the client unless it's a recoverable error (EAGAIN or EWOULDBLOCK)
+    if (n < 0)
+	{
+        if (errno != EAGAIN && errno != EWOULDBLOCK)
+            server.delFromEpoll(epfd, fd);
+        return;
+    }
 
-	req.request_buffer.insert(req.request_buffer.end(), buf, buf + n);
+    // Successfully read data; append it to the request buffer
+    req.request_buffer.insert(req.request_buffer.end(), buf, buf + n);
 
-	if (req.request_buffer.size() > 4) {
-		std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
-		if (req_str.find("\r\n\r\n") != std::string::npos) {
-			//Logger::file("Complete request received, parsing");
-			server.getRequestHandler()->parseRequest(req);
-
-			// if (!server.getCgiHandler()->needsCGI(req.associated_conf, req.requested_path))
-			// {
-			// 	//Logger::file("Processing as normal request");
-			// 	server.getRequestHandler()->buildResponse(req);
-			// 	req.state = RequestState::STATE_SENDING_RESPONSE;
-			// 	req.last_activity = std::chrono::steady_clock::now();
-			// 	server.modEpoll(epfd, fd, EPOLLOUT);
-			// }
-			// else
-			// {
-			// 	//Logger::file("Request requires CGI processing");
-			// }
-		}
-	}
+    // Check if the request buffer contains a complete HTTP request (indicated by "\r\n\r\n")
+    if (req.request_buffer.size() > 4) {
+        std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
+        if (req_str.find("\r\n\r\n") != std::string::npos) {
+            // A complete request has been received; start parsing it
+            server.getRequestHandler()->parseRequest(req);
+        }
+    }
 }
+
 
 constexpr std::chrono::seconds RequestState::TIMEOUT_DURATION;
 
 void StaticHandler::handleClientWrite(int epfd, int fd)
 {
-	std::stringstream ss;
-	ss << "Handling client write on fd " << fd;
-	//Logger::file(ss.str());
+    // Get the associated request state for this client
+    RequestState &req = server.getGlobalFds().request_state_map[fd];
 
-	RequestState &req = server.getGlobalFds().request_state_map[fd];
-
-	// Check for timeout
-	auto now = std::chrono::steady_clock::now();
-	if (now - req.last_activity > RequestState::TIMEOUT_DURATION)
+    // Check if the client connection has timed out
+    auto now = std::chrono::steady_clock::now();
+    if (now - req.last_activity > RequestState::TIMEOUT_DURATION)
 	{
-		//Logger::file("Timeout detected for fd " + std::to_string(fd) + ", closing connection.");
-		server.delFromEpoll(epfd, fd);
-		return;
-	}
+        // Timeout occurred; remove client from epoll
+        server.delFromEpoll(epfd, fd);
+        return;
+    }
 
-	if (req.state == RequestState::STATE_SENDING_RESPONSE)
+    // Handle sending the response if the request state indicates it's ready to send
+    if (req.state == RequestState::STATE_SENDING_RESPONSE)
 	{
-		ss.str("");
-		ss << "Attempting to write response, buffer size: " << req.response_buffer.size()
-			<< ", content: " << std::string(req.response_buffer.begin(), req.response_buffer.end());
-		//Logger::file(ss.str());
-
-		int error = 0;
-		socklen_t len = sizeof(error);
-		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0)
+        // Check for socket errors before sending data
+        int error = 0;
+        socklen_t len = sizeof(error);
+        if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0)
 		{
-			//Logger::file("Socket error detected: " + std::string(strerror(error)));
-			server.delFromEpoll(epfd, fd);
-			return;
-		}
+            // If there's a socket error, clean up and remove the client
+            server.delFromEpoll(epfd, fd);
+            return;
+        }
 
-		ssize_t n = send(fd, req.response_buffer.data(), req.response_buffer.size(), MSG_NOSIGNAL);
+        // Attempt to send the response buffer data to the client
+        ssize_t n = send(fd, req.response_buffer.data(), req.response_buffer.size(), MSG_NOSIGNAL);
 
-		if (n > 0)
+        if (n > 0)
 		{
-			ss.str("");
-			ss << "Successfully wrote " << n << " bytes to client";
-			//Logger::file(ss.str());
+            // Successfully sent data; remove the sent portion from the buffer
+            req.response_buffer.erase(
+                req.response_buffer.begin(),
+                req.response_buffer.begin() + n);
 
-			req.response_buffer.erase(
-				req.response_buffer.begin(),
-				req.response_buffer.begin() + n
-			);
+            // Update the last activity timestamp
+            req.last_activity = now;
 
-			req.last_activity = now; // Update last activity timestamp
-
-			if (req.response_buffer.empty())
-			{
-				//Logger::file("Response fully sent, closing connection");
-				server.delFromEpoll(epfd, fd);
-			}
-			else
-			{
-				server.modEpoll(epfd, fd, EPOLLOUT);
-			}
-		}
+            // If the buffer is empty, the response is complete; remove client from epoll
+            if (req.response_buffer.empty())
+                server.delFromEpoll(epfd, fd);
+            else  // Otherwise, continue monitoring for write readiness
+                server.modEpoll(epfd, fd, EPOLLOUT);
+        }
 		else if (n < 0)
 		{
-			if (errno != EAGAIN && errno != EWOULDBLOCK)
-			{
-				ss.str("");
-				ss << "Write error: " << strerror(errno);
-				//Logger::file(ss.str());
-				server.delFromEpoll(epfd, fd);
-			}
-			else
-			{
-				server.modEpoll(epfd, fd, EPOLLOUT);
-			}
-		}
-	}
+            // If send failed and the error is not recoverable, clean up and remove the client
+            if (errno != EAGAIN && errno != EWOULDBLOCK)
+                server.delFromEpoll(epfd, fd);
+            else // Continue monitoring for write readiness on recoverable errors
+                server.modEpoll(epfd, fd, EPOLLOUT);
+        }
+    }
 }
