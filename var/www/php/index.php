@@ -1,21 +1,43 @@
 <?php
-$dir = __DIR__ . '/data';
-$names = [];
+	// index.php
 
-if (is_dir($dir)) {
-	$files = scandir($dir);
-	foreach ($files as $file) {
-		if (substr($file, -5) === '.name') {
-			$name = substr($file, 0, -5);
-			$age = trim(file_get_contents($dir . '/' . $file));
-			$names[] = ['name' => $name, 'age' => $age];
+	$dataDir = __DIR__ . '/data';
+	$names = [];
+
+	// Create 'data' folder if it doesn't exist
+	if (!is_dir($dataDir)) {
+		mkdir($dataDir, 0777, true);
+	}
+
+	// Gather all name files
+	if (is_dir($dataDir)) {
+		$files = scandir($dataDir);
+		foreach ($files as $file) {
+			if (substr($file, -5) === '.name') {
+				$name = substr($file, 0, -5);
+				$age = trim(file_get_contents($dataDir . '/' . $file));
+				$names[] = ['name' => $name, 'age' => $age];
+			}
 		}
 	}
-}
+
+	// Create folder for uploaded files
+	$filesDir = __DIR__ . '/files';
+	if (!is_dir($filesDir)) {
+		mkdir($filesDir, 0777, true);
+	}
+
+	// List already-uploaded files
+	$uploadedFiles = [];
+	$allFiles = scandir($filesDir);
+	foreach ($allFiles as $fl) {
+		if ($fl !== '.' && $fl !== '..') {
+			$uploadedFiles[] = $fl;
+		}
+	}
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -67,31 +89,42 @@ if (is_dir($dir)) {
 			padding: 0;
 			list-style-type: none;
 		}
-		ul li{
+		ul li {
 			width: 50%;
 			display: flex;
 			gap: 20px;
 			box-sizing: border-box;
-			padding:10px;
+			padding: 10px;
 			margin: auto;
 			justify-content: space-between;
 		}
-		ul li:nth-of-type(1n){
+		ul li:nth-of-type(1n) {
 			background-color: #ddd;
 		}
-		ul li:nth-of-type(2n){
+		ul li:nth-of-type(2n) {
 			background-color: white;
 		}
 	</style>
 </head>
-
 <body>
 	<header>
 		Welcome to My PHP Page
 	</header>
 	<main>
 		<h1>Hello, World!</h1>
-		<h2>Name and age:</h2>
+
+		<h2>Cookie Test:</h2>
+		<?php if (isset($_COOKIE['test_cookie'])): ?>
+			<p>Cookie Value: <strong><?php echo htmlspecialchars($_COOKIE['test_cookie']); ?></strong></p>
+		<?php else: ?>
+			<p>No cookie set yet. Click button below to set one.</p>
+		<?php endif; ?>
+
+		<form action="createCookie.php" method="post">
+			<input type="submit" value="Request Fresh Cookie">
+		</form>
+
+		<h2>Add Name and Age:</h2>
 		<form action="createName.php" method="post">
 			<input type="text" name="name" placeholder="name" required>
 			<input type="number" name="age" placeholder="age" required>
@@ -99,13 +132,50 @@ if (is_dir($dir)) {
 		</form>
 		<ul>
 			<?php foreach ($names as $entry): ?>
-				<li><?php echo htmlspecialchars($entry['name']) . " (Alter: " . htmlspecialchars($entry['age']) . ")"; ?><button onclick="deleteName('<?php echo htmlspecialchars($entry['name']); ?>')" style="display: inline;">X</button></li>
+				<li>
+					<?php echo htmlspecialchars($entry['name']) . " (Age: " . htmlspecialchars($entry['age']) . ")"; ?>
+					<button onclick="deleteName('<?php echo htmlspecialchars($entry['name']); ?>')" style="display: inline;">X</button>
+				</li>
 			<?php endforeach; ?>
 		</ul>
-		<a href="/about.php">About us</a>
+
+		<hr>
+
+		<h2>File Upload (Test):</h2>
+		<form action="uploadFile.php" method="post" enctype="multipart/form-data">
+			<input type="file" name="uploadedFile" required>
+			<input type="submit" value="Upload File">
+		</form>
+		<ul>
+			<?php foreach ($uploadedFiles as $fileName): ?>
+				<li>
+					<?php echo htmlspecialchars($fileName); ?>
+					<button onclick="deleteFile('<?php echo htmlspecialchars($fileName); ?>')" style="display: inline;">X</button>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+
+		<a href="/about.php">About Us</a>
+
 		<script>
 			function deleteName(name) {
 				fetch("./data/" + name + ".name", {
+					method: 'DELETE',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ nameToDelete: name })
+				})
+				.then(response => {
+					if (response.ok) {
+						window.location.reload();
+					}
+				})
+				.catch(error => console.error('Error:', error));
+			}
+
+			function deleteFile(name) {
+				fetch("./files/" + name, {
 					method: 'DELETE',
 					headers: {
 						'Content-Type': 'application/json',

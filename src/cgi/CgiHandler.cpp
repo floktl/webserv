@@ -11,6 +11,9 @@ CgiHandler::~CgiHandler() {
 void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, const std::string &query) {
 
 	Logger::file("addCgiTunnel");
+	Logger::file("Method: " + method + ", Content Type: ");
+	Logger::file("Request Body: " + std::string(req.request_buffer.begin(), req.request_buffer.end()));
+	Logger::file("Query: " + query);
 	int pipe_in[2] = {-1, -1};
 	int pipe_out[2] = {-1, -1};
 
@@ -333,10 +336,12 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 
 	std::string content_length = "0";
 	std::string content_type = "application/x-www-form-urlencoded";
+	std::string http_cookie;
 
 	auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
 	if (req_it != server.getGlobalFds().request_state_map.end()) {
 		const RequestState &req = req_it->second;
+		http_cookie = req.cookie_header;
 		if (method == "POST") {
 			std::string request(req.request_buffer.begin(), req.request_buffer.end());
 			size_t header_end = request.find("\r\n\r\n");
@@ -350,6 +355,7 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 				if (content_type_end != std::string::npos) {
 					content_type = request.substr(content_type_pos + 14,
 						content_type_end - (content_type_pos + 14));
+					Logger::file("Found Content-Type: " + content_type);
 				}
 			}
 		}
@@ -369,10 +375,19 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 		"SERVER_PORT=" + tunnel.config->port,
 		"CONTENT_TYPE=" + content_type,
 		"CONTENT_LENGTH=" + content_length,
+		"HTTP_COOKIE=" + http_cookie,
 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 	};
 
+	if (method == "POST") {
+		env_vars.push_back("HTTP_TRANSFER_ENCODING=chunked");
+		if (content_type.find("boundary=") != std::string::npos) {
+			env_vars.push_back("REQUEST_TYPE=multipart/form-data");
+		}
+	}
+
 	for (const auto& env_var : env_vars) {
+		Logger::file("  " + env_var);
 		putenv(strdup(env_var.c_str()));
 	}
 }
@@ -396,8 +411,6 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
 	}
 
 	char* const args[] = {
-		(char*)tunnel.location->cgi.c_str(),
-		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.location->cgi.c_str(),
 		(char*)tunnel.script_path.c_str(),
 		nullptr

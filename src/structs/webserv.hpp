@@ -88,6 +88,7 @@ struct CgiTunnel {
 	int out_fd = -1;
 	int client_fd = -1;
 	int server_fd = -1;
+	int	port;
 	std::string server_name;
 	const ServerBlock* config = NULL;
 	const Location* location = NULL;
