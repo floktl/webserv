@@ -306,7 +306,38 @@ void RequestHandler::buildResponse(RequestState &req) {
 	std::string method = getMethod(req.request_buffer);
 
 	if (method == "POST") {
-		std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+		std::string request(req.request_buffer.begin(), req.request_buffer.end());
+
+		if (request.find("Content-Type: multipart/form-data") != std::string::npos) {
+			size_t boundaryPos = request.find("boundary=");
+			if (boundaryPos != std::string::npos) {
+				std::string boundary = "--" + request.substr(boundaryPos + 9);
+				boundary = boundary.substr(0, boundary.find("\r\n"));
+
+				size_t fileStart = request.find(boundary);
+				if (fileStart != std::string::npos) {
+					fileStart = request.find("\r\n\r\n", fileStart) + 4;
+					size_t fileEnd = request.find(boundary, fileStart) - 2;
+
+					size_t fnameStart = request.rfind("filename=\"", fileStart);
+					size_t fnameEnd = request.find("\"", fnameStart + 10);
+					std::string filename = request.substr(fnameStart + 10, fnameEnd - (fnameStart + 10));
+
+					std::ofstream outFile(filename, std::ios::binary);
+					if (outFile.is_open()) {
+						std::string fileContent = request.substr(fileStart, fileEnd - fileStart);
+						outFile.write(fileContent.c_str(), fileContent.size());
+						outFile.close();
+					}
+				}
+			}
+		}
+
+		std::string response = "HTTP/1.1 303 See Other\r\n";
+		if (!req.cookie_header.empty()) {
+			response += "Set-Cookie: " + req.cookie_header + "\r\n";
+		}
+		response += "Location: /\r\n\r\n";
 		req.response_buffer.assign(response.begin(), response.end());
 		return;
 	}
@@ -328,7 +359,11 @@ void RequestHandler::buildResponse(RequestState &req) {
 			return;
 		}
 
-		std::string response = "HTTP/1.1 204 No Content\r\n\r\n";
+		std::string response = "HTTP/1.1 204 No Content\r\n";
+		if (!req.cookie_header.empty()) {
+			response += "Set-Cookie: " + req.cookie_header + "\r\n";
+		}
+		response += "\r\n";
 		req.response_buffer.assign(response.begin(), response.end());
 		return;
 	}
@@ -351,6 +386,9 @@ void RequestHandler::buildResponse(RequestState &req) {
 			file.close();
 
 			response << "HTTP/1.1 200 OK\r\n";
+			if (!req.cookie_header.empty()) {
+				response << "Set-Cookie: " << req.cookie_header << "\r\n";
+			}
 			response << "Content-Length: " << file_content.size() << "\r\n";
 			response << "\r\n";
 			response << file_content;
