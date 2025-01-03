@@ -48,6 +48,7 @@ struct RequestState
 	int cgi_out_fd;
 	pid_t cgi_pid;
 	bool cgi_done;
+	bool is_directory{false};
 
 	enum State {
 		STATE_READING_REQUEST,

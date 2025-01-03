@@ -348,49 +348,61 @@ req.response_buffer.assign(response_str.begin(), response_str.end());
 
 std::string RequestHandler::buildRequestedPath(RequestState &req, const std::string &rawPath)
 {
+	Logger::file("BuildRequestedPath for: " + rawPath);
 	const Location* loc = findMatchingLocation(req.associated_conf, rawPath);
 
 	std::string usedRoot = (loc && !loc->root.empty()) ? loc->root : req.associated_conf->root;
-	if (!usedRoot.empty() && usedRoot.back() != '/')
+	if (!usedRoot.empty() && usedRoot.back() != '/') {
 		usedRoot += '/';
+	}
 
 	std::string relativePath = rawPath;
-	if (!relativePath.empty() && relativePath.front() == '/')
+	if (!relativePath.empty() && relativePath.front() == '/') {
 		relativePath.erase(0, 1);
+	}
 
 	bool isDirectoryRequest = relativePath.empty() || relativePath.back() == '/';
+	Logger::file("Is directory request: " + std::string(isDirectoryRequest ? "yes" : "no"));
 
 	if (isDirectoryRequest) {
-		// First check for index file
+		// Check for index file
 		std::string usedIndex = (loc && !loc->default_file.empty())
 							? loc->default_file
 							: req.associated_conf->index;
 
-		if (!usedIndex.empty()) {
-			std::string indexPath = usedRoot + relativePath + usedIndex;
-			struct stat index_stat;
-			if (stat(indexPath.c_str(), &index_stat) == 0 && S_ISREG(index_stat.st_mode)) {
-				// If index file exists, use it
-				return indexPath;
+		std::string fullDirPath = usedRoot + relativePath;
+
+		// First check if directory exists
+		struct stat dir_stat;
+		if (stat(fullDirPath.c_str(), &dir_stat) == 0 && S_ISDIR(dir_stat.st_mode)) {
+			// Directory exists, check for index
+			if (!usedIndex.empty()) {
+				std::string indexPath = fullDirPath + usedIndex;
+				struct stat index_stat;
+				if (stat(indexPath.c_str(), &index_stat) == 0 && S_ISREG(index_stat.st_mode)) {
+					Logger::file("Found index file: " + indexPath);
+					req.is_directory = false;  // We're serving a file
+					return indexPath;
+				}
+			}
+			// No index found or doesn't exist
+			if (loc && loc->doAutoindex) {
+				Logger::file("No index, using autoindex for: " + fullDirPath);
+				req.is_directory = true;  // Mark as directory for autoindex
+				return fullDirPath;
 			}
 		}
 
-		// Only use autoindex if index file doesn't exist
-		if (loc && loc->doAutoindex) {
-			std::string fullPath = usedRoot + relativePath;
-			struct stat path_stat;
-			if (stat(fullPath.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
-				return fullPath;
-			}
-		}
-
-		// If we get here and we had an index defined, still try to use it
-		// This maintains backward compatibility for cases where the directory might not exist
+		// If we're here, either directory doesn't exist or no autoindex
+		// Try index path anyway for proper 404 handling
 		if (!usedIndex.empty()) {
-			relativePath += usedIndex;
+			req.is_directory = false;
+			return usedRoot + relativePath + usedIndex;
 		}
 	}
 
+	// Normal file request
+	req.is_directory = false;
 	return usedRoot + relativePath;
 }
 
