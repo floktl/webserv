@@ -35,6 +35,7 @@
 #include <chrono>
 #include <iomanip>
 #include <system_error>
+#include <sstream>
 
 #include "./structs/webserv.hpp"
 #include "./config/ConfigHandler.hpp"
@@ -45,14 +46,16 @@
 # include "./utils/Logger.hpp"
 # include "./static/StaticHandler.hpp"
 # include "./error/ErrorHandler.hpp"
+# include "./server/TaskManager.hpp"
 # include "./server/Server.hpp"
 # include "structs/webserv.hpp"
 
-#include <iostream>
-#include <vector>
-#include <string>
-#include <iomanip>
 void printServerBlock(const ServerBlock& serverBlock);
 void printRequestState(const RequestState& req);
+
+//config_utils
+std::string trim(const std::string& str);
+std::vector<std::string> parseOptionsToVector(const std::string& opts);
+std::string expandEnvironmentVariables(const std::string& value, char** env);
 
 # endif

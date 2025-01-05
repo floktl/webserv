@@ -42,7 +42,7 @@ NAME=webserv
 #------------------------------------------------------------------------------#
 
 CC=c++
-CFLAGS=-Wall -Wextra -Werror -Wshadow -std=c++11
+CFLAGS=-Wall -Wextra -Werror -Wshadow -std=c++11 -g
 LDFLAGS=
 
 ifeq ($(DEBUG), 1)
@@ -69,14 +69,36 @@ vpath %.d $(DEP_DIR)
 #------------------------------------------------------------------------------#
 
 SRCS=	src/main.cpp \
+		\
 		src/error/ErrorHandler.cpp \
+		\
 		src/utils/Logger.cpp \
-		src/config/ConfigHandler.cpp \
+		src/utils/config_utils.cpp \
 		src/utils/Sanitizer.cpp \
+		\
+		src/config/ConfigHandler_setup.cpp \
+		src/config/ConfigHandler_parseline.cpp \
+		src/config/ConfigHandler_sanitize.cpp \
+		src/config/debug.cpp \
+		\
 		src/static/StaticHandler.cpp \
-		src/server/Server.cpp \
-		src/cgi/CgiHandler.cpp \
-		src/requests/RequestHandler.cpp
+		\
+		src/server/Server_loop.cpp \
+		src/server/Server_init.cpp \
+		src/server/Server_helpers.cpp \
+		src/server/Server_event_handlers.cpp \
+		\
+		src/server/TaskManager.cpp \
+		\
+		src/cgi/CgiHandler_cleanup.cpp \
+		src/cgi/CgiHandler_execute.cpp \
+		src/cgi/CgiHandler_setup.cpp \
+		\
+		src/requests/RequestHandler_task.cpp \
+		src/requests/RequestHandler_utils.cpp \
+		src/requests/RequestHandler_parse.cpp \
+		src/requests/RequestHandler_autoind.cpp \
+		src/requests/RequestHandler_builder.cpp
 
 #------------------------------------------------------------------------------#
 #--------------                      OBJECTS                      -------------#
@@ -143,6 +165,14 @@ test:
 	fi
 	@touch ./webserv.log
 	@make && ./$(NAME) config/test.conf
+
+leak:
+	@if [ -e "./webserv.log" ]; then \
+		rm -rf ./webserv.log; \
+		echo "$(RED)Removed old webserv.log$(X)"; \
+	fi
+	@touch ./webserv.log
+	@make && valgrind --leak-check=full --track-origins=yes ./$(NAME) config/test.conf
 
 clean:
 	@if [ -e "./webserv.log" ]; then \

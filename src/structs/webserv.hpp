@@ -72,6 +72,8 @@ struct RequestState
 	const ServerBlock* associated_conf;
 	std::string location_path;
 	std::string requested_path;
+
+	bool keep_alive;
 };
 
 

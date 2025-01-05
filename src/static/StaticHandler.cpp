@@ -2,33 +2,71 @@
 
 StaticHandler::StaticHandler(Server& _server) : server(_server) {}
 
-void StaticHandler::handleClientRead(int epfd, int fd) {
+void StaticHandler::handleClientRead(int epfd, int fd)
+{
+    auto &fds = server.getGlobalFds();
+    auto it = fds.request_state_map.find(fd);
 
-	RequestState &req = server.getGlobalFds().request_state_map[fd];
-	char buf[1024];
-	ssize_t n = read(fd, buf, sizeof(buf));
+    if (it == fds.request_state_map.end())
+	{
+        std::cerr << "Invalid fd: " << fd << " not found in request_state_map" << std::endl;
+        server.delFromEpoll(epfd, fd);
+        return;
+    }
 
-	if (n == 0) {
-		server.delFromEpoll(epfd, fd);
-		return;
-	}
+    RequestState &req = it->second;
 
-	if (n < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
-			server.delFromEpoll(epfd, fd);
-		}
-		return;
-	}
+    char buf[1024];
+    ssize_t n = read(fd, buf, sizeof(buf));
 
-	req.request_buffer.insert(req.request_buffer.end(), buf, buf + n);
+    if (n == 0)
+	{
+        // Client disconnected
+        std::cerr << "Client disconnected on fd: " << fd << std::endl;
+        server.delFromEpoll(epfd, fd);
+        return;
+    }
 
-	if (req.request_buffer.size() > 4) {
-		std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
-		if (req_str.find("\r\n\r\n") != std::string::npos) {
-			server.getRequestHandler()->parseRequest(req);
-		}
-	}
+    if (n < 0)
+	{
+        if (errno != EAGAIN && errno != EWOULDBLOCK)
+		{
+            perror("read");
+            server.delFromEpoll(epfd, fd);
+        }
+        return;
+    }
+
+    const size_t MAX_REQUEST_SIZE = 8192;
+    if (req.request_buffer.size() + n > MAX_REQUEST_SIZE)
+	{
+        std::cerr << "Request too large for fd: " << fd << std::endl;
+        server.delFromEpoll(epfd, fd);
+        return;
+    }
+
+    req.request_buffer.insert(req.request_buffer.end(), buf, buf + n);
+
+    if (req.request_buffer.size() > 4)
+	{
+        std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
+        size_t headers_end = req_str.find("\r\n\r\n");
+
+        if (headers_end != std::string::npos)
+		{
+            try
+			{
+                server.getRequestHandler()->parseRequest(req);
+            }
+			catch (const std::exception &e)
+			{
+                std::cerr << "Error parsing request on fd: " << fd << " - " << e.what() << std::endl;
+                server.delFromEpoll(epfd, fd);
+            }
+        }
+    }
 }
+
 
 constexpr std::chrono::seconds RequestState::TIMEOUT_DURATION;
 
@@ -66,24 +104,16 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 			req.last_activity = now;
 
 			if (req.response_buffer.empty())
-			{
 				server.delFromEpoll(epfd, fd);
-			}
 			else
-			{
 				server.modEpoll(epfd, fd, EPOLLOUT);
-			}
 		}
 		else if (n < 0)
 		{
 			if (errno != EAGAIN && errno != EWOULDBLOCK)
-			{
 				server.delFromEpoll(epfd, fd);
-			}
 			else
-			{
 				server.modEpoll(epfd, fd, EPOLLOUT);
-			}
 		}
 	}
 }
