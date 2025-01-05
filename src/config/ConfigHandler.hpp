@@ -9,9 +9,11 @@
 #  define LOCATION_OPTS "methods,return,root,autoindex,default_file,cgi,cgi_param,upload_store,client_max_body_size"
 # endif
 
+
 #include "../main.hpp"
 
 struct ServerBlock;
+
 
 class ConfigHandler {
 private:
@@ -24,14 +26,16 @@ private:
 	std::string locBlockTar;
 	std::vector<ServerBlock> registeredServerConfs;
 
+	bool sanitizeConfData(void);
+	bool parseConfigContent(std::string filename);
+
 public:
 	ConfigHandler();
 	~ConfigHandler();
+
 	void parseLine(std::string line);
-	void parseArgs(int argc, char **argv, char **envp);
 	bool isConfigFile(const std::string& filepath);
-	bool sanitizeConfData(void);
-	bool parseConfigContent(std::string filename);
+	void parseArgs(int argc, char **argv, char **envp);
 	bool getconfigFileValid(void) const;
 	void printRegisteredConfs(std::string filename, std::string pwd);
 	std::vector<ServerBlock> get_registeredServerConfs(void) const;
