@@ -79,51 +79,92 @@ bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev)
 
 void Server::finalizeCgiResponse(RequestState &req, int epoll_fd, int client_fd)
 {
-	std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
+    std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
+    size_t header_end = output.find("\r\n\r\n");
+    std::string response;
 
-	size_t header_end = output.find("\r\n\r\n");
-	std::string response;
-	if (header_end != std::string::npos &&
-		(output.find("Content-type:") != std::string::npos ||
-		 output.find("Content-Type:") != std::string::npos))
-	{
-		std::string headers = output.substr(0, header_end);
-		std::string body    = output.substr(header_end + 4);
+    // Baue die Response basierend auf CGI-Output
+    if (header_end != std::string::npos &&
+        (output.find("Content-type:") != std::string::npos ||
+         output.find("Content-Type:") != std::string::npos))
+    {
+        std::string headers = output.substr(0, header_end);
+        std::string body = output.substr(header_end + 4);
 
-		response  = "HTTP/1.1 200 OK\r\n";
-		if (headers.find("Content-Length:") == std::string::npos)
-			response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
-		if (headers.find("Connection:") == std::string::npos)
-			response += "Connection: close\r\n";
-		response += headers + "\r\n" + body;
-	}
-	else
-	{
-		response =
-			"HTTP/1.1 200 OK\r\n"
-			"Content-Type: text/html\r\n"
-			"Content-Length: " + std::to_string(output.size()) + "\r\n"
-			"Connection: close\r\n\r\n" + output;
-	}
+        response = "HTTP/1.1 200 OK\r\n";
+        if (headers.find("Content-Length:") == std::string::npos)
+            response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
+        if (headers.find("Connection:") == std::string::npos)
+            response += "Connection: close\r\n";
+        response += headers + "\r\n" + body;
+    }
+    else
+    {
+        response = "HTTP/1.1 200 OK\r\n"
+                  "Content-Type: text/html\r\n"
+                  "Content-Length: " + std::to_string(output.size()) + "\r\n"
+                  "Connection: close\r\n\r\n" + output;
+    }
 
-	req.response_buffer.assign(response.begin(), response.end());
-	req.state = RequestState::STATE_SENDING_RESPONSE;
-	modEpoll(epoll_fd, client_fd, EPOLLOUT);
+    // Überprüfe die Größe der finalen Response
+    if (response.length() > req.response_buffer.max_size())
+    {
+        // Wenn die Response zu groß ist, sende eine Fehlermeldung
+        std::string error_response =
+            "HTTP/1.1 500 Internal Server Error\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 26\r\n"
+            "Connection: close\r\n\r\n"
+            "CGI response too large.";
+
+        req.response_buffer.clear();
+        req.response_buffer.insert(req.response_buffer.begin(),
+                                 error_response.begin(),
+                                 error_response.end());
+    }
+    else
+    {
+        // Sichere Zuweisung der Response
+        req.response_buffer.clear();
+        req.response_buffer.insert(req.response_buffer.begin(),
+                                 response.begin(),
+                                 response.end());
+    }
+
+    req.state = RequestState::STATE_SENDING_RESPONSE;
+    modEpoll(epoll_fd, client_fd, EPOLLOUT);
 }
 
 bool Server::processMethod(RequestState &req, int epoll_fd)
 {
-	if (req.request_buffer.empty())
-		return true;
+    if (req.request_buffer.empty())
+        return true;
 
-	std::string method = requestHandler->getMethod(req.request_buffer);
-	if (!isMethodAllowed(req, method))
-	{
-		std::string response = getErrorHandler()->generateErrorResponse(405, "Method Not Allowed", req);
-		req.response_buffer.assign(response.begin(), response.end());
-		req.state = RequestState::STATE_SENDING_RESPONSE;
-		modEpoll(epoll_fd, req.client_fd, EPOLLOUT);
-		return false;
-	}
-	return true;
+    std::string method = requestHandler->getMethod(req.request_buffer);
+    if (!isMethodAllowed(req, method))
+    {
+        std::string error_response = getErrorHandler()->generateErrorResponse(405, "Method Not Allowed", req);
+
+        // Überprüfe die Größe der Error-Response
+        if (error_response.length() > req.response_buffer.max_size())
+        {
+            // Fallback zu einer minimalen Error-Response
+            error_response =
+                "HTTP/1.1 405 Method Not Allowed\r\n"
+                "Content-Type: text/plain\r\n"
+                "Content-Length: 18\r\n"
+                "Connection: close\r\n\r\n"
+                "Method not allowed.";
+        }
+
+        req.response_buffer.clear();
+        req.response_buffer.insert(req.response_buffer.begin(),
+                                 error_response.begin(),
+                                 error_response.end());
+
+        req.state = RequestState::STATE_SENDING_RESPONSE;
+        modEpoll(epoll_fd, req.client_fd, EPOLLOUT);
+        return false;
+    }
+    return true;
 }
