@@ -5,27 +5,52 @@ RequestHandler::RequestHandler(Server& _server)
 
 bool RequestHandler::checkRedirect(RequestState &req, std::stringstream *response)
 {
-	const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
-	if (!loc || loc->return_code.empty() || loc->return_url.empty())
-		return false;
+    const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
+    if (!loc || loc->return_code.empty() || loc->return_url.empty())
+        return false;
 
-	// Baue Redirect Response
-	*response << "HTTP/1.1 " << loc->return_code << " ";
+    // Generiere zuerst den kompletten Response-String
+    std::stringstream redirect_response;
+    redirect_response << "HTTP/1.1 " << loc->return_code << " ";
 
-	// Passende Status Messages
-	if (loc->return_code == "301")
-		*response << "Moved Permanently";
-	else if (loc->return_code == "302")
-		*response << "Found";
+    if (loc->return_code == "301")
+        redirect_response << "Moved Permanently";
+    else if (loc->return_code == "302")
+        redirect_response << "Found";
 
-	*response << "\r\n";
-	*response << "Location: " << loc->return_url << "\r\n";
-	*response << "Content-Length: 0\r\n";
-	*response << "\r\n";
+    redirect_response << "\r\n"
+                     << "Location: " << loc->return_url << "\r\n"
+                     << "Content-Length: 0\r\n";
 
-	std::string response_str = response->str();
-	req.response_buffer.assign(response_str.begin(), response_str.end());
-	return true;
+    if (!req.cookie_header.empty())
+        redirect_response << "Set-Cookie: " << req.cookie_header << "\r\n";
+
+    redirect_response << "\r\n";
+
+    std::string response_str = redirect_response.str();
+
+    // Überprüfe die Größe vor dem Zuweisen
+    if (response_str.length() > req.response_buffer.max_size())
+    {
+        // Wenn die Redirect-Response zu groß ist, sende eine kürzere Fehlerantwort
+        std::stringstream error_response;
+        buildErrorResponse(500, "Redirect response too large", &error_response, req);
+        req.response_buffer.clear();
+        req.response_buffer.assign(error_response.str().begin(), error_response.str().end());
+    }
+    else
+    {
+        // Sicheres Zuweisen der Response
+        req.response_buffer.clear();
+        req.response_buffer.insert(req.response_buffer.begin(),
+                                 response_str.begin(),
+                                 response_str.end());
+    }
+
+    // Kopiere die Response auch in den übergebenen stringstream
+    *response = std::move(redirect_response);
+
+    return true;
 }
 
 const Location* RequestHandler::findMatchingLocation(const ServerBlock* conf, const std::string& path)

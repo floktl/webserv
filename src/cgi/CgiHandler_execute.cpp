@@ -125,87 +125,128 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events)
 
 void CgiHandler::handleCGIRead(int epfd, int fd)
 {
-	Logger::file("=== CGI Read Debug Start ===");
+    Logger::file("=== CGI Read Debug Start ===");
 
-	auto tunnel_it = fd_to_tunnel.find(fd);
-	if (tunnel_it == fd_to_tunnel.end() || !tunnel_it->second)
-	{
-		Logger::file("Invalid tunnel");
-		return;
-	}
+    auto tunnel_it = fd_to_tunnel.find(fd);
+    if (tunnel_it == fd_to_tunnel.end() || !tunnel_it->second)
+    {
+        Logger::file("Invalid tunnel");
+        return;
+    }
 
-	CgiTunnel* tunnel = tunnel_it->second;
-	auto req_it = server.getGlobalFds().request_state_map.find(tunnel->client_fd);
-	if (req_it == server.getGlobalFds().request_state_map.end())
-	{
-		Logger::file("Invalid request state");
-		return;
-	}
-	RequestState &req = req_it->second;
+    CgiTunnel* tunnel = tunnel_it->second;
+    auto req_it = server.getGlobalFds().request_state_map.find(tunnel->client_fd);
+    if (req_it == server.getGlobalFds().request_state_map.end())
+    {
+        Logger::file("Invalid request state");
+        return;
+    }
+    RequestState &req = req_it->second;
 
-	char buf[4096];
-	Logger::file("Starting read loop");
-	ssize_t n;
-	while ((n = read(fd, buf, sizeof(buf))) > 0)
-	{
-		Logger::file("Read chunk: " + std::to_string(n) + " bytes");
-		Logger::file("Content: " + std::string(buf, n));
-		req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
-	}
-	Logger::file("Read loop ended with n=" + std::to_string(n));
+    const size_t chunk_size = 4096;
+    char buf[chunk_size];
+    Logger::file("Starting read loop");
+    ssize_t n;
 
-	if (n == 0)
-	{
-		std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-		Logger::file("Complete CGI output: " + output);
+    while ((n = read(fd, buf, chunk_size)) > 0)
+    {
+        Logger::file("Read chunk: " + std::to_string(n) + " bytes");
 
-		size_t header_end = output.find("\r\n\r\n");
-		if (header_end == std::string::npos)
-		{
-			Logger::file("No headers found");
-			header_end = 0;
-		}
+        // Überprüfe, ob genügend Platz im Buffer vorhanden ist
+        if (req.cgi_output_buffer.size() + n > req.cgi_output_buffer.max_size())
+        {
+            Logger::file("CGI output too large");
+            std::string error_response = "HTTP/1.1 500 Internal Server Error\r\n"
+                                       "Content-Type: text/html\r\n"
+                                       "Content-Length: 26\r\n\r\n"
+                                       "CGI output exceeds limits.";
+            req.response_buffer.clear();
+            req.response_buffer.insert(req.response_buffer.begin(),
+                                     error_response.begin(),
+                                     error_response.end());
+            req.state = RequestState::STATE_SENDING_RESPONSE;
+            server.modEpoll(epfd, tunnel->client_fd, EPOLLOUT);
+            cleanup_tunnel(*tunnel);
+            return;
+        }
 
-		std::string cgi_headers = header_end > 0 ? output.substr(0, header_end) : "";
-		std::string cgi_body = header_end > 0 ? output.substr(header_end + 4) : output;
+        req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
+        Logger::file("Buffer size after insert: " + std::to_string(req.cgi_output_buffer.size()));
+    }
+    Logger::file("Read loop ended with n=" + std::to_string(n));
 
-		Logger::file("CGI Headers: " + cgi_headers);
-		Logger::file("CGI Body length: " + std::to_string(cgi_body.length()));
+    if (n == 0)
+    {
+        std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
+        Logger::file("Complete CGI output: " + output);
 
-		std::string response;
-		if (!cgi_headers.empty() && cgi_headers.find("Location:") != std::string::npos)
-		{
-			Logger::file("Redirect detected, creating 302 response");
-			response = "HTTP/1.1 302 Found\r\n" + cgi_headers + "\r\n\r\n";
-		}
-		else
-		{
-			Logger::file("Normal response");
-			response = "HTTP/1.1 200 OK\r\n";
-			response += "Content-Length: " + std::to_string(cgi_body.length()) + "\r\n";
-			response += "Connection: close\r\n";
+        size_t header_end = output.find("\r\n\r\n");
+        if (header_end == std::string::npos)
+        {
+            Logger::file("No headers found");
+            header_end = 0;
+        }
 
-			if (!cgi_headers.empty())
-				response += cgi_headers + "\r\n";
-			else
-				response += "Content-Type: text/html\r\n";
-			response += "\r\n" + cgi_body;
-		}
+        std::string cgi_headers = header_end > 0 ? output.substr(0, header_end) : "";
+        std::string cgi_body = header_end > 0 ? output.substr(header_end + 4) : output;
 
-		Logger::file("Final response headers: " + response.substr(0, response.find("\r\n\r\n")));
-		req.response_buffer.assign(response.begin(), response.end());
-		req.state = RequestState::STATE_SENDING_RESPONSE;
-		server.modEpoll(epfd, tunnel->client_fd, EPOLLOUT);
-		Logger::file("Response queued for sending");
+        Logger::file("CGI Headers: " + cgi_headers);
+        Logger::file("CGI Body length: " + std::to_string(cgi_body.length()));
 
-		cleanup_tunnel(*tunnel);
-	}
-	else if (n < 0)
-	{
-		Logger::file("Read error: " + std::string(strerror(errno)));
-		if (errno != EAGAIN && errno != EWOULDBLOCK)
-			cleanup_tunnel(*tunnel);
-	}
+        std::string response;
+        if (!cgi_headers.empty() && cgi_headers.find("Location:") != std::string::npos)
+        {
+            Logger::file("Redirect detected, creating 302 response");
+            response = "HTTP/1.1 302 Found\r\n" + cgi_headers + "\r\n\r\n";
+        }
+        else
+        {
+            Logger::file("Normal response");
+            response = "HTTP/1.1 200 OK\r\n";
+            response += "Content-Length: " + std::to_string(cgi_body.length()) + "\r\n";
+            response += "Connection: close\r\n";
 
-	Logger::file("=== CGI Read Debug End ===");
+            if (!cgi_headers.empty())
+                response += cgi_headers + "\r\n";
+            else
+                response += "Content-Type: text/html\r\n";
+            response += "\r\n" + cgi_body;
+        }
+
+        Logger::file("Final response size: " + std::to_string(response.length()));
+
+        // Überprüfe die finale Response-Größe
+        if (response.length() > req.response_buffer.max_size())
+        {
+            Logger::file("Final response too large");
+            std::string error_response = "HTTP/1.1 500 Internal Server Error\r\n"
+                                       "Content-Type: text/html\r\n"
+                                       "Content-Length: 26\r\n\r\n"
+                                       "Response exceeds limits.";
+            req.response_buffer.clear();
+            req.response_buffer.insert(req.response_buffer.begin(),
+                                     error_response.begin(),
+                                     error_response.end());
+        }
+        else
+        {
+            Logger::file("Final response headers: " + response.substr(0, response.find("\r\n\r\n")));
+            req.response_buffer.clear();
+            req.response_buffer.insert(req.response_buffer.begin(), response.begin(), response.end());
+        }
+
+        req.state = RequestState::STATE_SENDING_RESPONSE;
+        server.modEpoll(epfd, tunnel->client_fd, EPOLLOUT);
+        Logger::file("Response queued for sending");
+
+        cleanup_tunnel(*tunnel);
+    }
+    else if (n < 0)
+    {
+        Logger::file("Read error: " + std::string(strerror(errno)));
+        if (errno != EAGAIN && errno != EWOULDBLOCK)
+            cleanup_tunnel(*tunnel);
+    }
+
+    Logger::file("=== CGI Read Debug End ===");
 }
