@@ -6,7 +6,6 @@ void RequestHandler::parseRequest(RequestState &req)
 	size_t header_end = request.find("\r\n\r\n");
 	if (header_end == std::string::npos)
 		return;
-	std::cout << "test" << std::endl;
 	std::string headers = request.substr(0, header_end);
 	std::istringstream header_stream(headers);
 	std::string requestLine;
