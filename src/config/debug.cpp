@@ -74,6 +74,70 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 		}
 	};
 
+	// Spezialisierte Funktion für Größenangaben (konvertiert in K, M, G)
+	auto printSize = [](long& value, const std::string& label,
+					const std::string& default_value = "1m", int padding = 30) {
+		Logger::white(label, false, padding);
+
+		auto formatSize = [](long size) -> std::string {
+			const long K = 1024L;
+			const long M = K * 1024L;
+			const long G = M * 1024L;
+
+			if (size >= G) {
+				return std::to_string(size / G) + "G";
+			} else if (size >= M) {
+				return std::to_string(size / M) + "M";
+			} else if (size >= K) {
+				return std::to_string(size / K) + "K";
+			}
+			return std::to_string(size);
+		};
+
+		auto parseSize = [](const std::string& sizeStr) -> long {
+			if (sizeStr.empty()) return 0;
+
+			// Extract numeric part and unit part
+			std::string numStr = sizeStr;
+			std::string unit;
+
+			for (size_t i = 0; i < sizeStr.length(); ++i) {
+				if (!std::isdigit(sizeStr[i])) {
+					numStr = sizeStr.substr(0, i);
+					unit = sizeStr.substr(i);
+					break;
+				}
+			}
+
+			long size;
+			try {
+				size = std::stol(numStr);
+			} catch (...) {
+				return 0;
+			}
+
+			// Convert unit to uppercase for comparison
+			std::transform(unit.begin(), unit.end(), unit.begin(), ::toupper);
+
+			if (unit == "K" || unit == "KB") return size * 1024L;
+			if (unit == "M" || unit == "MB") return size * 1024L * 1024L;
+			if (unit == "G" || unit == "GB") return size * 1024L * 1024L * 1024L;
+
+			return size;
+		};
+
+		if (value == 0) {
+			if (default_value.empty()) {
+				Logger::black("[undefined]");
+			} else {
+				value = parseSize(default_value);
+				Logger::black("[undefined (default: " + default_value + ")]");
+			}
+		} else {
+			Logger::yellow(formatSize(value));
+		}
+	};
+
 	for (size_t i = 0; i < registeredServerConfs.size(); ++i) {
 		ServerBlock& conf = registeredServerConfs[i];
 		Logger::blue("\n  Server Block [" + std::to_string(i + 1) + "]:\n");
@@ -82,6 +146,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 		printValue(conf.name, "    Server Name: ", "localhost");
 		printValue(conf.root, "    Root: ", "/usr/share/nginx/html");
 		printValue(conf.index, "    Index: ", "index.html");
+		printSize(conf.client_max_body_size, "    Client Max Body Size: ", "1m");
 
 		// combined staged error page logic
 		if (conf.errorPages.empty()) {
@@ -124,7 +189,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 				printValue(location.default_file, "      Default File: ");
 				printValue(location.upload_store, "      Upload Store: ");
 				printValue(location.root, "      Root: ", conf.root);
-				printValue(location.client_max_body_size, "      Client Max Body Size: ", "1m");
+				printSize(location.client_max_body_size, "      Client Max Body Size: ", "1m");
 			}
 		}
 	}
