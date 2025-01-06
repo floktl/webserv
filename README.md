@@ -109,7 +109,6 @@ Let your server handle the web like a pro!
 | autoindex | ❌ No | off | directory listing |
 | default_file | ❌ No | value of index directive | default file for this location block |
 | cgi | ❌ No | - | Enable CGI processing |
-| cgi_param | ❌ No | - | Set CGI parameters |
 | upload_store | ❌ No | - | Storage location for file uploads |
 | client_max_body_size | ❌ No | Server block value | Maximum request size for location |
 
