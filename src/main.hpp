@@ -36,7 +36,7 @@
 #include <iomanip>
 #include <system_error>
 #include <sstream>
-
+#include <deque>
 #include "./structs/webserv.hpp"
 #include "./config/ConfigHandler.hpp"
 #include "./utils/Logger.hpp"

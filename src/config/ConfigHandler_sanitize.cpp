@@ -141,8 +141,11 @@ bool ConfigHandler::sanitizeConfData(void)
 				return false;
 			}
 
-			if (!loc.upload_store.empty() &&
-				!Sanitizer::sanitize_locationUploadStore(loc.upload_store, expandEnvironmentVariables("$PWD", env))) {
+			if (!Sanitizer::sanitize_locationUploadStore(
+					loc.upload_store,
+					expandEnvironmentVariables("$PWD", env),
+					registeredServerConfs[i].root,
+					loc.root)) {
 				configFileValid = false;
 				return false;
 			}
@@ -150,12 +153,6 @@ bool ConfigHandler::sanitizeConfData(void)
 
 			if (!loc.cgi.empty() &&
 				!Sanitizer::sanitize_locationCgi(loc.cgi, loc.cgi_filetype, expandEnvironmentVariables("$PWD", env))) {
-				configFileValid = false;
-				return false;
-			}
-
-			if (!loc.cgi_param.empty() &&
-				!Sanitizer::sanitize_locationCgiParam(loc.cgi_param)) {
 				configFileValid = false;
 				return false;
 			}
