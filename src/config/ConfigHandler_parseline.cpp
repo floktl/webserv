@@ -183,6 +183,14 @@ void ConfigHandler::parseLine(std::string line)
 					return;
 				}
 			}
+		} else if (keyword == "client_max_body_size") {
+			long size = Sanitizer::parseSize(value, "M");
+			if (size == -1) {
+				Logger::error("Error: Invalid client_max_body_size at line " + std::to_string(linecount));
+				parsingErr = true;
+				return;
+			}
+			registeredServerConfs.back().client_max_body_size = size;
 		}
 	}
 	else {
@@ -245,6 +253,14 @@ void ConfigHandler::parseLine(std::string line)
 				parsingErr = true;
 				return;
 			}
+		} else if (keyword == "client_max_body_size") {
+			long size = Sanitizer::parseSize(value, "M"); // Standard-Einheit setzen, falls nicht angegeben
+			if (size == -1) {
+				Logger::error("Error: Invalid client_max_body_size at line " + std::to_string(linecount));
+				parsingErr = true;
+				return;
+			}
+			currentLocation.client_max_body_size = size;
 		}
 	}
 }

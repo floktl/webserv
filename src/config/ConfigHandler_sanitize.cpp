@@ -45,6 +45,14 @@ bool ConfigHandler::sanitizeConfData(void)
 			return false;
 		}
 
+		if (registeredServerConfs[i].client_max_body_size == 0) {
+			registeredServerConfs[i].client_max_body_size = 1048576;
+		} else if (!Sanitizer::sanitize_clMaxBodSize(registeredServerConfs[i].client_max_body_size)) {
+			Logger::red("Invalid client_max_body_size for server block " + std::to_string(i + 1));
+			configFileValid = false;
+			return false;
+		}
+
 		// errorPages - now handled as a map
 		for (size_t j = 0; j < registeredServerConfs.size(); ++j) {
 			ServerBlock& conf = registeredServerConfs[j];
@@ -139,11 +147,6 @@ bool ConfigHandler::sanitizeConfData(void)
 				return false;
 			}
 
-			if (!loc.client_max_body_size.empty() &&
-				!Sanitizer::sanitize_locationClMaxBodSize(loc.client_max_body_size)) {
-				configFileValid = false;
-				return false;
-			}
 
 			if (!loc.cgi.empty() &&
 				!Sanitizer::sanitize_locationCgi(loc.cgi, loc.cgi_filetype, expandEnvironmentVariables("$PWD", env))) {
@@ -155,6 +158,20 @@ bool ConfigHandler::sanitizeConfData(void)
 				!Sanitizer::sanitize_locationCgiParam(loc.cgi_param)) {
 				configFileValid = false;
 				return false;
+			}
+
+			if (loc.client_max_body_size == 0) {
+				loc.client_max_body_size = registeredServerConfs[i].client_max_body_size;
+			} else {
+				if (!Sanitizer::sanitize_clMaxBodSize(loc.client_max_body_size)) {
+					Logger::red("Invalid client_max_body_size for location in server block " + std::to_string(i + 1));
+					configFileValid = false;
+					return false;
+				}
+			}
+
+			if (loc.client_max_body_size == 0) {
+				loc.client_max_body_size = 1048576;
 			}
 		}
 	}
