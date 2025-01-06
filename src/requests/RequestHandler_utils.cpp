@@ -43,8 +43,8 @@ bool RequestHandler::checkRedirect(RequestState &req, std::stringstream *respons
         // Sicheres Zuweisen der Response
         req.response_buffer.clear();
         req.response_buffer.insert(req.response_buffer.begin(),
-                                 response_str.begin(),
-                                 response_str.end());
+								response_str.begin(),
+								response_str.end());
     }
 
     // Kopiere die Response auch in den übergebenen stringstream

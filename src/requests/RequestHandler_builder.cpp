@@ -10,18 +10,15 @@ void RequestHandler::buildResponse(RequestState &req)
     const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
     std::string method = getMethod(req.request_buffer);
 
-    if (method == "POST")
-	{
+    if (method == "POST")	{
         handlePostRequest(req);
         return;
     }
 
-    if (method == "DELETE")
-	{
+    if (method == "DELETE")	{
         handleDeleteRequest(req);
         return;
     }
-
     handleOtherRequests(req, loc);
 }
 
@@ -50,12 +47,12 @@ void RequestHandler::handlePostRequest(RequestState &req)
                 std::ofstream outFile(filename, std::ios::binary);
                 if (outFile.is_open())
                 {
-                    const size_t chunk_size = 4096;
+                    const size_t chunk_size_post = 4096;
                     const char* data = request.data() + fileStart;
                     size_t remaining = fileEnd - fileStart;
 
                     while (remaining > 0) {
-                        size_t write_size = std::min(remaining, chunk_size);
+                        size_t write_size = std::min(remaining, chunk_size_post);
                         outFile.write(data, write_size);
                         data += write_size;
                         remaining -= write_size;
@@ -72,12 +69,16 @@ void RequestHandler::handlePostRequest(RequestState &req)
     headers += "Location: /\r\n\r\n";
 
     req.response_buffer.clear();
-    if (headers.length() <= req.response_buffer.max_size()) {
-        req.response_buffer.insert(req.response_buffer.end(), headers.begin(), headers.end());
-    } else {
-        std::stringstream error_stream;
-        buildErrorResponse(500, "Response too large", &error_stream, req);
-        req.response_buffer.assign(error_stream.str().begin(), error_stream.str().end());
+
+    std::string headers_data = headers;
+    size_t chunk_size_headers = 64;
+    size_t total_size_headers = headers_data.size();
+
+    for (size_t i = 0; i < total_size_headers; i += chunk_size_headers) {
+        size_t length = std::min(chunk_size_headers, total_size_headers - i);
+        req.response_buffer.insert(req.response_buffer.end(),
+                                   headers_data.begin() + i,
+                                   headers_data.begin() + i + length);
     }
 }
 
@@ -87,7 +88,18 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
     {
         std::stringstream response;
         buildErrorResponse(404, "Not Found", &response, req);
-        req.response_buffer.assign(response.str().begin(), response.str().end());
+
+        std::string response_data = response.str();
+        size_t chunk_size_delete = 64;
+        size_t total_size_delete = response_data.size();
+
+        req.response_buffer.clear();
+        for (size_t i = 0; i < total_size_delete; i += chunk_size_delete) {
+            size_t length = std::min(chunk_size_delete, total_size_delete - i);
+            req.response_buffer.insert(req.response_buffer.end(),
+                                       response_data.begin() + i,
+                                       response_data.begin() + i + length);
+        }
         return;
     }
 
@@ -95,7 +107,18 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
     {
         std::stringstream response;
         buildErrorResponse(500, "Internal Server Error", &response, req);
-        req.response_buffer.assign(response.str().begin(), response.str().end());
+
+        std::string response_data = response.str();
+        size_t chunk_size_delete_err = 64;
+        size_t total_size_delete_err = response_data.size();
+
+        req.response_buffer.clear();
+        for (size_t i = 0; i < total_size_delete_err; i += chunk_size_delete_err) {
+            size_t length = std::min(chunk_size_delete_err, total_size_delete_err - i);
+            req.response_buffer.insert(req.response_buffer.end(),
+                                       response_data.begin() + i,
+                                       response_data.begin() + i + length);
+        }
         return;
     }
 
@@ -105,12 +128,16 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
     headers += "\r\n";
 
     req.response_buffer.clear();
-    if (headers.length() <= req.response_buffer.max_size()) {
-        req.response_buffer.insert(req.response_buffer.end(), headers.begin(), headers.end());
-    } else {
-        std::stringstream error_stream;
-        buildErrorResponse(500, "Response too large", &error_stream, req);
-        req.response_buffer.assign(error_stream.str().begin(), error_stream.str().end());
+
+    std::string headers_data = headers;
+    size_t chunk_size_no_content = 64;
+    size_t total_size_no_content = headers_data.size();
+
+    for (size_t i = 0; i < total_size_no_content; i += chunk_size_no_content) {
+        size_t length = std::min(chunk_size_no_content, total_size_no_content - i);
+        req.response_buffer.insert(req.response_buffer.end(),
+                                   headers_data.begin() + i,
+                                   headers_data.begin() + i + length);
     }
 }
 
@@ -123,8 +150,19 @@ void RequestHandler::handleOtherRequests(RequestState &req, const Location* loc)
         if (loc && loc->doAutoindex)
             buildAutoindexResponse(&response, req);
         else
-            buildErrorResponse(404, "Directory listing not allowed", &response, req);
-        req.response_buffer.assign(response.str().begin(), response.str().end());
+            buildErrorResponse(404, "Not found", &response, req);
+
+        std::string response_data = response.str();
+        size_t chunk_size_dir = 64;
+        size_t total_size_dir = response_data.size();
+
+        req.response_buffer.clear();
+        for (size_t i = 0; i < total_size_dir; i += chunk_size_dir) {
+            size_t length = std::min(chunk_size_dir, total_size_dir - i);
+            req.response_buffer.insert(req.response_buffer.end(),
+                                       response_data.begin() + i,
+                                       response_data.begin() + i + length);
+        }
     }
     else
     {
@@ -142,14 +180,24 @@ void RequestHandler::handleOtherRequests(RequestState &req, const Location* loc)
             headers += "Content-Length: " + std::to_string(file_size) + "\r\n\r\n";
 
             req.response_buffer.clear();
-            req.response_buffer.insert(req.response_buffer.end(), headers.begin(), headers.end());
 
-            const size_t chunk_size = 4096;
-            char chunk[chunk_size];
+            std::string headers_data = headers;
+            size_t chunk_size_headers_file = 64;
+            size_t total_size_headers_file = headers_data.size();
+
+            for (size_t i = 0; i < total_size_headers_file; i += chunk_size_headers_file) {
+                size_t length = std::min(chunk_size_headers_file, total_size_headers_file - i);
+                req.response_buffer.insert(req.response_buffer.end(),
+                                           headers_data.begin() + i,
+                                           headers_data.begin() + i + length);
+            }
+
+            const size_t file_chunk_size = 4096;
+            char chunk[file_chunk_size];
 
             while (!file.eof() && file.good())
             {
-                file.read(chunk, chunk_size);
+                file.read(chunk, file_chunk_size);
                 std::streamsize bytes_read = file.gcount();
                 if (bytes_read > 0)
                 {
@@ -158,9 +206,21 @@ void RequestHandler::handleOtherRequests(RequestState &req, const Location* loc)
                         file.close();
                         std::stringstream error_stream;
                         buildErrorResponse(500, "Response too large", &error_stream, req);
-                        req.response_buffer.assign(error_stream.str().begin(), error_stream.str().end());
+
+                        std::string response_data = error_stream.str();
+                        size_t chunk_size_large_response = 64;
+                        size_t total_size_large_response = response_data.size();
+
+                        req.response_buffer.clear();
+                        for (size_t i = 0; i < total_size_large_response; i += chunk_size_large_response) {
+                            size_t length = std::min(chunk_size_large_response, total_size_large_response - i);
+                            req.response_buffer.insert(req.response_buffer.end(),
+                                                       response_data.begin() + i,
+                                                       response_data.begin() + i + length);
+                        }
                         return;
                     }
+
                     req.response_buffer.insert(req.response_buffer.end(), chunk, chunk + bytes_read);
                 }
             }
@@ -170,7 +230,18 @@ void RequestHandler::handleOtherRequests(RequestState &req, const Location* loc)
         {
             std::stringstream response;
             buildErrorResponse(404, "File Not Found", &response, req);
-            req.response_buffer.assign(response.str().begin(), response.str().end());
+
+            std::string response_data = response.str();
+            size_t chunk_size_file_not_found = 64;
+            size_t total_size_file_not_found = response_data.size();
+
+            req.response_buffer.clear();
+            for (size_t i = 0; i < total_size_file_not_found; i += chunk_size_file_not_found) {
+                size_t length = std::min(chunk_size_file_not_found, total_size_file_not_found - i);
+                req.response_buffer.insert(req.response_buffer.end(),
+                                           response_data.begin() + i,
+                                           response_data.begin() + i + length);
+            }
         }
     }
 }
