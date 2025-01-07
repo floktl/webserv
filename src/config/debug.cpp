@@ -147,6 +147,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 		printValue(conf.root, "    Root: ", "/usr/share/nginx/html");
 		printValue(conf.index, "    Index: ", "index.html");
 		printSize(conf.client_max_body_size, "    Client Max Body Size: ", "1m");
+		printIntValue(conf.timeout, "    Timeout: ", 30);
 
 		// combined staged error page logic
 		if (conf.errorPages.empty()) {

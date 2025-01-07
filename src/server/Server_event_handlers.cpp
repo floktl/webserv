@@ -119,10 +119,8 @@ void Server::finalizeCgiResponse(RequestState &req, int epoll_fd, int client_fd)
 				"Connection: close\r\n\r\n" + output;
 	}
 
-	// Überprüfe die Größe der finalen Response
 	if (response.length() > req.response_buffer.max_size())
 	{
-		// Wenn die Response zu groß ist, sende eine Fehlermeldung
 		std::string error_response =
 			"HTTP/1.1 500 Internal Server Error\r\n"
 			"Content-Type: text/html\r\n"
@@ -137,12 +135,13 @@ void Server::finalizeCgiResponse(RequestState &req, int epoll_fd, int client_fd)
 	}
 	else
 	{
-		// Sichere Zuweisung der Response
 		req.response_buffer.clear();
 		req.response_buffer.insert(req.response_buffer.begin(),
 								response.begin(),
 								response.end());
 	}
+
+	getTaskManager()->sendTaskStatusUpdate(client_fd, RequestState::COMPLETED);  // Geändert
 
 	req.state = RequestState::STATE_SENDING_RESPONSE;
 	modEpoll(epoll_fd, client_fd, EPOLLOUT);

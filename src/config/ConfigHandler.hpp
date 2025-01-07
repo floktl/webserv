@@ -2,7 +2,7 @@
 # define CONFIGHANDLER_HPP
 
 # ifndef CONFIG_OPTS
-#  define CONFIG_OPTS "server,listen,server_name,root,index,error_page,location,client_max_body_size"
+#  define CONFIG_OPTS "server,listen,server_name,root,index,error_page,location,client_max_body_size, timeout"
 # endif
 
 # ifndef LOCATION_OPTS

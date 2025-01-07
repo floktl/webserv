@@ -16,20 +16,20 @@ void RequestHandler::handleTaskRequest(std::stringstream* response)
 
 void RequestHandler::handleStatusRequest(const std::string& taskId, std::stringstream* response)
 {
-	TaskManager* taskManager = server.getTaskManager(); // Access TaskManager via Server
+	TaskManager* taskManager = server.getTaskManager();
 	TaskManager::Task task = taskManager->getTaskStatus(taskId);
 
 	// Determine task status as a string
 	std::string status;
 	switch (task.status)
 	{
-		case TaskManager::PENDING:
+		case RequestState::PENDING:
 			status = "pending";
 			break;
-		case TaskManager::IN_PROGRESS:
+		case RequestState::IN_PROGRESS:
 			status = "in_progress";
 			break;
-		case TaskManager::COMPLETED:
+		case RequestState::COMPLETED:
 			status = "completed";
 			break;
 	}

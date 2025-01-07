@@ -1,6 +1,5 @@
 #include "ConfigHandler.hpp"
-// Parses a single line of the configuration file
-// Handles server blocks, location blocks, and their respective directives
+
 void ConfigHandler::parseLine(std::string line)
 {
 	static const std::vector<std::string> serverOpts =
@@ -15,16 +14,13 @@ void ConfigHandler::parseLine(std::string line)
 	keyword = trim(keyword);
 	line = trim(line);
 
-	// Skip comment lines
 	if (line.find("#") == 0)
 	{
 		return;
 	}
 
-	// Handle block opening
 	if (line.find("{") != std::string::npos)
 	{
-		// Prevent multiple scopes per line
 		if (line.find("}") != std::string::npos)
 		{
 			Logger::error("Error: at line " + std::to_string(linecount)
@@ -33,7 +29,6 @@ void ConfigHandler::parseLine(std::string line)
 			return;
 		}
 
-		// Handle server block opening
 		if (keyword == "server")
 		{
 			if (inServerBlock)
@@ -47,7 +42,6 @@ void ConfigHandler::parseLine(std::string line)
 			registeredServerConfs.push_back(ServerBlock());
 			return;
 		}
-		// Handle location block opening
 		else if (keyword == "location")
 		{
 			if (!inServerBlock || inLocationBlock)
@@ -191,6 +185,22 @@ void ConfigHandler::parseLine(std::string line)
 				return;
 			}
 			registeredServerConfs.back().client_max_body_size = size;
+		} else if (keyword == "timeout") {
+			try {
+				int timeout = std::stoi(value);
+				if (!Sanitizer::sanitize_timeout(timeout)) {
+					Logger::error("Error: Invalid timeout value at line " + std::to_string(linecount)
+						+ " (must be between 10 and 120 seconds)");
+					parsingErr = true;
+					return;
+				}
+				registeredServerConfs.back().timeout = timeout;
+			} catch (...) {
+				Logger::error("Error: Invalid timeout value at line "
+					+ std::to_string(linecount));
+				parsingErr = true;
+				return;
+			}
 		}
 	}
 	else {

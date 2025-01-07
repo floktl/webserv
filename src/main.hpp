@@ -54,7 +54,6 @@
 void printServerBlock(const ServerBlock& serverBlock);
 void printRequestState(const RequestState& req);
 
-//config_utils
 std::string trim(const std::string& str);
 std::vector<std::string> parseOptionsToVector(const std::string& opts);
 std::string expandEnvironmentVariables(const std::string& value, char** env);

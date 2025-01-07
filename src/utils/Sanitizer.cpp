@@ -355,6 +355,9 @@ bool Sanitizer::sanitize_locationClMaxBodSize(long locationClMaxBodSize) {
 	return sanitize_clMaxBodSize(locationClMaxBodSize);
 }
 
+bool Sanitizer::sanitize_timeout(int timeout) {
+	return (timeout >= 10 && timeout <= 120);
+}
 
 bool Sanitizer::sanitize_locationCgi(std::string& locationCgi, std::string& locationCgiFileType, const std::string& pwd) {
 	if (locationCgi.empty())
