@@ -38,6 +38,8 @@ struct ServerBlock
 	std::map				<int, std::string> errorPages;
 	long					client_max_body_size;
 	std::vector<Location>	locations;
+	int						timeout;
+	ServerBlock() : timeout(30) {}
 };
 
 struct RequestState

@@ -1,44 +1,7 @@
-<?php
-	// index.php
-
-	$dataDir = __DIR__ . '/data';
-	$names = [];
-	sleep(10);
-	// Create 'data' folder if it doesn't exist
-	if (!is_dir($dataDir)) {
-		mkdir($dataDir, 0777, true);
-	}
-
-	// Gather all name files
-	if (is_dir($dataDir)) {
-		$files = scandir($dataDir);
-		foreach ($files as $file) {
-			if (substr($file, -5) === '.name') {
-				$name = substr($file, 0, -5);
-				$age = trim(file_get_contents($dataDir . '/' . $file));
-				$names[] = ['name' => $name, 'age' => $age];
-			}
-		}
-	}
-
-	// Create folder for uploaded files
-	$filesDir = __DIR__ . '/files';
-	if (!is_dir($filesDir)) {
-		mkdir($filesDir, 0777, true);
-	}
-
-	// List already-uploaded files
-	$uploadedFiles = [];
-	$allFiles = scandir($filesDir);
-	foreach ($allFiles as $fl) {
-		if ($fl !== '.' && $fl !== '..') {
-			$uploadedFiles[] = $fl;
-		}
-	}
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Welcome to My PHP Page</title>
@@ -107,6 +70,44 @@
 	</style>
 </head>
 <body>
+<?php
+	// index.php
+
+	$dataDir = __DIR__ . '/data';
+	$names = [];
+	sleep(32);
+	// Create 'data' folder if it doesn't exist
+	if (!is_dir($dataDir)) {
+		mkdir($dataDir, 0777, true);
+	}
+
+	// Gather all name files
+	if (is_dir($dataDir)) {
+		$files = scandir($dataDir);
+		foreach ($files as $file) {
+			if (substr($file, -5) === '.name') {
+				$name = substr($file, 0, -5);
+				$age = trim(file_get_contents($dataDir . '/' . $file));
+				$names[] = ['name' => $name, 'age' => $age];
+			}
+		}
+	}
+
+	// Create folder for uploaded files
+	$filesDir = __DIR__ . '/files';
+	if (!is_dir($filesDir)) {
+		mkdir($filesDir, 0777, true);
+	}
+
+	// List already-uploaded files
+	$uploadedFiles = [];
+	$allFiles = scandir($filesDir);
+	foreach ($allFiles as $fl) {
+		if ($fl !== '.' && $fl !== '..') {
+			$uploadedFiles[] = $fl;
+		}
+	}
+?>
 	<header>
 		Welcome to My PHP Page
 	</header>

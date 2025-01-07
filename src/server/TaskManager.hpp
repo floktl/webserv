@@ -6,28 +6,35 @@
 #include <mutex>
 #include <thread>
 
-class TaskManager
-{
+class TaskManager {
 public:
-	enum TaskStatus { PENDING, IN_PROGRESS, COMPLETED };
-
 	struct Task {
 		std::string id;
-		TaskStatus status;
-		int progress; // 0 to 100
+		RequestState::Task status;
+		int progress;
+	};
+
+	struct TaskUpdate {
+		int client_fd;
+		RequestState::Task status;
 	};
 	TaskManager(Server& server);
+	~TaskManager();
+
+	int getPipeReadFd() const;
+
 	std::string createTask();
 	Task getTaskStatus(const std::string& taskId);
-	void processTask(int epoll_fd);
-
+	void processTask(int epoll_fd = -1);
+	void sendTaskStatusUpdate(int client_fd, RequestState::Task status);
 
 private:
 	std::map<std::string, Task> tasks;
 	std::mutex taskMutex;
-	Server &server;
+	Server& server;
+	int pipe_fd[2];
 
-	void updateTaskStatus(Task& task);
+	void handleTaskUpdates();
 };
 
 #endif

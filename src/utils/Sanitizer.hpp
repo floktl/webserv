@@ -20,6 +20,7 @@ class Sanitizer {
 		static bool sanitize_index(std::string& index);
 		static bool sanitize_errorPage(std::string& errorPage, const std::string& pwd);
 		static bool sanitize_clMaxBodSize(long clMaxBodSize);
+		static bool sanitize_timeout(int timeout);
 		static bool sanitize_locationPath(std::string& locationPath, const std::string& pwd);
 		static bool sanitize_locationMethods(std::string& locationMethods);
 		static bool sanitize_locationReturn(std::string& locationReturn);
