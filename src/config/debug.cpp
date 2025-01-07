@@ -182,7 +182,6 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 
 				printValue(location.methods, "      Methods: ", "GET HEAD POST");
 				printValue(location.cgi, "      CGI: ");
-				printValue(location.cgi_param, "      CGI Param: ");
 				printValue(location.return_code, "      Redirect Code: ");
 				printValue(location.return_url, "      Redirect Url: ");
 				printValue(location.autoindex, "      Autoindex: ", "off");
