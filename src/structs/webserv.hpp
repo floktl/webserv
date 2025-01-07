@@ -16,10 +16,15 @@ struct Location
 	long	client_max_body_size;
 	std::string	root;
 	std::string	cgi;
+<<<<<<< HEAD
 	std::string	cgi_filetype;
 	std::string return_code;
 	std::string return_url;
 	bool doAutoindex{true};
+=======
+	std::string	cgi_param;
+	std::string	redirect;
+>>>>>>> 1ec4307b30a22d08ab0e6037b29cb5fe777feb10
 	bool allowGet{true};
 	bool allowPost{false};
 	bool allowDelete{false};
@@ -42,7 +47,10 @@ struct ServerBlock
 
 struct RequestState
 {
+<<<<<<< HEAD
 	int cur_fd;
+=======
+>>>>>>> 1ec4307b30a22d08ab0e6037b29cb5fe777feb10
 	int client_fd;
 	int cgi_in_fd;
 	int cgi_out_fd;
@@ -55,6 +63,10 @@ struct RequestState
 		STATE_PREPARE_CGI,
 		STATE_CGI_RUNNING,
 		STATE_SENDING_RESPONSE,
+<<<<<<< HEAD
+=======
+		STATE_HTTP_PROCESS,
+>>>>>>> 1ec4307b30a22d08ab0e6037b29cb5fe777feb10
 	} state;
 
 	enum Task {
@@ -76,6 +88,8 @@ struct RequestState
 
 	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
 
+	std::string method;  // e.g., "GET", "POST"
+    std::string path;    // e.g., "/start_task"
 	const ServerBlock* associated_conf;
 	std::string location_path;
 	std::string requested_path;
