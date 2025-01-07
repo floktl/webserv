@@ -70,20 +70,45 @@ bool Sanitizer::isValidPath(std::string& path, const std::string& context, const
 }
 
 
-long Sanitizer::parseSize(const std::string& sizeStr, const std::string& unit) {
+long Sanitizer::parseSize(const std::string& sizeStr, const std::string& defaultUnit) {
+	std::string numberPart;
+	std::string unitPart;
+	size_t i = 0;
+
+	while (i < sizeStr.size() && isdigit(sizeStr[i])) {
+		numberPart += sizeStr[i];
+		i++;
+	}
+
+	while (i < sizeStr.size() && isalpha(sizeStr[i])) {
+		unitPart += sizeStr[i];
+		i++;
+	}
+
+	if (numberPart.empty()) return -1;
+
 	long size;
 	try {
-		size = std::stol(sizeStr);
+		size = std::stol(numberPart);
 	} catch (...) {
 		return -1;
 	}
 
 	if (size <= 0) return -1;
 
+	if (unitPart.empty()) {
+		if (defaultUnit == "K" || defaultUnit == "KB") return size * 1024L;
+		if (defaultUnit == "M" || defaultUnit == "MB") return size * 1024L * 1024L;
+		if (defaultUnit == "G" || defaultUnit == "GB") return size * 1024L * 1024L * 1024L;
+		return size;
+	}
+
+	std::string unit = unitPart;
+	std::transform(unit.begin(), unit.end(), unit.begin(), ::toupper);
+
 	if (unit == "K" || unit == "KB") return size * 1024L;
 	if (unit == "M" || unit == "MB") return size * 1024L * 1024L;
 	if (unit == "G" || unit == "GB") return size * 1024L * 1024L * 1024L;
-	if (unit.empty()) return size;
 
 	return -1;
 }
@@ -186,15 +211,8 @@ bool Sanitizer::sanitize_errorPage(std::string &errorPage, const std::string &pw
 }
 
 
-bool Sanitizer::sanitize_clMaxBodSize(std::string& clMaxBodSize) {
-	if (clMaxBodSize.empty()) return true;
-
-	std::istringstream stream(clMaxBodSize);
-	std::string sizeStr, unit;
-	stream >> sizeStr >> unit;
-
-	long size = parseSize(sizeStr, unit);
-	return (size != -1 && size <= (1024L * 1024L * 1024L * 2L));
+bool Sanitizer::sanitize_clMaxBodSize(long size) {
+	return (size > 0 && size <= 2147483648L);
 }
 
 bool Sanitizer::sanitize_locationPath(std::string& locationPath, const std::string& pwd) {
@@ -261,7 +279,7 @@ bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore, c
 	return locationUploadStore.empty() || isValidPath(locationUploadStore, "Upload store", pwd);
 }
 
-bool Sanitizer::sanitize_locationClMaxBodSize(std::string& locationClMaxBodSize) {
+bool Sanitizer::sanitize_locationClMaxBodSize(long locationClMaxBodSize) {
 	return sanitize_clMaxBodSize(locationClMaxBodSize);
 }
 
