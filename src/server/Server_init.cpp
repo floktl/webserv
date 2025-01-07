@@ -12,11 +12,11 @@ Server::Server(GlobalFDS &_globalFDS) :
 
 Server::~Server()
 {
-    delete staticHandler;
-    delete cgiHandler;
-    delete requestHandler;
-    delete errorHandler;
-    delete taskManager;
+	delete staticHandler;
+	delete cgiHandler;
+	delete requestHandler;
+	delete errorHandler;
+	delete taskManager;
 }
 
 StaticHandler*		Server::getStaticHandler(void) { return staticHandler; }
