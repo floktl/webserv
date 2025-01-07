@@ -10,107 +10,107 @@ CgiHandler::~CgiHandler() {
 
 void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::string &method, const std::string &query)
 {
-    Logger::file("=== Setup CGI Environment Start ===");
+	Logger::file("=== Setup CGI Environment Start ===");
 
-    // Clear all environment variables first
-    clearenv();
+	// Leeren Sie alle vorhandenen Umgebungsvariablen
+	clearenv();
 
-    std::string content_length = "0";
-    std::string content_type = "application/x-www-form-urlencoded";
-    std::string boundary;
-    std::string http_cookie;
+	std::string content_length = "0";
+	std::string content_type = "application/x-www-form-urlencoded";
+	std::string boundary;
+	std::string http_cookie;
 
-    auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
-    if (req_it != server.getGlobalFds().request_state_map.end())
-    {
-        const RequestState &req = req_it->second;
-        http_cookie = req.cookie_header;
+	auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
+	if (req_it != server.getGlobalFds().request_state_map.end())
+	{
+		const RequestState &req = req_it->second;
+		http_cookie = req.cookie_header;
 
-        std::string request(req.request_buffer.begin(), req.request_buffer.end());
-        size_t header_end = request.find("\r\n\r\n");
+		std::string request(req.request_buffer.begin(), req.request_buffer.end());
+		size_t header_end = request.find("\r\n\r\n");
 
-        if (method == "POST" && header_end != std::string::npos)
-        {
-            // Get Content-Length from header
-            size_t cl_pos = request.find("Content-Length: ");
-            if (cl_pos != std::string::npos)
-            {
-                size_t cl_end = request.find("\r\n", cl_pos);
-                if (cl_end != std::string::npos)
-                {
-                    content_length = request.substr(cl_pos + 16, cl_end - (cl_pos + 16));
-                    Logger::file("Setting Content-Length: " + content_length);
-                }
-            }
+		if (method == "POST" && header_end != std::string::npos)
+		{
+			// Holen Sie sich Content-Length aus dem Header
+			size_t cl_pos = request.find("Content-Length: ");
+			if (cl_pos != std::string::npos)
+			{
+				size_t cl_end = request.find("\r\n", cl_pos);
+				if (cl_end != std::string::npos)
+				{
+					content_length = request.substr(cl_pos + 16, cl_end - (cl_pos + 16));
+					Logger::file("Setze Content-Length: " + content_length);
+				}
+			}
 
-            // Get Content-Type and boundary from header
-            size_t ct_pos = request.find("Content-Type: ");
-            if (ct_pos != std::string::npos)
-            {
-                size_t ct_end = request.find("\r\n", ct_pos);
-                if (ct_end != std::string::npos)
-                {
-                    content_type = request.substr(ct_pos + 14, ct_end - (ct_pos + 14));
-                    Logger::file("Setting Content-Type: " + content_type);
+			// Holen Sie sich Content-Type und Boundary aus dem Header
+			size_t ct_pos = request.find("Content-Type: ");
+			if (ct_pos != std::string::npos)
+			{
+				size_t ct_end = request.find("\r\n", ct_pos);
+				if (ct_end != std::string::npos)
+				{
+					content_type = request.substr(ct_pos + 14, ct_end - (ct_pos + 14));
+					Logger::file("Setze Content-Type: " + content_type);
 
-                    if (content_type.find("multipart/form-data") != std::string::npos)
-                    {
-                        size_t boundary_pos = content_type.find("boundary=");
-                        if (boundary_pos != std::string::npos)
-                        {
-                            boundary = content_type.substr(boundary_pos + 9);
-                            Logger::file("Found boundary: " + boundary);
-                        }
-                    }
-                }
-            }
-        }
-    }
+					if (content_type.find("multipart/form-data") != std::string::npos)
+					{
+						size_t boundary_pos = content_type.find("boundary=");
+						if (boundary_pos != std::string::npos)
+						{
+							boundary = content_type.substr(boundary_pos + 9);
+							Logger::file("Gefundene Boundary: " + boundary);
+						}
+					}
+				}
+			}
+		}
+	}
 
-    // Set up all environment variables at once
-    std::vector<std::string> env_vars = {
-        "REDIRECT_STATUS=200",
-        "GATEWAY_INTERFACE=CGI/1.1",
-        "SERVER_PROTOCOL=HTTP/1.1",
-        "REQUEST_METHOD=" + method,
-        "QUERY_STRING=" + query,
-        "SCRIPT_FILENAME=" + tunnel.script_path,
-        "SCRIPT_NAME=" + tunnel.script_path,
-        "DOCUMENT_ROOT=" + tunnel.config->root,
-        "SERVER_SOFTWARE=webserv/1.0",
-        "SERVER_NAME=" + tunnel.server_name,
-        "SERVER_PORT=" + tunnel.config->port,
-        "CONTENT_TYPE=" + content_type,
-        "CONTENT_LENGTH=" + content_length,
-        "HTTP_COOKIE=" + http_cookie,
-        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-    };
+	// Setzen Sie alle Umgebungsvariablen auf einmal
+	std::vector<std::string> env_vars = {
+		"REDIRECT_STATUS=200",
+		"GATEWAY_INTERFACE=CGI/1.1",
+		"SERVER_PROTOCOL=HTTP/1.1",
+		"REQUEST_METHOD=" + method,
+		"QUERY_STRING=" + query,
+		"SCRIPT_FILENAME=" + tunnel.script_path,
+		"SCRIPT_NAME=" + tunnel.script_path,
+		"DOCUMENT_ROOT=" + tunnel.config->root,
+		"SERVER_SOFTWARE=webserv/1.0",
+		"SERVER_NAME=" + tunnel.server_name,
+		"SERVER_PORT=" + tunnel.config->port,
+		"CONTENT_TYPE=" + content_type,
+		"CONTENT_LENGTH=" + content_length,
+		"HTTP_COOKIE=" + http_cookie,
+		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	};
 
-    if (!boundary.empty())
-    {
-        env_vars.push_back("BOUNDARY=" + boundary);
-    }
+	if (!boundary.empty())
+	{
+		env_vars.push_back("BOUNDARY=" + boundary);
+	}
 
-    if (method == "POST")
-    {
-        if (content_type.find("multipart/form-data") != std::string::npos)
-        {
-            env_vars.push_back("REQUEST_TYPE=multipart/form-data");
-        }
-        env_vars.push_back("HTTP_TRANSFER_ENCODING=chunked");
-    }
+	if (method == "POST")
+	{
+		if (content_type.find("multipart/form-data") != std::string::npos)
+		{
+			env_vars.push_back("REQUEST_TYPE=multipart/form-data");
+		}
+		env_vars.push_back("HTTP_TRANSFER_ENCODING=chunked");
+	}
 
-    // Apply all environment variables at once
-    for (const auto& env_var : env_vars)
-    {
-        if (!env_var.empty())
-        {
-            Logger::file("Setting env: " + env_var);
-            putenv(strdup(env_var.c_str()));
-        }
-    }
+	// Setzen Sie alle Umgebungsvariablen auf einmal
+	for (const auto& env_var : env_vars)
+	{
+		if (!env_var.empty())
+		{
+			Logger::file("Setze env: " + env_var);
+			putenv(strdup(env_var.c_str()));
+		}
+	}
 
-    Logger::file("=== Setup CGI Environment End ===");
+	Logger::file("=== Setup CGI Environment End ===");
 }
 
 

@@ -275,8 +275,80 @@ bool Sanitizer::sanitize_locationDefaultFile(std::string& locationDefaultFile) {
 	return isValidFilename(locationDefaultFile, false);
 }
 
-bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore, const std::string& pwd) {
-	return locationUploadStore.empty() || isValidPath(locationUploadStore, "Upload store", pwd);
+bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore,
+										const std::string& pwd,
+										const std::string& serverRoot,
+										const std::string& locationRoot) {
+	// If upload_store is not set, use default "uploads"
+	if (locationUploadStore.empty()) {
+		locationUploadStore = "uploads";
+	}
+
+	// Determine the base path (location root or server root)
+	std::string basePath;
+	if (!locationRoot.empty()) {
+		basePath = locationRoot;
+	} else if (!serverRoot.empty()) {
+		basePath = serverRoot;
+	} else {
+		basePath = pwd;
+	}
+
+	// Remove trailing slash from basePath if it exists
+	if (!basePath.empty() && basePath.back() == '/') {
+		basePath.pop_back();
+	}
+
+	// Build the full path
+	std::string fullPath;
+	if (locationUploadStore[0] == '/') {
+		fullPath = pwd + locationUploadStore;
+	} else {
+		fullPath = basePath + "/" + locationUploadStore;
+	}
+
+	// Validate and normalize the path
+	std::vector<std::string> segments;
+	std::stringstream ss(fullPath);
+	std::string segment;
+
+	// Split and check for directory traversal
+	while (std::getline(ss, segment, '/')) {
+		if (segment.empty() || segment == ".") continue;
+		if (segment == "..") {
+			if (!segments.empty()) {
+				segments.pop_back();
+			}
+			continue;
+		}
+		segments.push_back(segment);
+	}
+
+	// Rebuild normalized path
+	fullPath = "/";
+	for (const auto& seg : segments) {
+		fullPath += seg + "/";
+	}
+	if (!segments.empty()) {
+		fullPath.pop_back();  // Remove trailing slash
+	}
+
+	// Validate characters in path
+	for (char c : fullPath) {
+		if (!std::isalnum(static_cast<unsigned char>(c)) &&
+			c != '/' && c != '_' && c != '-' && c != '.') {
+			Logger::error("[Upload store] Invalid character in path: " + std::string(1, c));
+			return false;
+		}
+	}
+
+	// Create the directory structure
+	if (!createDirectoryWithPermissions(fullPath)) {
+		return false;
+	}
+
+	locationUploadStore = fullPath;
+	return true;
 }
 
 bool Sanitizer::sanitize_locationClMaxBodSize(long locationClMaxBodSize) {
@@ -351,4 +423,86 @@ bool Sanitizer::sanitize_locationRedirect(std::string& locationRedirect) {
 	size_t schemeEnd = locationRedirect.find("://");
 	return (schemeEnd != std::string::npos &&
 			locationRedirect.length() > schemeEnd + 3);
+}
+
+bool Sanitizer::createDirectoryWithPermissions(const std::string& path) {
+	mode_t mode = S_IRWXU | S_IRWXG;  // 0770 permissions
+
+	std::string current_path;
+	std::stringstream path_stream(path);
+	std::string segment;
+
+	while (std::getline(path_stream, segment, '/')) {
+		if (segment.empty()) {
+			current_path += "/";
+			continue;
+		}
+
+		current_path += segment + "/";
+
+		// Skip if directory exists
+		struct stat st;
+		if (stat(current_path.c_str(), &st) == 0) {
+			if (!S_ISDIR(st.st_mode)) {
+				Logger::error("Path exists but is not a directory: " + current_path);
+				return false;
+			}
+			// Check write permissions
+			if (access(current_path.c_str(), W_OK) != 0) {
+				Logger::error("No write permission for directory: " + current_path);
+				return false;
+			}
+			continue;
+		}
+
+		// Create new directory
+		if (mkdir(current_path.c_str(), mode) != 0) {
+			Logger::error("Failed to create directory " + current_path + ": " + strerror(errno));
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context) {
+	if (path.empty()) {
+		Logger::error("[" + context + "] Path is empty.");
+		return false;
+	}
+
+	// Normalize path by removing consecutive slashes and resolving relative components
+	std::vector<std::string> segments;
+	std::stringstream ss(path);
+	std::string segment;
+
+	while (std::getline(ss, segment, '/')) {
+		if (segment.empty() || segment == ".") continue;
+		if (segment == "..") {
+			if (!segments.empty()) segments.pop_back();
+			continue;
+		}
+		segments.push_back(segment);
+	}
+
+	// Rebuild normalized path
+	path = "/";
+	for (const auto& seg : segments) {
+		path += seg + "/";
+	}
+	if (!segments.empty()) {
+		path.pop_back();  // Remove trailing slash
+	}
+
+	// Validate characters
+	for (char c : path) {
+		if (!std::isalnum(static_cast<unsigned char>(c)) &&
+			c != '/' && c != '_' && c != '-' && c != '.') {
+			Logger::error("[" + context + "] Invalid character in path: " + std::string(1, c));
+			return false;
+		}
+	}
+
+	// Create directory with proper permissions
+	return createDirectoryWithPermissions(path);
 }

@@ -37,35 +37,29 @@ void CgiHandler::cleanupCGI(RequestState &req)
 
 void CgiHandler::cleanup_tunnel(CgiTunnel &tunnel)
 {
-	int in_fd = tunnel.in_fd;
-	int out_fd = tunnel.out_fd;
-	pid_t pid = tunnel.pid;
-
-	if (in_fd != -1) {
-		epoll_ctl(server.getGlobalFds().epoll_fd, EPOLL_CTL_DEL, in_fd, NULL);
-		close(in_fd);
-		server.getGlobalFds().svFD_to_clFD_map.erase(in_fd);
-		fd_to_tunnel.erase(in_fd);
+	if (tunnel.in_fd != -1)
+	{
+		epoll_ctl(server.getGlobalFds().epoll_fd, EPOLL_CTL_DEL, tunnel.in_fd, NULL);
+		close(tunnel.in_fd);
+		server.getGlobalFds().svFD_to_clFD_map.erase(tunnel.in_fd);
+		fd_to_tunnel.erase(tunnel.in_fd);
+		tunnel.in_fd = -1;
 	}
-
-	if (out_fd != -1) {
-		epoll_ctl(server.getGlobalFds().epoll_fd, EPOLL_CTL_DEL, out_fd, NULL);
-		close(out_fd);
-		server.getGlobalFds().svFD_to_clFD_map.erase(out_fd);
-		fd_to_tunnel.erase(out_fd);
+	if (tunnel.out_fd != -1)
+	{
+		epoll_ctl(server.getGlobalFds().epoll_fd, EPOLL_CTL_DEL, tunnel.out_fd, NULL);
+		close(tunnel.out_fd);
+		server.getGlobalFds().svFD_to_clFD_map.erase(tunnel.out_fd);
+		fd_to_tunnel.erase(tunnel.out_fd);
+		tunnel.out_fd = -1;
 	}
-
-	if (pid > 0) {
-		kill(pid, SIGTERM);
-		usleep(100000);
-		if (waitpid(pid, NULL, WNOHANG) == 0) {
-			kill(pid, SIGKILL);
-			waitpid(pid, NULL, 0);
-		}
+	if (tunnel.pid != -1)
+	{
+		waitpid(tunnel.pid, NULL, 0);
+		tunnel.pid = -1;
 	}
-
-	tunnels.erase(in_fd);
 }
+
 
 void CgiHandler::cleanup_pipes(int pipe_in[2], int pipe_out[2])
 {

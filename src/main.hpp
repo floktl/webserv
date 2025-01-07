@@ -37,6 +37,7 @@
 #include <system_error>
 #include <sstream>
 #include <poll.h>
+#include <deque>
 #include "./structs/webserv.hpp"
 #include "./config/ConfigHandler.hpp"
 #include "./utils/Logger.hpp"
