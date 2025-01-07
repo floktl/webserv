@@ -34,6 +34,7 @@ public:
     const Location*	findMatchingLocation(const ServerBlock* conf, const std::string& path);
     std::string		getMethod(const std::vector<char>& request_buffer);
 
+    void buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req);
 private:
     Server& server;
 
@@ -42,7 +43,6 @@ private:
     void handlePostRequest(RequestState &req);
     void handleDeleteRequest(RequestState &req);
     void handleOtherRequests(RequestState &req, const Location* loc);
-    void buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req);
     void buildAutoindexResponse(std::stringstream* response, RequestState& req);
 
 

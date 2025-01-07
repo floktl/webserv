@@ -6,7 +6,8 @@
 #include <mutex>
 #include <thread>
 
-class TaskManager {
+class TaskManager
+{
 public:
     enum TaskStatus { PENDING, IN_PROGRESS, COMPLETED };
 
@@ -18,7 +19,8 @@ public:
 	TaskManager(Server& server);
     std::string createTask();
     Task getTaskStatus(const std::string& taskId);
-    void processTask(const std::string& taskId);
+    void processTask(int epoll_fd);
+
 
 private:
     std::map<std::string, Task> tasks;

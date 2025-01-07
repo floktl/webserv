@@ -1,0 +1,85 @@
+[2025-01-07 10:28:50] hello
+[2025-01-07 10:28:50] request_state_map size: 1
+[2025-01-07 10:28:50] Task status for client_fd 13 updated to IN_PROGRESS
+[2025-01-07 10:28:50] Confirmation: client_fd 13 now has task status IN_PROGRESS
+[2025-01-07 10:28:55] request_state_map size: 1
+[2025-01-07 10:28:55] Task status for client_fd 13 updated to IN_PROGRESS
+[2025-01-07 10:28:55] Confirmation: client_fd 13 now has task status IN_PROGRESS
+[2025-01-07 10:28:55] Request ID: 13, Task Status Updated: IN_PROGRESS
+[2025-01-07 10:28:55] IN_PROGRESS - Handling CGI tasks
+[2025-01-07 10:29:00] request_state_map size: 1
+[2025-01-07 10:29:00] Task status for client_fd 13 updated to COMPLETED
+[2025-01-07 10:29:00] Confirmation: client_fd 13 now has task status COMPLETED
+[2025-01-07 10:29:05] COMPLETED - Cleaning up
+[2025-01-07 10:29:10] COMPLETED - Cleaning up
+[2025-01-07 10:29:15] COMPLETED - Cleaning up
+[2025-01-07 10:29:20] COMPLETED - Cleaning up
+[2025-01-07 10:29:25] COMPLETED - Cleaning up
+[2025-01-07 10:29:30] COMPLETED - Cleaning up
+[2025-01-07 10:29:35] COMPLETED - Cleaning up
+[2025-01-07 10:29:40] COMPLETED - Cleaning up
+[2025-01-07 10:29:45] COMPLETED - Cleaning up
+[2025-01-07 10:29:49] epoll_ctl MOD failed: Bad file descriptor
+
+void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, const std::string &query)
+{
+    int pipe_in[2] = {-1, -1};
+    int pipe_out[2] = {-1, -1};
+    int pipe_status[2] = {-1, -1};
+    CgiTunnel tunnel;
+
+    if (pipe(pipe_status) < 0 || !initTunnel(req, tunnel, pipe_in, pipe_out)) {
+        Logger::file("[ERROR] Failed to create pipes");
+        cleanup_pipes(pipe_in, pipe_out);
+        if (pipe_status[0] != -1) close(pipe_status[0]);
+        if (pipe_status[1] != -1) close(pipe_status[1]);
+        return;
+    }
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        cleanup_pipes(pipe_in, pipe_out);
+        close(pipe_status[0]);
+        close(pipe_status[1]);
+        return;
+    }
+
+    // Child process
+    if (pid == 0) {
+        close(pipe_status[0]); // Close the read end of the status pipe in the child
+        handleChildProcess(pipe_in, pipe_out, pipe_status[1], tunnel, method, query);
+    }
+
+    // Parent process
+    close(pipe_in[0]);  // Close unused ends
+    close(pipe_out[1]);
+    close(pipe_status[1]); // Close the write end of the status pipe in the parent
+
+    // Store the status pipe in RequestState
+    req.pipe_fd = pipe_status[0];
+
+    // Add the status pipe to epoll for monitoring
+    struct epoll_event ev;
+    ev.events = EPOLLIN; // Monitor for incoming data
+    ev.data.fd = req.pipe_fd;
+
+    server.modEpoll(server.getGlobalFds().epoll_fd, tunnel.in_fd, EPOLLOUT);
+    server.modEpoll(server.getGlobalFds().epoll_fd, tunnel.out_fd, EPOLLIN);
+
+    server.getGlobalFds().svFD_to_clFD_map[tunnel.in_fd] = req.client_fd;
+    server.getGlobalFds().svFD_to_clFD_map[tunnel.out_fd] = req.client_fd;
+
+    tunnels[tunnel.in_fd] = tunnel;
+    tunnels[tunnel.out_fd] = tunnel;
+    fd_to_tunnel[tunnel.in_fd] = &tunnels[tunnel.in_fd];
+    fd_to_tunnel[tunnel.out_fd] = &tunnels[tunnel.out_fd];
+
+    tunnels[tunnel.in_fd].pid = pid;
+    tunnels[tunnel.out_fd].pid = pid;
+
+    req.cgi_in_fd = tunnel.in_fd;
+    req.cgi_out_fd = tunnel.out_fd;
+    req.cgi_pid = pid;
+    req.state = RequestState::STATE_CGI_RUNNING;
+    req.cgi_done = false;
+}

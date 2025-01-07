@@ -18,7 +18,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 		}
 		else if (n == 0)
 		{
-			// handle timeout
+			taskManager->processTask(epoll_fd);
 			continue;
 		}
 
@@ -74,6 +74,7 @@ void Server::handleNewConnection(int epoll_fd, int fd, const ServerBlock &conf)
 	modEpoll(epoll_fd, client_fd, EPOLLIN);
 
 	RequestState req;
+	req.cur_fd = fd;
 	req.client_fd = client_fd;
 	req.cgi_in_fd = -1;
 	req.cgi_out_fd = -1;

@@ -32,6 +32,8 @@ class Server
         void modEpoll(int epfd, int fd, uint32_t events);
         void delFromEpoll(int epfd, int fd);
         int setNonBlocking(int fd);
+		void setTaskStatus(enum RequestState::Task new_task, int client_fd);
+		enum RequestState::Task getTaskStatus(int client_fd);
 
     private:
         GlobalFDS& globalFDS;
