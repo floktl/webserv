@@ -4,67 +4,67 @@ StaticHandler::StaticHandler(Server& _server) : server(_server) {}
 
 void StaticHandler::handleClientRead(int epfd, int fd)
 {
-    auto &fds = server.getGlobalFds();
-    auto it = fds.request_state_map.find(fd);
+	auto &fds = server.getGlobalFds();
+	auto it = fds.request_state_map.find(fd);
 
-    if (it == fds.request_state_map.end())
+	if (it == fds.request_state_map.end())
 	{
-        std::cerr << "Invalid fd: " << fd << " not found in request_state_map" << std::endl;
-        server.delFromEpoll(epfd, fd);
-        return;
-    }
+		std::cerr << "Invalid fd: " << fd << " not found in request_state_map" << std::endl;
+		server.delFromEpoll(epfd, fd);
+		return;
+	}
 
-    RequestState &req = it->second;
+	RequestState &req = it->second;
 
-    char buf[1024];
-    ssize_t n = read(fd, buf, sizeof(buf));
+	char buf[1024];
+	ssize_t n = read(fd, buf, sizeof(buf));
 
-    if (n == 0)
+	if (n == 0)
 	{
-        // Client disconnected
-        std::cerr << "Client disconnected on fd: " << fd << std::endl;
-        server.delFromEpoll(epfd, fd);
-        return;
-    }
+		// Client disconnected
+		std::cerr << "Client disconnected on fd: " << fd << std::endl;
+		server.delFromEpoll(epfd, fd);
+		return;
+	}
 
-    if (n < 0)
+	if (n < 0)
 	{
-        if (errno != EAGAIN && errno != EWOULDBLOCK)
+		if (errno != EAGAIN && errno != EWOULDBLOCK)
 		{
-            perror("read");
-            server.delFromEpoll(epfd, fd);
-        }
-        return;
-    }
+			perror("read");
+			server.delFromEpoll(epfd, fd);
+		}
+		return;
+	}
 
-    const size_t MAX_REQUEST_SIZE = 8192;
-    if (req.request_buffer.size() + n > MAX_REQUEST_SIZE)
+	const size_t MAX_REQUEST_SIZE = 8192;
+	if (req.request_buffer.size() + n > MAX_REQUEST_SIZE)
 	{
-        std::cerr << "Request too large for fd: " << fd << std::endl;
-        server.delFromEpoll(epfd, fd);
-        return;
-    }
+		std::cerr << "Request too large for fd: " << fd << std::endl;
+		server.delFromEpoll(epfd, fd);
+		return;
+	}
 
-    req.request_buffer.insert(req.request_buffer.end(), buf, buf + n);
+	req.request_buffer.insert(req.request_buffer.end(), buf, buf + n);
 
-    if (req.request_buffer.size() > 4)
+	if (req.request_buffer.size() > 4)
 	{
-        std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
-        size_t headers_end = req_str.find("\r\n\r\n");
+		std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
+		size_t headers_end = req_str.find("\r\n\r\n");
 
-        if (headers_end != std::string::npos)
+		if (headers_end != std::string::npos)
 		{
-            try
+			try
 			{
-                server.getRequestHandler()->parseRequest(req);
-            }
+				server.getRequestHandler()->parseRequest(req);
+			}
 			catch (const std::exception &e)
 			{
-                std::cerr << "Error parsing request on fd: " << fd << " - " << e.what() << std::endl;
-                server.delFromEpoll(epfd, fd);
-            }
-        }
-    }
+				std::cerr << "Error parsing request on fd: " << fd << " - " << e.what() << std::endl;
+				server.delFromEpoll(epfd, fd);
+			}
+		}
+	}
 }
 
 
@@ -92,28 +92,48 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 			return;
 		}
 
-		ssize_t n = send(fd, req.response_buffer.data(), req.response_buffer.size(), MSG_NOSIGNAL);
-
-		if (n > 0)
+		if (!req.response_buffer.empty())
 		{
-			req.response_buffer.erase(
-				req.response_buffer.begin(),
-				req.response_buffer.begin() + n
-			);
+			// Create a temporary buffer for sending
+			char send_buffer[8192];
+			size_t chunk_size = std::min(req.response_buffer.size(), sizeof(send_buffer));
 
-			req.last_activity = now;
+			// Copy data from deque to send buffer
+			std::copy(req.response_buffer.begin(),
+					req.response_buffer.begin() + chunk_size,
+					send_buffer);
 
-			if (req.response_buffer.empty())
-				server.delFromEpoll(epfd, fd);
-			else
-				server.modEpoll(epfd, fd, EPOLLOUT);
-		}
-		else if (n < 0)
-		{
-			if (errno != EAGAIN && errno != EWOULDBLOCK)
-				server.delFromEpoll(epfd, fd);
-			else
-				server.modEpoll(epfd, fd, EPOLLOUT);
+			ssize_t n = send(fd, send_buffer, chunk_size, MSG_NOSIGNAL);
+
+			if (n > 0)
+			{
+				req.response_buffer.erase(
+					req.response_buffer.begin(),
+					req.response_buffer.begin() + n
+				);
+
+				req.last_activity = now;
+
+				if (req.response_buffer.empty())
+				{
+					server.delFromEpoll(epfd, fd);
+				}
+				else
+				{
+					server.modEpoll(epfd, fd, EPOLLOUT);
+				}
+			}
+			else if (n < 0)
+			{
+				if (errno != EAGAIN && errno != EWOULDBLOCK)
+				{
+					server.delFromEpoll(epfd, fd);
+				}
+				else
+				{
+					server.modEpoll(epfd, fd, EPOLLOUT);
+				}
+			}
 		}
 	}
 }

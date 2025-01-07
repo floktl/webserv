@@ -6,7 +6,7 @@
 # endif
 
 # ifndef LOCATION_OPTS
-#  define LOCATION_OPTS "methods,return,root,autoindex,default_file,cgi,cgi_param,upload_store,client_max_body_size"
+#  define LOCATION_OPTS "methods,return,root,autoindex,default_file,cgi,upload_store,client_max_body_size"
 # endif
 
 

@@ -221,8 +221,6 @@ void ConfigHandler::parseLine(std::string line)
 		}
 		else if (keyword == "cgi")
 			currentLocation.cgi = value;
-		else if (keyword == "cgi_param")
-			currentLocation.cgi_param = value;
 		else if (keyword == "autoindex")
 			currentLocation.autoindex = value;
 		else if (keyword == "default_file")
