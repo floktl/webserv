@@ -13,7 +13,7 @@ struct Location
 	std::string	autoindex;
 	std::string	default_file;
 	std::string	upload_store;
-	std::string	client_max_body_size;
+	long	client_max_body_size;
 	std::string	root;
 	std::string	cgi;
 	std::string	cgi_filetype;
@@ -37,7 +37,7 @@ struct ServerBlock
 	std::string				index;
 
 	std::map				<int, std::string> errorPages;
-	std::string				client_max_body_size;
+	long					client_max_body_size;
 	std::vector<Location>	locations;
 };
 
