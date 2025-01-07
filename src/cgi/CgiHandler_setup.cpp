@@ -164,7 +164,8 @@ void CgiHandler::handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &
 	// Set up CGI environment and execute the script
 	setup_cgi_environment(tunnel, method, query);
 	execute_cgi(tunnel);
-
+	server.setTaskStatus(RequestHandler::COMPLETED, der_fd);
+	server.getTaskStatus(der_fd);
 	// Exit with an error if CGI execution fails
 	Logger::file("[ERROR] execute_cgi failed");
 	_exit(1);
