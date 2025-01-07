@@ -58,6 +58,7 @@ bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev)
 		if (!req.cgi_output_buffer.empty())
 			finalizeCgiResponse(req, epoll_fd, client_fd);
 		cgiHandler->cleanupCGI(req);
+		this->setTaskStatus(RequestState::COMPLETED, client_fd);
 	}
 
 	if (fd == req.cgi_in_fd)

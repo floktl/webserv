@@ -43,6 +43,7 @@ struct ServerBlock
 
 struct RequestState
 {
+	int cur_fd;
 	int client_fd;
 	int cgi_in_fd;
 	int cgi_out_fd;
@@ -54,8 +55,15 @@ struct RequestState
 		STATE_READING_REQUEST,
 		STATE_PREPARE_CGI,
 		STATE_CGI_RUNNING,
-		STATE_SENDING_RESPONSE
+		STATE_SENDING_RESPONSE,
 	} state;
+
+	enum Task {
+		PENDING,
+		IN_PROGRESS,
+		COMPLETED
+	} task;
+	int pipe_fd{-1};
 
 	std::string content_type;
 	std::string request_body;

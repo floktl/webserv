@@ -114,14 +114,13 @@ void CgiHandler::handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &
         Logger::file("[ERROR] dup2 failed");
         _exit(1);
     }
-
     close(pipe_in[0]);
     close(pipe_out[1]);
 
     // Set up CGI environment and execute the script
     setup_cgi_environment(tunnel, method, query);
+	server.setTaskStatus(RequestState::IN_PROGRESS, tunnel.client_fd);
     execute_cgi(tunnel);
-
     // Exit with an error if CGI execution fails
     Logger::file("[ERROR] execute_cgi failed");
     _exit(1);
@@ -156,7 +155,11 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
     // Parent process
     close(pipe_in[0]);
     close(pipe_out[1]);
-
+	if (server.getTaskStatus(tunnel.client_fd) == RequestState::IN_PROGRESS)
+	{
+		server.setTaskStatus(RequestState::COMPLETED, tunnel.client_fd);
+		Logger::file("after");
+	}
     server.modEpoll(server.getGlobalFds().epoll_fd, tunnel.in_fd, EPOLLOUT);
     server.modEpoll(server.getGlobalFds().epoll_fd, tunnel.out_fd, EPOLLIN);
 
