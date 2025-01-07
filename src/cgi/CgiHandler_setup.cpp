@@ -10,9 +10,6 @@ CgiHandler::~CgiHandler() {
 
 void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::string &method, const std::string &query)
 {
-	Logger::file("=== Setup CGI Environment Start ===");
-
-	// Leeren Sie alle vorhandenen Umgebungsvariablen
 	clearenv();
 
 	std::string content_length = "0";
@@ -31,7 +28,6 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 
 		if (method == "POST" && header_end != std::string::npos)
 		{
-			// Holen Sie sich Content-Length aus dem Header
 			size_t cl_pos = request.find("Content-Length: ");
 			if (cl_pos != std::string::npos)
 			{
@@ -39,11 +35,9 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 				if (cl_end != std::string::npos)
 				{
 					content_length = request.substr(cl_pos + 16, cl_end - (cl_pos + 16));
-					Logger::file("Setze Content-Length: " + content_length);
 				}
 			}
 
-			// Holen Sie sich Content-Type und Boundary aus dem Header
 			size_t ct_pos = request.find("Content-Type: ");
 			if (ct_pos != std::string::npos)
 			{
@@ -51,7 +45,6 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 				if (ct_end != std::string::npos)
 				{
 					content_type = request.substr(ct_pos + 14, ct_end - (ct_pos + 14));
-					Logger::file("Setze Content-Type: " + content_type);
 
 					if (content_type.find("multipart/form-data") != std::string::npos)
 					{
@@ -59,7 +52,6 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 						if (boundary_pos != std::string::npos)
 						{
 							boundary = content_type.substr(boundary_pos + 9);
-							Logger::file("Gefundene Boundary: " + boundary);
 						}
 					}
 				}
@@ -67,7 +59,6 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 		}
 	}
 
-	// Setzen Sie alle Umgebungsvariablen auf einmal
 	std::vector<std::string> env_vars = {
 		"REDIRECT_STATUS=200",
 		"GATEWAY_INTERFACE=CGI/1.1",
@@ -100,17 +91,13 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 		env_vars.push_back("HTTP_TRANSFER_ENCODING=chunked");
 	}
 
-	// Setzen Sie alle Umgebungsvariablen auf einmal
 	for (const auto& env_var : env_vars)
 	{
 		if (!env_var.empty())
 		{
-			Logger::file("Setze env: " + env_var);
 			putenv(strdup(env_var.c_str()));
 		}
 	}
-
-	Logger::file("=== Setup CGI Environment End ===");
 }
 
 
@@ -148,64 +135,93 @@ bool CgiHandler::initTunnel(RequestState &req, CgiTunnel &tunnel, int pipe_in[2]
 }
 
 void CgiHandler::handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &tunnel, const std::string &method, const std::string &query) {
-	// Close unused ends of the pipes in the child process
 	close(pipe_in[1]);
 	close(pipe_out[0]);
 
-	// Redirect pipes to standard input and output
+	int status_pipe[2];
+	if (pipe(status_pipe) < 0) {
+		_exit(1);
+	}
+
+	int flags = fcntl(status_pipe[1], F_GETFL, 0);
+	fcntl(status_pipe[1], F_SETFL, flags | O_NONBLOCK);
+
+	RequestState::Task status = RequestState::IN_PROGRESS;
+	write(status_pipe[1], &status, sizeof(status));
+
 	if (dup2(pipe_in[0], STDIN_FILENO) < 0 || dup2(pipe_out[1], STDOUT_FILENO) < 0) {
-		Logger::file("[ERROR] dup2 failed");
+		status = RequestState::COMPLETED;
+		write(status_pipe[1], &status, sizeof(status));
 		_exit(1);
 	}
 
 	close(pipe_in[0]);
 	close(pipe_out[1]);
 
-	// Set up CGI environment and execute the script
 	setup_cgi_environment(tunnel, method, query);
+
 	execute_cgi(tunnel);
-	server.setTaskStatus(RequestHandler::COMPLETED, der_fd);
-	server.getTaskStatus(der_fd);
-	// Exit with an error if CGI execution fails
-	Logger::file("[ERROR] execute_cgi failed");
+
+	status = RequestState::COMPLETED;
+	write(status_pipe[1], &status, sizeof(status));
+
+	close(status_pipe[1]);
 	_exit(1);
 }
 
 
-void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, const std::string &query)
-{
-	Logger::file("addCgiTunnel");
-	Logger::file("Method: " + method + ", Content Type: ");
-	Logger::file("Request Body: " + std::string(req.request_buffer.begin(), req.request_buffer.end()));
-	Logger::file("Query: " + query);
+void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, const std::string &query) {
 
 	int pipe_in[2] = {-1, -1};
 	int pipe_out[2] = {-1, -1};
+	int status_pipe[2] = {-1, -1};
 	CgiTunnel tunnel;
 
-	if (!initTunnel(req, tunnel, pipe_in, pipe_out))
-		return;
-
-	pid_t pid = fork();
-	if (pid < 0)
-	{
-		cleanup_pipes(pipe_in, pipe_out);
+	if (pipe(status_pipe) < 0) {
 		return;
 	}
 
-	// Child process
-	if (pid == 0)
-		handleChildProcess(pipe_in, pipe_out, tunnel, method, query);
+	if (!initTunnel(req, tunnel, pipe_in, pipe_out)) {
+		close(status_pipe[0]);
+		close(status_pipe[1]);
+		return;
+	}
 
-	// Parent process
+	pid_t pid = fork();
+	if (pid < 0) {
+		cleanup_pipes(pipe_in, pipe_out);
+		close(status_pipe[0]);
+		close(status_pipe[1]);
+		return;
+	}
+
+	if (pid == 0) {
+		close(status_pipe[0]);
+		handleChildProcess(pipe_in, pipe_out, tunnel, method, query);
+	}
+
 	close(pipe_in[0]);
 	close(pipe_out[1]);
+	close(status_pipe[1]);
+
+	int flags = fcntl(status_pipe[0], F_GETFL, 0);
+	fcntl(status_pipe[0], F_SETFL, flags | O_NONBLOCK);
+
+	req.pipe_fd = status_pipe[0];
+
+	struct epoll_event ev;
+	ev.events = EPOLLIN;
+	ev.data.fd = status_pipe[0];
+	if (epoll_ctl(server.getGlobalFds().epoll_fd, EPOLL_CTL_ADD, status_pipe[0], &ev) < 0) {
+		Logger::file("[ERROR] Failed to add status pipe to epoll");
+	}
 
 	server.modEpoll(server.getGlobalFds().epoll_fd, tunnel.in_fd, EPOLLOUT);
 	server.modEpoll(server.getGlobalFds().epoll_fd, tunnel.out_fd, EPOLLIN);
 
 	server.getGlobalFds().svFD_to_clFD_map[tunnel.in_fd] = req.client_fd;
 	server.getGlobalFds().svFD_to_clFD_map[tunnel.out_fd] = req.client_fd;
+	server.getGlobalFds().svFD_to_clFD_map[status_pipe[0]] = req.client_fd;
 
 	tunnels[tunnel.in_fd] = tunnel;
 	tunnels[tunnel.out_fd] = tunnel;
@@ -220,4 +236,7 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
 	req.cgi_pid = pid;
 	req.state = RequestState::STATE_CGI_RUNNING;
 	req.cgi_done = false;
+
+	server.getTaskManager()->sendTaskStatusUpdate(req.client_fd, RequestState::IN_PROGRESS);
 }
+

@@ -84,6 +84,12 @@ bool ConfigHandler::sanitizeConfData(void)
 			return false;
 		}
 
+		if (!Sanitizer::sanitize_timeout(registeredServerConfs[i].timeout)) {
+			Logger::error("Invalid timeout value for server block " + std::to_string(i + 1));
+			configFileValid = false;
+			return false;
+		}
+
 		// Location blocks validation
 		for (size_t j = 0; j < registeredServerConfs[i].locations.size(); ++j) {
 			Location& loc = registeredServerConfs[i].locations[j];

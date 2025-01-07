@@ -34,6 +34,8 @@ class Server
 		int setNonBlocking(int fd);
 		void setTaskStatus(enum RequestState::Task new_task, int client_fd);
 		enum RequestState::Task getTaskStatus(int client_fd);
+		void setTimeout(int t);
+		int getTimeout() const;
 
 	private:
 		GlobalFDS& globalFDS;
@@ -42,6 +44,7 @@ class Server
 		RequestHandler* requestHandler;
 		ErrorHandler* errorHandler;
 		TaskManager* taskManager;
+		int timeout;
 
 		// server_init
 		int initEpoll();
@@ -61,6 +64,8 @@ class Server
 		bool dispatchEvent(int epoll_fd, int fd, uint32_t ev, std::vector<ServerBlock> &configs);
 		int runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs);
 		void handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf);
+		void checkAndCleanupTimeouts();
+		void killTimeoutedCGI(RequestState &req);
 };
 
 #endif

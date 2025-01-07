@@ -6,7 +6,8 @@ Server::Server(GlobalFDS &_globalFDS) :
 	cgiHandler(new CgiHandler(*this)),
 	requestHandler(new RequestHandler(*this)),
 	errorHandler(new ErrorHandler(*this)),
-	taskManager(new TaskManager(*this))
+	taskManager(new TaskManager(*this)),
+	timeout(30)
 {}
 
 
@@ -26,14 +27,22 @@ ErrorHandler*		Server::getErrorHandler(void) { return errorHandler; }
 TaskManager*		Server::getTaskManager(void) { return taskManager; }
 GlobalFDS&			Server::getGlobalFds(void) { return globalFDS; }
 
-int Server::server_init(std::vector<ServerBlock> configs)
-{
+int Server::server_init(std::vector<ServerBlock> configs) {
 	int epoll_fd = initEpoll();
 	if (epoll_fd < 0)
 		return EXIT_FAILURE;
 
 	if (!initServerSockets(epoll_fd, configs))
 		return EXIT_FAILURE;
+
+	TaskManager* tm = getTaskManager();
+	struct epoll_event ev;
+	ev.events = EPOLLIN;
+	ev.data.fd = tm->getPipeReadFd();
+	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, tm->getPipeReadFd(), &ev) < 0) {
+		perror("epoll_ctl ADD TaskManager pipe_fd");
+		return EXIT_FAILURE;
+	}
 
 	return runEventLoop(epoll_fd, configs);
 }
@@ -83,6 +92,8 @@ bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 			close(conf.server_fd);
 			return false;
 		}
+
+		setTimeout(conf.timeout);
 
 		setNonBlocking(conf.server_fd);
 		modEpoll(epoll_fd, conf.server_fd, EPOLLIN);
