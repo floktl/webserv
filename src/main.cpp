@@ -108,6 +108,7 @@ int main(int argc, char **argv, char **envp)
 	StaticHandler staticHandler(server);
 	CgiHandler cgiHandler(server);
 
+
 	(void)server;
 	try
 	{
@@ -124,7 +125,7 @@ int main(int argc, char **argv, char **envp)
 			Logger::red() << "No configurations found!";
 			return EXIT_FAILURE;
 		}
-		if (server.server_init(configs) == EXIT_FAILURE)
+		if (server.server_loop(configs) == EXIT_FAILURE)
 			return (EXIT_FAILURE);
 	}
 	catch (const std::exception &e)

@@ -5,7 +5,8 @@
 
 class Server;
 
-class StaticHandler {
+class StaticHandler
+{
 	private:
 		struct FileState {
 			std::ifstream file;
@@ -17,6 +18,7 @@ class StaticHandler {
 
 	public:
 		StaticHandler(Server& server);
+
 		void handleClientRead(int epfd, int fd);
 		void handleClientWrite(int epfd, int fd);
 };
