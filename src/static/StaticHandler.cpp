@@ -72,6 +72,7 @@ constexpr std::chrono::seconds RequestState::TIMEOUT_DURATION;
 
 void StaticHandler::handleClientWrite(int epfd, int fd)
 {
+<<<<<<< HEAD
 	RequestState &req = server.getGlobalFds().request_state_map[fd];
 
 	// Check for timeout
@@ -136,4 +137,66 @@ void StaticHandler::handleClientWrite(int epfd, int fd)
 			}
 		}
 	}
+=======
+    RequestState &req = server.getGlobalFds().request_state_map[fd];
+
+    // Check for timeout
+    auto now = std::chrono::steady_clock::now();
+    if (now - req.last_activity > RequestState::TIMEOUT_DURATION)
+    {
+        server.delFromEpoll(epfd, fd);
+        return;
+    }
+
+    if (req.state == RequestState::STATE_HTTP_PROCESS || req.state == RequestState::STATE_SENDING_RESPONSE)
+    {
+        int error = 0;
+        socklen_t len = sizeof(error);
+        if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0)
+        {
+            server.delFromEpoll(epfd, fd);
+            return;
+        }
+
+        ssize_t n = send(fd, req.response_buffer.data(), req.response_buffer.size(), MSG_NOSIGNAL);
+
+        if (n > 0)
+        {
+            req.response_buffer.erase(
+                req.response_buffer.begin(),
+                req.response_buffer.begin() + n
+            );
+
+            req.last_activity = now; // Update last activity timestamp
+
+            if (req.response_buffer.empty())
+            {
+                if (req.state == RequestState::STATE_HTTP_PROCESS)
+                {
+                    req.state = RequestState::STATE_SENDING_RESPONSE;
+                }
+                else
+                {
+                    server.delFromEpoll(epfd, fd);
+                }
+            }
+            else
+            {
+                server.modEpoll(epfd, fd, EPOLLOUT);
+            }
+        }
+        else if (n < 0)
+        {
+            if (errno != EAGAIN && errno != EWOULDBLOCK)
+            {
+                server.delFromEpoll(epfd, fd);
+            }
+            else
+            {
+                server.modEpoll(epfd, fd, EPOLLOUT);
+            }
+        }
+    }
+>>>>>>> 1ec4307b30a22d08ab0e6037b29cb5fe777feb10
 }
+
