@@ -12,12 +12,11 @@ struct Location
 	std::string	methods;
 	std::string	autoindex;
 	std::string	default_file;
-	std::string	upload_store;
+	std::string	upload_store{""};
 	long	client_max_body_size;
 	std::string	root;
 	std::string	cgi;
 	std::string	cgi_filetype;
-	std::string	cgi_param;
 	std::string return_code;
 	std::string return_url;
 	bool doAutoindex{true};
@@ -69,9 +68,9 @@ struct RequestState
 	std::string request_body;
 	std::string cookie_header;
 
-	std::vector<char> request_buffer;
-	std::vector<char> response_buffer;
-	std::vector<char> cgi_output_buffer;
+	std::deque<char> request_buffer;
+	std::deque<char> response_buffer;
+	std::deque<char> cgi_output_buffer;
 
 	std::chrono::steady_clock::time_point last_activity;
 
