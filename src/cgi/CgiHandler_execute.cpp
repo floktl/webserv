@@ -14,7 +14,8 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel)
 		(char*)tunnel.script_path.c_str(),
 		nullptr
 	};
-
+	Logger::file("hello");
+	server.setTaskStatus(RequestState::IN_PROGRESS, tunnel.client_fd);
 	execve(args[0], args, environ);
 	_exit(1);
 }
@@ -125,7 +126,7 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events)
 
 void CgiHandler::handleCGIRead(int epfd, int fd)
 {
-    Logger::file("=== CGI Read Debug Start ===");
+   // Logger::file("=== CGI Read Debug Start ===");
 
     auto tunnel_it = fd_to_tunnel.find(fd);
     if (tunnel_it == fd_to_tunnel.end() || !tunnel_it->second)
@@ -145,17 +146,17 @@ void CgiHandler::handleCGIRead(int epfd, int fd)
 
     const size_t chunk_size = 4096;
     char buf[chunk_size];
-    Logger::file("Starting read loop");
+    //Logger::file("Starting read loop");
     ssize_t n;
 
     while ((n = read(fd, buf, chunk_size)) > 0)
     {
-        Logger::file("Read chunk: " + std::to_string(n) + " bytes");
+     //   Logger::file("Read chunk: " + std::to_string(n) + " bytes");
 
         // Überprüfe, ob genügend Platz im Buffer vorhanden ist
         if (req.cgi_output_buffer.size() + n > req.cgi_output_buffer.max_size())
         {
-            Logger::file("CGI output too large");
+          //  Logger::file("CGI output too large");
             std::string error_response = "HTTP/1.1 500 Internal Server Error\r\n"
                                        "Content-Type: text/html\r\n"
                                        "Content-Length: 26\r\n\r\n"
@@ -171,14 +172,14 @@ void CgiHandler::handleCGIRead(int epfd, int fd)
         }
 
         req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
-        Logger::file("Buffer size after insert: " + std::to_string(req.cgi_output_buffer.size()));
+        //Logger::file("Buffer size after insert: " + std::to_string(req.cgi_output_buffer.size()));
     }
-    Logger::file("Read loop ended with n=" + std::to_string(n));
+    //Logger::file("Read loop ended with n=" + std::to_string(n));
 
     if (n == 0)
     {
         std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-        Logger::file("Complete CGI output: " + output);
+       // Logger::file("Complete CGI output: " + output);
 
         size_t header_end = output.find("\r\n\r\n");
         if (header_end == std::string::npos)
@@ -190,18 +191,18 @@ void CgiHandler::handleCGIRead(int epfd, int fd)
         std::string cgi_headers = header_end > 0 ? output.substr(0, header_end) : "";
         std::string cgi_body = header_end > 0 ? output.substr(header_end + 4) : output;
 
-        Logger::file("CGI Headers: " + cgi_headers);
-        Logger::file("CGI Body length: " + std::to_string(cgi_body.length()));
+        //Logger::file("CGI Headers: " + cgi_headers);
+        //Logger::file("CGI Body length: " + std::to_string(cgi_body.length()));
 
         std::string response;
         if (!cgi_headers.empty() && cgi_headers.find("Location:") != std::string::npos)
         {
-            Logger::file("Redirect detected, creating 302 response");
+           // Logger::file("Redirect detected, creating 302 response");
             response = "HTTP/1.1 302 Found\r\n" + cgi_headers + "\r\n\r\n";
         }
         else
         {
-            Logger::file("Normal response");
+           // Logger::file("Normal response");
             response = "HTTP/1.1 200 OK\r\n";
             response += "Content-Length: " + std::to_string(cgi_body.length()) + "\r\n";
             response += "Connection: close\r\n";
@@ -213,12 +214,12 @@ void CgiHandler::handleCGIRead(int epfd, int fd)
             response += "\r\n" + cgi_body;
         }
 
-        Logger::file("Final response size: " + std::to_string(response.length()));
+       // Logger::file("Final response size: " + std::to_string(response.length()));
 
         // Überprüfe die finale Response-Größe
         if (response.length() > req.response_buffer.max_size())
         {
-            Logger::file("Final response too large");
+          //  Logger::file("Final response too large");
             std::string error_response = "HTTP/1.1 500 Internal Server Error\r\n"
                                        "Content-Type: text/html\r\n"
                                        "Content-Length: 26\r\n\r\n"
@@ -230,23 +231,23 @@ void CgiHandler::handleCGIRead(int epfd, int fd)
         }
         else
         {
-            Logger::file("Final response headers: " + response.substr(0, response.find("\r\n\r\n")));
+           // Logger::file("Final response headers: " + response.substr(0, response.find("\r\n\r\n")));
             req.response_buffer.clear();
             req.response_buffer.insert(req.response_buffer.begin(), response.begin(), response.end());
         }
 
         req.state = RequestState::STATE_SENDING_RESPONSE;
         server.modEpoll(epfd, tunnel->client_fd, EPOLLOUT);
-        Logger::file("Response queued for sending");
+    //   Logger::file("Response queued for sending");
 
         cleanup_tunnel(*tunnel);
     }
     else if (n < 0)
     {
-        Logger::file("Read error: " + std::string(strerror(errno)));
+     //   Logger::file("Read error: " + std::string(strerror(errno)));
         if (errno != EAGAIN && errno != EWOULDBLOCK)
             cleanup_tunnel(*tunnel);
     }
 
-    Logger::file("=== CGI Read Debug End ===");
+ //  Logger::file("=== CGI Read Debug End ===");
 }

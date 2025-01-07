@@ -103,3 +103,61 @@ int Server::setNonBlocking(int fd)
 		return -1;
 	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+
+void Server::setTaskStatus(enum RequestState::Task new_task, int client_fd)
+{
+	if (client_fd < 0)
+	{
+		Logger::file("Error: Invalid client_fd " + std::to_string(client_fd));
+		return;
+	}
+
+	Logger::file("request_state_map size: " + std::to_string(globalFDS.request_state_map.size()));
+
+	auto it = globalFDS.request_state_map.find(client_fd);
+
+	if (it != globalFDS.request_state_map.end())
+	{
+		it->second.task = new_task;
+
+		std::string taskName = (new_task == RequestState::PENDING ? "PENDING" :
+							new_task == RequestState::IN_PROGRESS ? "IN_PROGRESS" :
+							new_task == RequestState::COMPLETED ? "COMPLETED" :
+							"UNKNOWN");
+
+		Logger::file("Task status for client_fd " + std::to_string(client_fd) +
+					" updated to " + taskName);
+
+		Logger::file("Confirmation: client_fd " + std::to_string(client_fd) +
+					" now has task status " +
+					(it->second.task == RequestState::PENDING ? "PENDING" :
+					it->second.task == RequestState::IN_PROGRESS ? "IN_PROGRESS" :
+					"COMPLETED"));
+	}
+	else
+	{
+		Logger::file("Error: client_fd " + std::to_string(client_fd) +
+					" not found in request_state_map");
+	}
+}
+
+
+enum RequestState::Task Server::getTaskStatus(int client_fd)
+{
+	auto it = globalFDS.request_state_map.find(client_fd);
+
+	if (it != globalFDS.request_state_map.end())
+	{
+		Logger::file("Retrieved task status for client_fd " + std::to_string(client_fd) + ": " +
+					(it->second.task == RequestState::PENDING ? "PENDING" :
+					it->second.task == RequestState::IN_PROGRESS ? "IN_PROGRESS" :
+					"COMPLETED"));
+
+		return it->second.task;
+	}
+	else
+	{
+		Logger::file("Error: client_fd " + std::to_string(client_fd) + " not found in request_state_map");
+		return RequestState::Task::PENDING;
+	}
+}
