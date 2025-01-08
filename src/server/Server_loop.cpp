@@ -63,29 +63,23 @@ void Server::checkAndCleanupTimeouts() {
 				now - req.last_activity
 			).count();
 
-			if (duration > timeout) {
-
-				// Kill the CGI process first
+			if (duration > req.associated_conf->timeout) {
 				killTimeoutedCGI(req);
 
-				// Generate error response using ErrorHandler
 				std::string error_response = getErrorHandler()->generateErrorResponse(
-					504,  // Gateway Timeout
+					504,
 					"Gateway Timeout",
 					req
 				);
 
-				// Insert the response into the buffer
 				req.response_buffer.clear();
 				req.response_buffer.insert(req.response_buffer.begin(),
-										error_response.begin(),
-										error_response.end());
+									error_response.begin(),
+									error_response.end());
 
-				// Update state and epoll
 				req.state = RequestState::STATE_SENDING_RESPONSE;
 				modEpoll(globalFDS.epoll_fd, req.client_fd, EPOLLOUT);
 
-				// Mark task as completed
 				getTaskManager()->sendTaskStatusUpdate(req.client_fd, RequestState::COMPLETED);
 			}
 		}
