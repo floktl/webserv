@@ -6,8 +6,7 @@
 #include <mutex>
 #include <thread>
 
-class TaskManager
-{
+class TaskManager {
 public:
 	enum TaskStatus { PENDING, IN_PROGRESS, COMPLETED };
 

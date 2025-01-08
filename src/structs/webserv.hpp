@@ -16,15 +16,10 @@ struct Location
 	long	client_max_body_size;
 	std::string	root;
 	std::string	cgi;
-<<<<<<< HEAD
 	std::string	cgi_filetype;
 	std::string return_code;
 	std::string return_url;
 	bool doAutoindex{true};
-=======
-	std::string	cgi_param;
-	std::string	redirect;
->>>>>>> 1ec4307b30a22d08ab0e6037b29cb5fe777feb10
 	bool allowGet{true};
 	bool allowPost{false};
 	bool allowDelete{false};
@@ -47,10 +42,8 @@ struct ServerBlock
 
 struct RequestState
 {
-<<<<<<< HEAD
-	int cur_fd;
-=======
->>>>>>> 1ec4307b30a22d08ab0e6037b29cb5fe777feb10
+	std::string method;
+	  size_t content_length = 0;   // Content-Length header value for POST requests
 	int client_fd;
 	int cgi_in_fd;
 	int cgi_out_fd;
@@ -62,19 +55,8 @@ struct RequestState
 		STATE_READING_REQUEST,
 		STATE_PREPARE_CGI,
 		STATE_CGI_RUNNING,
-		STATE_SENDING_RESPONSE,
-<<<<<<< HEAD
-=======
-		STATE_HTTP_PROCESS,
->>>>>>> 1ec4307b30a22d08ab0e6037b29cb5fe777feb10
+		STATE_SENDING_RESPONSE
 	} state;
-
-	enum Task {
-		PENDING,
-		IN_PROGRESS,
-		COMPLETED
-	} task;
-	int pipe_fd{-1};
 
 	std::string content_type;
 	std::string request_body;
@@ -88,11 +70,17 @@ struct RequestState
 
 	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
 
-	std::string method;  // e.g., "GET", "POST"
-    std::string path;    // e.g., "/start_task"
 	const ServerBlock* associated_conf;
 	std::string location_path;
 	std::string requested_path;
+
+	std::string received_body;      // Temporary storage for the body of the request being received
+    size_t expected_body_length;    // Expected length of the request body (from Content-Length header)
+    size_t current_body_length;     // The length of the body data received so far
+    bool is_upload_complete;        // Flag to indicate if the upload has been fully received
+
+    // Optional (if you want to track uploaded file path specifically):
+    std::string uploaded_file_path;
 
 	bool keep_alive;
 };

@@ -14,12 +14,10 @@ void CgiHandler::execute_cgi(const CgiTunnel &tunnel)
 		(char*)tunnel.script_path.c_str(),
 		nullptr
 	};
-	Logger::file("hello");
-	server.setTaskStatus(RequestState::IN_PROGRESS, tunnel.client_fd);
+
 	execve(args[0], args, environ);
 	_exit(1);
 }
-
 
 bool CgiHandler::needsCGI(RequestState &req, const std::string &path)
 {
@@ -49,11 +47,11 @@ bool CgiHandler::needsCGI(RequestState &req, const std::string &path)
 
 void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events)
 {
-	Logger::file("=== Handle CGI Write Start ===");
+	//Logger::file("=== Handle CGI Write Start ===");
 
 	if (events & (EPOLLERR | EPOLLHUP))
 	{
-		Logger::file("EPOLLERR oder EPOLLHUP empfangen");
+		//Logger::file("EPOLLERR oder EPOLLHUP empfangen");
 		auto tunnel_it = fd_to_tunnel.find(fd);
 		if (tunnel_it != fd_to_tunnel.end() && tunnel_it->second)
 			cleanup_tunnel(*(tunnel_it->second));
@@ -63,7 +61,7 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events)
 	auto tunnel_it = fd_to_tunnel.find(fd);
 	if (tunnel_it == fd_to_tunnel.end() || !tunnel_it->second)
 	{
-		Logger::file("Ungültiger Tunnel");
+		//Logger::file("Ungültiger Tunnel");
 		return;
 	}
 
@@ -71,7 +69,7 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events)
 	auto req_it = server.getGlobalFds().request_state_map.find(tunnel->client_fd);
 	if (req_it == server.getGlobalFds().request_state_map.end())
 	{
-		Logger::file("Ungültiger Request-State");
+		//Logger::file("Ungültiger Request-State");
 		cleanup_tunnel(*tunnel);
 		return;
 	}
@@ -91,7 +89,7 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events)
 
 	if (req.request_body.empty())
 	{
-		Logger::file("Kein Request-Body vorhanden, Pipe wird geschlossen.");
+		//Logger::file("Kein Request-Body vorhanden, Pipe wird geschlossen.");
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr);
 		close(fd);
 		tunnel->in_fd = -1;
@@ -106,7 +104,7 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events)
 	while (pos < req.request_body.size())
 	{
 		size_t to_write = std::min(MAX_CHUNK_SIZE, req.request_body.size() - pos);
-		Logger::file("Versuche, " + std::to_string(to_write) + " Bytes zu schreiben.");
+		//Logger::file("Versuche, " + std::to_string(to_write) + " Bytes zu schreiben.");
 		ssize_t written = write(fd, req.request_body.c_str() + pos, to_write);
 
 		if (written < 0)
@@ -132,20 +130,20 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events)
 
 		if (written > 0)
 		{
-			Logger::file("Erfolgreich " + std::to_string(written) + " Bytes geschrieben.");
+			//Logger::file("Erfolgreich " + std::to_string(written) + " Bytes geschrieben.");
 			pos += written;
 		}
 
 		if (written < static_cast<ssize_t>(to_write))
 		{
-			Logger::file("Nicht alle Daten wurden geschrieben, verbleibende Daten werden später gesendet.");
+			//Logger::file("Nicht alle Daten wurden geschrieben, verbleibende Daten werden später gesendet.");
 			break;
 		}
 	}
 
 	if (pos >= req.request_body.size())
 	{
-		Logger::file("Alle Daten geschrieben, Pipe wird geschlossen.");
+		//Logger::file("Alle Daten geschrieben, Pipe wird geschlossen.");
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr);
 		close(fd);
 		tunnel->in_fd = -1;
@@ -154,14 +152,14 @@ void CgiHandler::handleCGIWrite(int epfd, int fd, uint32_t events)
 		req.request_body.clear();
 	}
 
-	Logger::file("=== Handle CGI Write End ===");
+	//Logger::file("=== Handle CGI Write End ===");
 }
 
 
 
 void CgiHandler::handleCGIRead(int epfd, int fd)
 {
-	Logger::file("=== CGI Read Debug Start ===");
+	//Logger::file("=== CGI Read Debug Start ===");
 
 	auto tunnel_it = fd_to_tunnel.find(fd);
 	if (tunnel_it == fd_to_tunnel.end() || !tunnel_it->second)
@@ -181,12 +179,12 @@ void CgiHandler::handleCGIRead(int epfd, int fd)
 
 	const size_t chunk_size = 4096;
 	char buf[chunk_size];
-	Logger::file("Starte Lese-Schleife");
+	Logger::file("");
 	ssize_t n;
 
 	while ((n = read(fd, buf, chunk_size)) > 0)
 	{
-		Logger::file("Gelesener Chunk: " + std::to_string(n) + " Bytes");
+		Logger::file("");
 		if (req.cgi_output_buffer.size() + n > req.cgi_output_buffer.max_size())
 		{
 			Logger::file("CGI-Ausgabe zu groß");
@@ -205,13 +203,13 @@ void CgiHandler::handleCGIRead(int epfd, int fd)
 		}
 
 		req.cgi_output_buffer.insert(req.cgi_output_buffer.end(), buf, buf + n);
-		Logger::file("Buffergröße nach Einfügen: " + std::to_string(req.cgi_output_buffer.size()));
+		Logger::file("");
 	}
 
 	if (n == 0)
 	{
 		std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-		Logger::file("Vollständige CGI-Ausgabe: " + output);
+		//Logger::file("Vollständige CGI-Ausgabe: " + output);
 
 		size_t header_end = output.find("\r\n\r\n");
 		if (header_end == std::string::npos)
@@ -223,18 +221,18 @@ void CgiHandler::handleCGIRead(int epfd, int fd)
 		std::string cgi_headers = header_end > 0 ? output.substr(0, header_end) : "";
 		std::string cgi_body = header_end > 0 ? output.substr(header_end + 4) : output;
 
-		Logger::file("CGI-Header: " + cgi_headers);
-		Logger::file("CGI-Body Länge: " + std::to_string(cgi_body.length()));
+		//Logger::file("CGI-Header: " + cgi_headers);
+		//Logger::file("CGI-Body Länge: " + std::to_string(cgi_body.length()));
 
 		std::string response;
 		if (!cgi_headers.empty() && cgi_headers.find("Location:") != std::string::npos)
 		{
-			Logger::file("Weiterleitung erkannt, erstelle 302 Antwort");
+			//Logger::file("Weiterleitung erkannt, erstelle 302 Antwort");
 			response = "HTTP/1.1 302 Found\r\n" + cgi_headers + "\r\n\r\n";
 		}
 		else
 		{
-			Logger::file("Normale Antwort");
+			//Logger::file("Normale Antwort");
 			response = "HTTP/1.1 200 OK\r\n";
 			response += "Content-Length: " + std::to_string(cgi_body.length()) + "\r\n";
 			response += "Connection: close\r\n";
@@ -246,11 +244,11 @@ void CgiHandler::handleCGIRead(int epfd, int fd)
 			response += "\r\n" + cgi_body;
 		}
 
-		Logger::file("Finale Antwortgröße: " + std::to_string(response.length()));
+		//Logger::file("Finale Antwortgröße: " + std::to_string(response.length()));
 
 		if (response.length() > req.response_buffer.max_size())
 		{
-			Logger::file("Finale Antwort zu groß");
+			//Logger::file("Finale Antwort zu groß");
 			std::string error_response = "HTTP/1.1 500 Internal Server Error\r\n"
 										"Content-Type: text/html\r\n"
 										"Content-Length: 26\r\n\r\n"
@@ -262,23 +260,23 @@ void CgiHandler::handleCGIRead(int epfd, int fd)
 		}
 		else
 		{
-			Logger::file("Finale Antwort-Header: " + response.substr(0, response.find("\r\n\r\n")));
+			//Logger::file("Finale Antwort-Header: " + response.substr(0, response.find("\r\n\r\n")));
 			req.response_buffer.clear();
 			req.response_buffer.insert(req.response_buffer.begin(), response.begin(), response.end());
 		}
 
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		server.modEpoll(epfd, tunnel->client_fd, EPOLLOUT);
-		Logger::file("Antwort zur Sendung vorbereitet");
+		//Logger::file("Antwort zur Sendung vorbereitet");
 
 		cleanup_tunnel(*tunnel);
 	}
 	else if (n < 0)
 	{
-		Logger::file("Lese-Fehler: " + std::string(strerror(errno)));
+		//Logger::file("Lese-Fehler: " + std::string(strerror(errno)));
 		if (errno != EAGAIN && errno != EWOULDBLOCK)
 			cleanup_tunnel(*tunnel);
 	}
 
-	Logger::file("=== CGI Read Debug End ===");
+	//Logger::file("=== CGI Read Debug End ===");
 }

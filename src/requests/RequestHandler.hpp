@@ -34,7 +34,6 @@ public:
 	const Location*	findMatchingLocation(const ServerBlock* conf, const std::string& path);
 	std::string getMethod(const std::deque<char>& request_buffer);
 
-    void buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req);
 private:
 	Server& server;
 
@@ -46,6 +45,7 @@ private:
 	void buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req);
 	void buildAutoindexResponse(std::stringstream* response, RequestState& req);
 
+	void saveUploadedFile(const std::string &body, const std::string &path);
 
 	// Utility functions
 	bool		checkRedirect(RequestState &req, std::stringstream *response);
