@@ -16,8 +16,7 @@ void RequestHandler::handleTaskRequest(std::stringstream* response)
 
 void RequestHandler::handleStatusRequest(const std::string& taskId, std::stringstream* response)
 {
-	TaskManager* taskManager = server.getTaskManager();
-	TaskManager::Task task = taskManager->getTaskStatus(taskId);
+	TaskManager::Task task = server.getTaskManager()->getTaskStatus(taskId);
 
 	// Determine task status as a string
 	std::string status;

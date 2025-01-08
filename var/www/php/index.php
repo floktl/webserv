@@ -75,7 +75,7 @@
 
 	$dataDir = __DIR__ . '/data';
 	$names = [];
-	sleep(32);
+	sleep(12);
 	// Create 'data' folder if it doesn't exist
 	if (!is_dir($dataDir)) {
 		mkdir($dataDir, 0777, true);

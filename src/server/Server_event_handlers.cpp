@@ -1,5 +1,32 @@
 #include "Server.hpp"
 
+bool Server::handleNewConnection(int epoll_fd, int fd, const ServerBlock &conf)
+{
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+	int client_fd = accept(fd, (struct sockaddr*)&client_addr, &client_len);
+
+	if (client_fd < 0)
+	{
+		return true;
+	}
+
+	setNonBlocking(client_fd);
+	modEpoll(epoll_fd, client_fd, EPOLLIN);
+
+	RequestState req;
+	req.client_fd = client_fd;
+	req.cgi_in_fd = -1;
+	req.cgi_out_fd = -1;
+	req.cgi_pid = -1;
+	req.state = RequestState::STATE_READING_REQUEST;
+	req.cgi_done = false;
+	req.associated_conf = &conf;
+	globalFDS.request_state_map[client_fd] = req;
+
+	return true;
+}
+
 bool Server::handleClientEvent(int epoll_fd, int fd, uint32_t ev)
 {
 	RequestState &req = globalFDS.request_state_map[fd];
@@ -13,8 +40,8 @@ bool Server::handleClientEvent(int epoll_fd, int fd, uint32_t ev)
 
 	if (ev & EPOLLIN)
 	{
-		staticHandler->handleClientRead(epoll_fd, fd);
-		if (!processMethod(req, epoll_fd))
+		clientHandler->handleClientRead(epoll_fd, fd);
+		if (!clientHandler->processMethod(req, epoll_fd))
 			return true;
 	}
 
@@ -22,7 +49,7 @@ bool Server::handleClientEvent(int epoll_fd, int fd, uint32_t ev)
 		req.state != RequestState::STATE_PREPARE_CGI &&
 		(ev & EPOLLOUT))
 	{
-		staticHandler->handleClientWrite(epoll_fd, fd);
+		clientHandler->handleClientWrite(epoll_fd, fd);
 	}
 
 	if ((req.state == RequestState::STATE_CGI_RUNNING ||
@@ -62,15 +89,14 @@ bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev)
 	if (ev & EPOLLIN)
 		cgiHandler->handleCGIRead(epoll_fd, fd);
 
-	if (!processMethod(req, epoll_fd))
+	if (!clientHandler->processMethod(req, epoll_fd))
 		return true;
 
 	if (fd == req.cgi_out_fd && (ev & EPOLLHUP))
 	{
 		if (!req.cgi_output_buffer.empty())
-			finalizeCgiResponse(req, epoll_fd, client_fd);
+			cgiHandler->finalizeCgiResponse(req, epoll_fd, client_fd);
 		cgiHandler->cleanupCGI(req);
-		this->setTaskStatus(RequestState::COMPLETED, client_fd);
 	}
 
 	if (fd == req.cgi_in_fd)
@@ -90,93 +116,64 @@ bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev)
 	return true;
 }
 
-void Server::finalizeCgiResponse(RequestState &req, int epoll_fd, int client_fd)
-{
-	std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
-	size_t header_end = output.find("\r\n\r\n");
-	std::string response;
+//void RequestHandler::parseRequest(RequestState &req)
+//{
+//	std::string request(req.request_buffer.begin(), req.request_buffer.end());
+//	size_t header_end = request.find("\r\n\r\n");
+//	if (header_end == std::string::npos)
+//		return;
+//	std::string headers = request.substr(0, header_end);
+//	std::istringstream header_stream(headers);
+//	std::string requestLine;
+//	std::getline(header_stream, requestLine);
 
-	// Baue die Response basierend auf CGI-Output
-	if (header_end != std::string::npos &&
-		(output.find("Content-type:") != std::string::npos ||
-		output.find("Content-Type:") != std::string::npos))
-	{
-		std::string headers = output.substr(0, header_end);
-		std::string body = output.substr(header_end + 4);
+//	std::string method, path, version;
+//	std::istringstream request_stream(requestLine);
+//	request_stream >> method >> path >> version;
 
-		response = "HTTP/1.1 200 OK\r\n";
-		if (headers.find("Content-Length:") == std::string::npos)
-			response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
-		if (headers.find("Connection:") == std::string::npos)
-			response += "Connection: close\r\n";
-		response += headers + "\r\n" + body;
-	}
-	else
-	{
-		response = "HTTP/1.1 200 OK\r\n"
-				"Content-Type: text/html\r\n"
-				"Content-Length: " + std::to_string(output.size()) + "\r\n"
-				"Connection: close\r\n\r\n" + output;
-	}
+//	std::string query;
+//	size_t qpos = path.find('?');
+//	if (qpos != std::string::npos)
+//	{
+//		query = path.substr(qpos + 1);
+//		path = path.substr(0, qpos);
+//	}
 
-	if (response.length() > req.response_buffer.max_size())
-	{
-		std::string error_response =
-			"HTTP/1.1 500 Internal Server Error\r\n"
-			"Content-Type: text/html\r\n"
-			"Content-Length: 26\r\n"
-			"Connection: close\r\n\r\n"
-			"CGI response too large.";
+//	std::string line;
+//	while (std::getline(header_stream, line) && !line.empty())
+//	{
+//		if (line.rfind("Cookie:", 0) == 0)
+//		{
+//			std::string cookieValue = line.substr(std::strlen("Cookie: "));
+//			req.cookie_header = cookieValue;
+//		}
+//	}
 
-		req.response_buffer.clear();
-		req.response_buffer.insert(req.response_buffer.begin(),
-								error_response.begin(),
-								error_response.end());
-	}
-	else
-	{
-		req.response_buffer.clear();
-		req.response_buffer.insert(req.response_buffer.begin(),
-								response.begin(),
-								response.end());
-	}
+//	if (method == "POST")
+//		req.request_body = request.substr(header_end + 4);
 
-	getTaskManager()->sendTaskStatusUpdate(client_fd, RequestState::COMPLETED);  // Geändert
+//	req.location_path = path;
 
-	req.state = RequestState::STATE_SENDING_RESPONSE;
-	modEpoll(epoll_fd, client_fd, EPOLLOUT);
-}
+//	std::stringstream redirectResponse;
+//	if (checkRedirect(req, &redirectResponse))
+//	{
+//		req.state = RequestState::STATE_SENDING_RESPONSE;
+//		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+//		return;
+//	}
 
-bool Server::processMethod(RequestState &req, int epoll_fd)
-{
-	if (req.request_buffer.empty())
-		return true;
+//	req.requested_path = buildRequestedPath(req, path);
+//	req.cgi_output_buffer.clear();
 
-	std::string method = requestHandler->getMethod(req.request_buffer);
-	if (!isMethodAllowed(req, method))
-	{
-		std::string error_response = getErrorHandler()->generateErrorResponse(405, "Method Not Allowed", req);
-
-		// Überprüfe die Größe der Error-Response
-		if (error_response.length() > req.response_buffer.max_size())
-		{
-			// Fallback zu einer minimalen Error-Response
-			error_response =
-				"HTTP/1.1 405 Method Not Allowed\r\n"
-				"Content-Type: text/plain\r\n"
-				"Content-Length: 18\r\n"
-				"Connection: close\r\n\r\n"
-				"Method not allowed.";
-		}
-
-		req.response_buffer.clear();
-		req.response_buffer.insert(req.response_buffer.begin(),
-								error_response.begin(),
-								error_response.end());
-
-		req.state = RequestState::STATE_SENDING_RESPONSE;
-		modEpoll(epoll_fd, req.client_fd, EPOLLOUT);
-		return false;
-	}
-	return true;
-}
+//	if (server.getCgiHandler()->needsCGI(req, path))
+//	{
+//		req.state = RequestState::STATE_PREPARE_CGI;
+//		server.getCgiHandler()->addCgiTunnel(req, method, query);
+//	}
+//	else
+//	{
+//		buildResponse(req);
+//		req.state = RequestState::STATE_SENDING_RESPONSE;
+//		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+//	}
+//}

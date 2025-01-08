@@ -86,7 +86,7 @@ SRCS=	src/main.cpp \
 		src/config/ConfigHandler_sanitize.cpp \
 		src/config/debug.cpp \
 		\
-		src/static/StaticHandler.cpp \
+		src/client/ClientHandler.cpp \
 		\
 		src/server/Server_loop.cpp \
 		src/server/Server_init.cpp \
@@ -121,6 +121,9 @@ all: $(NAME)
 	@if [ -e "./webserv.log" ]; then \
 		echo "$(YELLOW)Clearing webserv.log$(X)"; \
 		> ./webserv.log; \
+	else \
+		echo "$(YELLOW)Creating webserv.log$(X)"; \
+		touch ./webserv.log; \
 	fi
 
 -include $(OBJECTS:.o=.d)

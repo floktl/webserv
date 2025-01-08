@@ -31,8 +31,8 @@ public:
 	// Parse functions
 	void			parseRequest(RequestState &req);
 	// Utility functions
-	const Location*	findMatchingLocation(const ServerBlock* conf, const std::string& path);
 	std::string getMethod(const std::deque<char>& request_buffer);
+		const Location*	findMatchingLocation(const ServerBlock* conf, const std::string& path);
 
 	void buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req);
 private:
@@ -45,6 +45,7 @@ private:
 	void handleOtherRequests(RequestState &req, const Location* loc);
 	void buildAutoindexResponse(std::stringstream* response, RequestState& req);
 
+	void saveUploadedFile(const std::string &body, const std::string &path);
 
 	// Utility functions
 	bool		checkRedirect(RequestState &req, std::stringstream *response);
