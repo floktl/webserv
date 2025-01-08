@@ -81,18 +81,6 @@ void Server::delFromEpoll(int epfd, int fd)
 	close(fd);
 }
 
-bool Server::isMethodAllowed(const RequestState &req, const std::string &method) const
-{
-	const Location* loc = requestHandler->findMatchingLocation(req.associated_conf, req.location_path);
-	if (!loc)
-		return false;
-
-	if (method == "GET"    && loc->allowGet)    return true;
-	if (method == "POST"   && loc->allowPost)   return true;
-	if (method == "DELETE" && loc->allowDelete) return true;
-	if (method == "COOKIE" && loc->allowCookie) return true;
-	return false;
-}
 
 const ServerBlock* Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd)
 {
@@ -111,6 +99,7 @@ int Server::setNonBlocking(int fd)
 		return -1;
 	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+
 
 void Server::setTaskStatus(enum RequestState::Task new_task, int client_fd)
 {

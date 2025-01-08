@@ -2,7 +2,7 @@
 
 Server::Server(GlobalFDS &_globalFDS) :
 	globalFDS(_globalFDS),
-	staticHandler(new StaticHandler(*this)),
+	clientHandler(new ClientHandler(*this)),
 	cgiHandler(new CgiHandler(*this)),
 	requestHandler(new RequestHandler(*this)),
 	errorHandler(new ErrorHandler(*this)),
@@ -13,14 +13,14 @@ Server::Server(GlobalFDS &_globalFDS) :
 
 Server::~Server()
 {
-	delete staticHandler;
+	delete clientHandler;
 	delete cgiHandler;
 	delete requestHandler;
 	delete errorHandler;
 	delete taskManager;
 }
 
-StaticHandler*		Server::getStaticHandler(void) { return staticHandler; }
+ClientHandler*		Server::getClientHandler(void) { return clientHandler; }
 CgiHandler*			Server::getCgiHandler(void) { return cgiHandler; }
 RequestHandler*		Server::getRequestHandler(void) { return requestHandler; }
 ErrorHandler*		Server::getErrorHandler(void) { return errorHandler; }
