@@ -56,17 +56,13 @@ void RequestHandler::saveUploadedFile(const std::string &body, const std::string
 void RequestHandler::parseRequest(RequestState &req)
 {
     std::string request(req.request_buffer.begin(), req.request_buffer.end());
-
-    // Find the end of the HTTP headers (indicated by "\r\n\r\n")
     size_t header_end = request.find("\r\n\r\n");
     if (header_end == std::string::npos)
         return;
 
-    // Extract the headers portion from the request
     std::string headers = request.substr(0, header_end);
     std::istringstream header_stream(headers);
 
-    // Parse the request line
     std::string requestLine;
     std::getline(header_stream, requestLine);
 
@@ -74,7 +70,6 @@ void RequestHandler::parseRequest(RequestState &req)
     std::istringstream request_stream(requestLine);
     request_stream >> method >> path >> version;
 
-    // Check if the path contains a query string (indicated by '?')
     std::string query;
     size_t qpos = path.find('?');
     if (qpos != std::string::npos)
@@ -83,9 +78,10 @@ void RequestHandler::parseRequest(RequestState &req)
         path = path.substr(0, qpos);
     }
 
-    // Parse the headers for additional information (e.g., Content-Length)
-    std::string line;
+    bool is_chunked = false;
     size_t content_length = 0;
+    std::string line;
+
     while (std::getline(header_stream, line) && !line.empty())
     {
         if (line.rfind("Cookie:", 0) == 0)
@@ -97,59 +93,160 @@ void RequestHandler::parseRequest(RequestState &req)
         {
             content_length = std::stoul(line.substr(std::strlen("Content-Length: ")));
         }
+        else if (line.rfind("Transfer-Encoding:", 0) == 0)
+        {
+            std::string encoding = line.substr(std::strlen("Transfer-Encoding: "));
+            if (encoding.find("chunked") != std::string::npos)
+            {
+                is_chunked = true;
+            }
+        }
     }
 
-		// If it's a POST request, handle the body
-	if (method == "POST")
-	{
-		Logger::file("DEBUG: Handling POST request for path: " + path);
+    LocationConfig* location = server.findMatchingLocation(path);
+    if (!location)
+    {
+        Logger::file("ERROR: No matching location found for path: " + path);
+        req.status_code = 404;
+        req.state = RequestState::STATE_SENDING_RESPONSE;
+        server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+        return;
+    }
 
-		// Determine the body data (might be incomplete due to chunking)
-		size_t body_start = header_end + 4;
-		size_t received_body_length = request.size() - body_start;
-		(void)received_body_length; // Avoid unused variable warning
-		Logger::file("DEBUG: Chunk size received: " + std::to_string(received_body_length));
+    if (method == "POST")
+    {
+        if (is_chunked)
+        {
+            size_t body_start = header_end + 4;
+            std::string chunk_data = request.substr(body_start);
 
-		if (req.received_body.empty())
-		{
-			// Reserve space for the expected body length
-			req.received_body.reserve(content_length);
-			Logger::file("DEBUG: Initialized received_body with expected content length: " + std::to_string(content_length));
-		}
+            if (req.chunked_state.processing)
+            {
+                req.chunked_state.buffer += chunk_data;
+            }
+            else
+            {
+                req.chunked_state.processing = true;
+                req.chunked_state.buffer = chunk_data;
+            }
 
-		// Append the current chunk to the received body
-		req.received_body.append(request.substr(body_start));
-		Logger::file("DEBUG: Appended received chunk. Total received body size: " + std::to_string(req.received_body.size()));
+            while (true)
+            {
+                size_t chunk_header_end = req.chunked_state.buffer.find("\r\n");
+                if (chunk_header_end == std::string::npos)
+                    return;
 
-		// Check if the entire body has been received
-		if (req.received_body.size() >= content_length)
-		{
-			Logger::file("INFO: Complete body received for POST request. Total size: " + std::to_string(req.received_body.size()));
+                std::string chunk_size_hex = req.chunked_state.buffer.substr(0, chunk_header_end);
+                size_t chunk_size;
+                std::stringstream ss;
+                ss << std::hex << chunk_size_hex;
+                ss >> chunk_size;
 
-			req.location_path = "uploads/";
-			// Save the uploaded file
-			saveUploadedFile(req.received_body, "/app/var/www/php/" + req.location_path);
-			Logger::file("INFO: Uploaded file saved to path: " + req.location_path);
+                if (req.chunked_state.buffer.size() < chunk_header_end + 2 + chunk_size + 2)
+                    return;
 
-			// Update request state and epoll configuration
-			server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
-			//server.delFromEpoll(server.getGlobalFds().epoll_fd, req.client_fd);
-			req.state = RequestState::STATE_SENDING_RESPONSE;
-			Logger::file("DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.");
-		}
-		else
-		{
+                if (chunk_size == 0)
+                {
+                    req.chunked_state.processing = false;
+                    if (req.received_body.size() > location->client_max_body_size)
+                    {
+                        Logger::file("ERROR: Chunked body exceeds client_max_body_size");
+                        req.status_code = 413;
+                        req.state = RequestState::STATE_SENDING_RESPONSE;
+                        server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+                        return;
+                    }
 
-			// Log that we're waiting for more data
-			Logger::file("DEBUG: Waiting for more data. Received: " + std::to_string(req.received_body.size()) +
-						", Expected: " + std::to_string(content_length));
-		}
-		return;
-	}
+                    req.location_path = "uploads/";
+                    saveUploadedFile(req.received_body, "/app/var/www/php/" + req.location_path);
+                    req.state = RequestState::STATE_SENDING_RESPONSE;
+                    server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+                    return;
+                }
 
+                std::string chunk = req.chunked_state.buffer.substr(
+                    chunk_header_end + 2, chunk_size);
 
+                if (req.received_body.size() + chunk.size() > location->client_max_body_size)
+                {
+                    Logger::file("ERROR: Chunked body would exceed client_max_body_size");
+                    req.status_code = 413;
+                    req.state = RequestState::STATE_SENDING_RESPONSE;
+                    server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+                    return;
+                }
 
-    // Standard request processing continues here for GET, PUT, etc.
+                req.received_body += chunk;
+                req.chunked_state.buffer = req.chunked_state.buffer.substr(
+                    chunk_header_end + 2 + chunk_size + 2);
+            }
+        }
+        else
+        {
+            if (content_length > location->client_max_body_size)
+            {
+                Logger::file("ERROR: Content-Length " + std::to_string(content_length) +
+                            " exceeds client_max_body_size " +
+                            std::to_string(location->client_max_body_size));
+
+                req.status_code = 413;
+                req.state = RequestState::STATE_SENDING_RESPONSE;
+                server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+                return;
+            }
+
+            Logger::file("DEBUG: Handling POST request for path: " + path);
+
+            size_t body_start = header_end + 4;
+            size_t received_body_length = request.size() - body_start;
+            Logger::file("DEBUG: Chunk size received: " + std::to_string(received_body_length));
+
+            if (req.received_body.empty())
+            {
+                req.received_body.reserve(content_length);
+                Logger::file("DEBUG: Initialized received_body with expected content length: " +
+                            std::to_string(content_length));
+            }
+
+            if (req.received_body.size() + received_body_length > location->client_max_body_size)
+            {
+                Logger::file("ERROR: Accumulated body size would exceed client_max_body_size");
+                req.status_code = 413;
+                req.state = RequestState::STATE_SENDING_RESPONSE;
+                server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+                return;
+            }
+
+            req.received_body.append(request.substr(body_start));
+            Logger::file("DEBUG: Appended received chunk. Total received body size: " +
+                        std::to_string(req.received_body.size()));
+
+            if (req.received_body.size() >= content_length)
+            {
+                if (req.received_body.size() == content_length)
+                {
+                    Logger::file("INFO: Complete body received for POST request. Total size: " +
+                               std::to_string(req.received_body.size()));
+
+                    req.location_path = "uploads/";
+                    saveUploadedFile(req.received_body, "/app/var/www/php/" + req.location_path);
+                    Logger::file("INFO: Uploaded file saved to path: " + req.location_path);
+
+                    req.state = RequestState::STATE_SENDING_RESPONSE;
+                    server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+                }
+                else
+                {
+                    Logger::file("ERROR: Received more data than specified in Content-Length");
+                    req.status_code = 400;
+                    req.state = RequestState::STATE_SENDING_RESPONSE;
+                    server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+                }
+            }
+            return;
+        }
+    }
+
     req.location_path = path;
 
     std::stringstream redirectResponse;
