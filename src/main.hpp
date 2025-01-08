@@ -45,7 +45,7 @@
 # include "./requests/RequestHandler.hpp"
 # include "./utils/Sanitizer.hpp"
 # include "./utils/Logger.hpp"
-# include "./static/StaticHandler.hpp"
+# include "./client/ClientHandler.hpp"
 # include "./error/ErrorHandler.hpp"
 # include "./server/TaskManager.hpp"
 # include "./server/Server.hpp"

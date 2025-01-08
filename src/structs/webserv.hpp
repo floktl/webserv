@@ -44,7 +44,8 @@ struct ServerBlock
 
 struct RequestState
 {
-	int cur_fd;
+	std::string method;
+	  size_t content_length = 0;   // Content-Length header value for POST requests
 	int client_fd;
 	int cgi_in_fd;
 	int cgi_out_fd;
@@ -56,7 +57,7 @@ struct RequestState
 		STATE_READING_REQUEST,
 		STATE_PREPARE_CGI,
 		STATE_CGI_RUNNING,
-		STATE_SENDING_RESPONSE,
+		STATE_SENDING_RESPONSE
 	} state;
 
 	enum Task {
@@ -81,6 +82,14 @@ struct RequestState
 	const ServerBlock* associated_conf;
 	std::string location_path;
 	std::string requested_path;
+
+	std::string received_body;      // Temporary storage for the body of the request being received
+    size_t expected_body_length;    // Expected length of the request body (from Content-Length header)
+    size_t current_body_length;     // The length of the body data received so far
+    bool is_upload_complete;        // Flag to indicate if the upload has been fully received
+
+    // Optional (if you want to track uploaded file path specifically):
+    std::string uploaded_file_path;
 
 	bool keep_alive;
 };
