@@ -3,6 +3,12 @@
 
 #include "../main.hpp"
 
+struct ChunkedState {
+	bool processing;
+	std::string buffer;
+
+	ChunkedState() : processing(false) {}
+};
 
 struct Location
 {
