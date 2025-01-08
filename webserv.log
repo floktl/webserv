@@ -1,85 +1,1501 @@
-[2025-01-07 10:28:50] hello
-[2025-01-07 10:28:50] request_state_map size: 1
-[2025-01-07 10:28:50] Task status for client_fd 13 updated to IN_PROGRESS
-[2025-01-07 10:28:50] Confirmation: client_fd 13 now has task status IN_PROGRESS
-[2025-01-07 10:28:55] request_state_map size: 1
-[2025-01-07 10:28:55] Task status for client_fd 13 updated to IN_PROGRESS
-[2025-01-07 10:28:55] Confirmation: client_fd 13 now has task status IN_PROGRESS
-[2025-01-07 10:28:55] Request ID: 13, Task Status Updated: IN_PROGRESS
-[2025-01-07 10:28:55] IN_PROGRESS - Handling CGI tasks
-[2025-01-07 10:29:00] request_state_map size: 1
-[2025-01-07 10:29:00] Task status for client_fd 13 updated to COMPLETED
-[2025-01-07 10:29:00] Confirmation: client_fd 13 now has task status COMPLETED
-[2025-01-07 10:29:05] COMPLETED - Cleaning up
-[2025-01-07 10:29:10] COMPLETED - Cleaning up
-[2025-01-07 10:29:15] COMPLETED - Cleaning up
-[2025-01-07 10:29:20] COMPLETED - Cleaning up
-[2025-01-07 10:29:25] COMPLETED - Cleaning up
-[2025-01-07 10:29:30] COMPLETED - Cleaning up
-[2025-01-07 10:29:35] COMPLETED - Cleaning up
-[2025-01-07 10:29:40] COMPLETED - Cleaning up
-[2025-01-07 10:29:45] COMPLETED - Cleaning up
-[2025-01-07 10:29:49] epoll_ctl MOD failed: Bad file descriptor
-
-void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, const std::string &query)
-{
-    int pipe_in[2] = {-1, -1};
-    int pipe_out[2] = {-1, -1};
-    int pipe_status[2] = {-1, -1};
-    CgiTunnel tunnel;
-
-    if (pipe(pipe_status) < 0 || !initTunnel(req, tunnel, pipe_in, pipe_out)) {
-        Logger::file("[ERROR] Failed to create pipes");
-        cleanup_pipes(pipe_in, pipe_out);
-        if (pipe_status[0] != -1) close(pipe_status[0]);
-        if (pipe_status[1] != -1) close(pipe_status[1]);
-        return;
-    }
-
-    pid_t pid = fork();
-    if (pid < 0) {
-        cleanup_pipes(pipe_in, pipe_out);
-        close(pipe_status[0]);
-        close(pipe_status[1]);
-        return;
-    }
-
-    // Child process
-    if (pid == 0) {
-        close(pipe_status[0]); // Close the read end of the status pipe in the child
-        handleChildProcess(pipe_in, pipe_out, pipe_status[1], tunnel, method, query);
-    }
-
-    // Parent process
-    close(pipe_in[0]);  // Close unused ends
-    close(pipe_out[1]);
-    close(pipe_status[1]); // Close the write end of the status pipe in the parent
-
-    // Store the status pipe in RequestState
-    req.pipe_fd = pipe_status[0];
-
-    // Add the status pipe to epoll for monitoring
-    struct epoll_event ev;
-    ev.events = EPOLLIN; // Monitor for incoming data
-    ev.data.fd = req.pipe_fd;
-
-    server.modEpoll(server.getGlobalFds().epoll_fd, tunnel.in_fd, EPOLLOUT);
-    server.modEpoll(server.getGlobalFds().epoll_fd, tunnel.out_fd, EPOLLIN);
-
-    server.getGlobalFds().svFD_to_clFD_map[tunnel.in_fd] = req.client_fd;
-    server.getGlobalFds().svFD_to_clFD_map[tunnel.out_fd] = req.client_fd;
-
-    tunnels[tunnel.in_fd] = tunnel;
-    tunnels[tunnel.out_fd] = tunnel;
-    fd_to_tunnel[tunnel.in_fd] = &tunnels[tunnel.in_fd];
-    fd_to_tunnel[tunnel.out_fd] = &tunnels[tunnel.out_fd];
-
-    tunnels[tunnel.in_fd].pid = pid;
-    tunnels[tunnel.out_fd].pid = pid;
-
-    req.cgi_in_fd = tunnel.in_fd;
-    req.cgi_out_fd = tunnel.out_fd;
-    req.cgi_pid = pid;
-    req.state = RequestState::STATE_CGI_RUNNING;
-    req.cgi_done = false;
-}
+[2025-01-08 11:37:59] 
+[2025-01-08 11:37:59] 
+[2025-01-08 11:37:59] 
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 0
+[2025-01-08 11:38:05] DEBUG: Initialized received_body with expected content length: 493069
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 0
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 0, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 1024
+[2025-01-08 11:38:05] DEBUG: Initialized received_body with expected content length: 493069
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1024
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 1024, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 2048
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 3072
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 3072, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 3072
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 6144
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 6144, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 4096
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 10240
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 10240, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 5120
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 15360
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 15360, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 6144
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 21504
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 21504, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 7168
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 28672
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 28672, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 8192
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 36864
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 36864, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 9216
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 46080
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 46080, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 10240
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 56320
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 56320, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 11264
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 67584
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 67584, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 12288
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 79872
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 79872, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 13312
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 93184
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 93184, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 14336
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 107520
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 107520, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 15360
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 122880
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 122880, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 16384
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 139264
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 139264, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 17408
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 156672
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 156672, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 18432
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 175104
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 175104, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 19456
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 194560
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 194560, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 20480
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 215040
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 215040, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 21504
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 236544
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 236544, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 22528
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 259072
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 259072, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 23552
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 282624
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 282624, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 24576
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 307200
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 307200, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 25600
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 332800
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 332800, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 26624
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 359424
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 359424, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 27648
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 387072
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 387072, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 28672
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 415744
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 415744, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 29696
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 445440
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 445440, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 30720
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 476160
+[2025-01-08 11:38:05] DEBUG: Waiting for more data. Received: 476160, Expected: 493069
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 31744
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 507904
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 507904
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 32768
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 540672
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 540672
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 33792
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 574464
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 574464
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 34816
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 609280
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 609280
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 35840
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 645120
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 645120
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 36864
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 681984
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 681984
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 37888
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 719872
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 719872
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 38912
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 758784
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 758784
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 39936
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 798720
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 798720
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 40960
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 839680
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 839680
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 41984
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 881664
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 881664
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 43008
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 924672
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 924672
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 44032
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 968704
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 968704
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 45056
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1013760
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1013760
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 46080
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1059840
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1059840
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 47104
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1106944
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1106944
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 48128
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1155072
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1155072
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 49152
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1204224
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1204224
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 50176
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1254400
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1254400
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 51200
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1305600
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1305600
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 52224
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1357824
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1357824
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 53248
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1411072
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1411072
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 54272
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1465344
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1465344
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 55296
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1520640
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1520640
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 56320
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1576960
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1576960
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 57344
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1634304
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1634304
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 58368
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1692672
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1692672
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 59392
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1752064
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1752064
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 60416
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1812480
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1812480
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 61440
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1873920
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1873920
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 62464
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1936384
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1936384
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 63488
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 1999872
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 1999872
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 64512
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2064384
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2064384
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 65536
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2129920
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2129920
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 66560
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2196480
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2196480
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 67584
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2264064
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2264064
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 68608
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2332672
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2332672
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 69632
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2402304
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2402304
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 70656
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2472960
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2472960
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 71680
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2544640
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2544640
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 72704
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2617344
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2617344
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 73728
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2691072
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2691072
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 74752
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2765824
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2765824
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 75776
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2841600
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2841600
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 76800
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2918400
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2918400
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 77824
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 2996224
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 2996224
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 78848
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 3075072
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 3075072
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 79872
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 3154944
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 3154944
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 80896
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 3235840
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 3235840
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 81920
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 3317760
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 3317760
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 82944
+[2025-01-08 11:38:05] DEBUG: Appended received chunk. Total received body size: 3400704
+[2025-01-08 11:38:05] INFO: Complete body received for POST request. Total size: 3400704
+[2025-01-08 11:38:05] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:05] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:05] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:05] DEBUG: Chunk size received: 83968
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 3484672
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 3484672
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 84992
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 3569664
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 3569664
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 86016
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 3655680
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 3655680
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 87040
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 3742720
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 3742720
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 88064
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 3830784
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 3830784
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 89088
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 3919872
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 3919872
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 90112
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4009984
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4009984
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 91136
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4101120
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4101120
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 92160
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4193280
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4193280
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 93184
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4286464
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4286464
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 94208
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4380672
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4380672
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 95232
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4475904
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4475904
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 96256
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4572160
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4572160
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 97280
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4669440
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4669440
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 98304
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4767744
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4767744
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 99328
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4867072
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4867072
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 100352
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 4967424
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 4967424
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 101376
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 5068800
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 5068800
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 102400
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 5171200
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 5171200
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 103424
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 5274624
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 5274624
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 104448
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 5379072
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 5379072
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 105472
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 5484544
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 5484544
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 106496
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 5591040
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 5591040
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 107520
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 5698560
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 5698560
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 108544
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 5807104
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 5807104
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 109568
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 5916672
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 5916672
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 110592
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 6027264
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 6027264
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 111616
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 6138880
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 6138880
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 112640
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 6251520
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 6251520
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 113664
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 6365184
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 6365184
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 114688
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 6479872
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 6479872
+[2025-01-08 11:38:06] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:06] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:06] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:06] DEBUG: Chunk size received: 115712
+[2025-01-08 11:38:06] DEBUG: Appended received chunk. Total received body size: 6595584
+[2025-01-08 11:38:06] INFO: Complete body received for POST request. Total size: 6595584
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 116736
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 6712320
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 6712320
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 117760
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 6830080
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 6830080
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 118784
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 6948864
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 6948864
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 119808
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 7068672
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 7068672
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 120832
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 7189504
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 7189504
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 121856
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 7311360
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 7311360
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 122880
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 7434240
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 7434240
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 123904
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 7558144
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 7558144
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 124928
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 7683072
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 7683072
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 125952
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 7809024
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 7809024
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 126976
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 7936000
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 7936000
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 128000
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 8064000
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 8064000
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 129024
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 8193024
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 8193024
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 130048
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 8323072
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 8323072
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 130432
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 8453504
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 8453504
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 131456
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 8584960
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 8584960
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 132480
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 8717440
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 8717440
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 133504
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 8850944
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 8850944
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 134528
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 8985472
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 8985472
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 135552
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 9121024
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 9121024
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 136576
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 9257600
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 9257600
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 137600
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 9395200
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 9395200
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 138624
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 9533824
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 9533824
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 139648
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 9673472
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 9673472
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 140672
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 9814144
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 9814144
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 141696
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 9955840
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 9955840
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 142720
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 10098560
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 10098560
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 143744
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 10242304
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 10242304
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 144768
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 10387072
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 10387072
+[2025-01-08 11:38:07] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:07] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:07] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:07] DEBUG: Chunk size received: 145792
+[2025-01-08 11:38:07] DEBUG: Appended received chunk. Total received body size: 10532864
+[2025-01-08 11:38:07] INFO: Complete body received for POST request. Total size: 10532864
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 146816
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 10679680
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 10679680
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 147840
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 10827520
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 10827520
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 148864
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 10976384
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 10976384
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 149888
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 11126272
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 11126272
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 150912
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 11277184
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 11277184
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 151936
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 11429120
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 11429120
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 152960
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 11582080
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 11582080
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 153984
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 11736064
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 11736064
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 155008
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 11891072
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 11891072
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 156032
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 12047104
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 12047104
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 157056
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 12204160
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 12204160
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 158080
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 12362240
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 12362240
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 159104
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 12521344
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 12521344
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 160128
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 12681472
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 12681472
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 161152
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 12842624
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 12842624
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 162176
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 13004800
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 13004800
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:08] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:08] DEBUG: Chunk size received: 163200
+[2025-01-08 11:38:08] DEBUG: Appended received chunk. Total received body size: 13168000
+[2025-01-08 11:38:08] INFO: Complete body received for POST request. Total size: 13168000
+[2025-01-08 11:38:08] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:08] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 164224
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 13332224
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 13332224
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 165248
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 13497472
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 13497472
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 166272
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 13663744
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 13663744
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 167296
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 13831040
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 13831040
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 168320
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 13999360
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 13999360
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 169344
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 14168704
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 14168704
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 170368
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 14339072
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 14339072
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 171392
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 14510464
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 14510464
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 172416
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 14682880
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 14682880
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 173440
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 14856320
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 14856320
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 174464
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 15030784
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 15030784
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 175488
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 15206272
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 15206272
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 176512
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 15382784
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 15382784
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 177536
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 15560320
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 15560320
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 178560
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 15738880
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 15738880
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 179584
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 15918464
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 15918464
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 180608
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 16099072
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 16099072
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 181632
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 16280704
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 16280704
+[2025-01-08 11:38:09] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:09] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:09] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:09] DEBUG: Chunk size received: 182656
+[2025-01-08 11:38:09] DEBUG: Appended received chunk. Total received body size: 16463360
+[2025-01-08 11:38:09] INFO: Complete body received for POST request. Total size: 16463360
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 183680
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 16647040
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 16647040
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 184704
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 16831744
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 16831744
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 185728
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 17017472
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 17017472
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 186752
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 17204224
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 17204224
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 187776
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 17392000
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 17392000
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 188800
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 17580800
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 17580800
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 189824
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 17770624
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 17770624
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 190848
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 17961472
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 17961472
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 191872
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 18153344
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 18153344
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 192896
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 18346240
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 18346240
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 193920
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 18540160
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 18540160
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 194944
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 18735104
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 18735104
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 195968
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 18931072
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 18931072
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 196992
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 19128064
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 19128064
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 198016
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 19326080
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 19326080
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 199040
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 19525120
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 19525120
+[2025-01-08 11:38:10] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:10] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:10] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:10] DEBUG: Chunk size received: 200064
+[2025-01-08 11:38:10] DEBUG: Appended received chunk. Total received body size: 19725184
+[2025-01-08 11:38:10] INFO: Complete body received for POST request. Total size: 19725184
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 201088
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 19926272
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 19926272
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 202112
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 20128384
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 20128384
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 203136
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 20331520
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 20331520
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 204160
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 20535680
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 20535680
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 205184
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 20740864
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 20740864
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 206208
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 20947072
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 20947072
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 207232
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 21154304
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 21154304
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 208256
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 21362560
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 21362560
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 209280
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 21571840
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 21571840
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 210304
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 21782144
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 21782144
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 211328
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 21993472
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 21993472
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 212352
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 22205824
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 22205824
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 213376
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 22419200
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 22419200
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 214400
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 22633600
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 22633600
+[2025-01-08 11:38:11] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:11] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:11] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:11] DEBUG: Chunk size received: 215424
+[2025-01-08 11:38:11] DEBUG: Appended received chunk. Total received body size: 22849024
+[2025-01-08 11:38:11] INFO: Complete body received for POST request. Total size: 22849024
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 216448
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 23065472
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 23065472
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 217472
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 23282944
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 23282944
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 218496
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 23501440
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 23501440
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 219520
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 23720960
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 23720960
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 220544
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 23941504
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 23941504
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 221568
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 24163072
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 24163072
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 222592
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 24385664
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 24385664
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 223616
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 24609280
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 24609280
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 224640
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 24833920
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 24833920
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 225664
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 25059584
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 25059584
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 226688
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 25286272
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 25286272
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 227712
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 25513984
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 25513984
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 228736
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 25742720
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 25742720
+[2025-01-08 11:38:12] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:12] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:12] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:12] DEBUG: Chunk size received: 229760
+[2025-01-08 11:38:12] DEBUG: Appended received chunk. Total received body size: 25972480
+[2025-01-08 11:38:12] INFO: Complete body received for POST request. Total size: 25972480
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 230784
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 26203264
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 26203264
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 231808
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 26435072
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 26435072
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 232832
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 26667904
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 26667904
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 233856
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 26901760
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 26901760
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 234880
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 27136640
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 27136640
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 235904
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 27372544
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 27372544
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 236928
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 27609472
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 27609472
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 237952
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 27847424
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 27847424
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 238976
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 28086400
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 28086400
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 240000
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 28326400
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 28326400
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 241024
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 28567424
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 28567424
+[2025-01-08 11:38:13] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:13] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:13] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:13] DEBUG: Chunk size received: 242048
+[2025-01-08 11:38:13] DEBUG: Appended received chunk. Total received body size: 28809472
+[2025-01-08 11:38:13] INFO: Complete body received for POST request. Total size: 28809472
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 243072
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 29052544
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 29052544
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 244096
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 29296640
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 29296640
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 245120
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 29541760
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 29541760
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 246144
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 29787904
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 29787904
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 247168
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 30035072
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 30035072
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 248192
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 30283264
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 30283264
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 249216
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 30532480
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 30532480
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 250240
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 30782720
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 30782720
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 251264
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 31033984
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 31033984
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 252288
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 31286272
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 31286272
+[2025-01-08 11:38:14] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:14] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:14] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:14] DEBUG: Chunk size received: 253312
+[2025-01-08 11:38:14] DEBUG: Appended received chunk. Total received body size: 31539584
+[2025-01-08 11:38:14] INFO: Complete body received for POST request. Total size: 31539584
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 254336
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 31793920
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 31793920
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 255360
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 32049280
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 32049280
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 256384
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 32305664
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 32305664
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 257408
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 32563072
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 32563072
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 258432
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 32821504
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 32821504
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 259456
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 33080960
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 33080960
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 260480
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 33341440
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 33341440
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 261504
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 33602944
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 33602944
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 262528
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 33865472
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 33865472
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 263552
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 34129024
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 34129024
+[2025-01-08 11:38:15] INFO: Uploaded file saved to path: uploads/
+[2025-01-08 11:38:15] DEBUG: Request state updated to STATE_SENDING_RESPONSE. EPOLLOUT event set.
+[2025-01-08 11:38:15] DEBUG: Handling POST request for path: /uploadFile.php
+[2025-01-08 11:38:15] DEBUG: Chunk size received: 264576
+[2025-01-08 11:38:15] DEBUG: Appended received chunk. Total received body size: 34393600
+[2025-01-08 11:38:15] INFO: Complete body received for POST request. Total size: 34393600

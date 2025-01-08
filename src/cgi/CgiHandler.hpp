@@ -16,6 +16,7 @@ class CgiHandler
 		//setup functions
 		CgiHandler(Server& server);
 		~CgiHandler();
+		void finalizeCgiResponse(RequestState &req, int epoll_fd, int client_fd);
 
 		// execution functions
 		void handleCGIWrite(int epfd, int fd, uint32_t events);
@@ -41,7 +42,9 @@ class CgiHandler
 		void setup_cgi_environment(const CgiTunnel& tunnel, const std::string& method, const std::string& query);
 		bool initTunnel(RequestState &req, CgiTunnel &tunnel, int pipe_in[2],
 			int pipe_out[2]);
-		void handleChildProcess(int pipe_in[2], int pipe_out[2], int pipe_status, CgiTunnel &tunnel, const std::string &method, const std::string &query);
+		void handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &tunnel,
+			const std::string &method, const std::string &query);
+
 
 };
 
