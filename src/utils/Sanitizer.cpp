@@ -281,7 +281,7 @@ bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore,
 										const std::string& locationRoot) {
 	// If upload_store is not set, use default "uploads"
 	if (locationUploadStore.empty()) {
-		locationUploadStore = "uploads";
+		locationUploadStore = "upload";
 	}
 
 	// Determine the base path (location root or server root)

@@ -2,6 +2,11 @@
 # define STRUCTS_WEBSERV_HPP
 
 #include "../main.hpp"
+#include <deque>
+#include <string>
+#include <map>
+#include <chrono>
+#include <vector>
 
 struct ChunkedState {
 	bool processing;
@@ -13,51 +18,59 @@ struct ChunkedState {
 struct Location
 {
 	int			port;
-
 	std::string	path;
 	std::string	methods;
 	std::string	autoindex;
 	std::string	default_file;
 	std::string	upload_store{""};
-	long	client_max_body_size;
+	long		client_max_body_size;
 	std::string	root;
 	std::string	cgi;
 	std::string	cgi_filetype;
-	std::string return_code;
-	std::string return_url;
-	bool doAutoindex{true};
-	bool allowGet{true};
-	bool allowPost{false};
-	bool allowDelete{false};
-	bool allowCookie{false};
+	std::string	return_code;
+	std::string	return_url;
+	bool		doAutoindex{true};
+	bool		allowGet{true};
+	bool		allowPost{false};
+	bool		allowDelete{false};
+	bool		allowCookie{false};
 };
 
 struct ServerBlock
 {
-	int						port;
-	int						server_fd;
+	int port;
+	int server_fd;
 
-	std::string				name;
-	std::string				root;
-	std::string				index;
+	std::string name;
+	std::string root;
+	std::string index;
 
-	std::map				<int, std::string> errorPages;
-	long					client_max_body_size;
-	std::vector<Location>	locations;
-	int						timeout;
+	std::map<int, std::string>	errorPages;
+	long						client_max_body_size;
+	std::vector<Location>		locations;
+	int							timeout;
+
 	ServerBlock() : timeout(30) {}
 };
 
 struct RequestState
 {
-	std::string method;
-	  size_t content_length = 0;   // Content-Length header value for POST requests
-	int client_fd;
-	int cgi_in_fd;
-	int cgi_out_fd;
-	pid_t cgi_pid;
-	bool cgi_done;
-	bool is_directory{false};
+	// --- Neue Parsing-Phasen hinzufügen:
+	enum ParsingPhase {
+		PARSING_HEADER,
+		PARSING_BODY,
+		PARSING_COMPLETE
+	};
+
+	// Klassische Request-Daten
+	std::string	method;
+	size_t		content_length = 0;
+	int			client_fd;
+	int			cgi_in_fd;
+	int			cgi_out_fd;
+	pid_t		cgi_pid;
+	bool		cgi_done;
+	bool		is_directory{false};
 
 	enum State {
 		STATE_READING_REQUEST,
@@ -82,24 +95,25 @@ struct RequestState
 	std::deque<char> cgi_output_buffer;
 
 	std::chrono::steady_clock::time_point last_activity;
-
 	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
 
 	const ServerBlock* associated_conf;
 	std::string location_path;
 	std::string requested_path;
 
-	std::string received_body;      // Temporary storage for the body of the request being received
-    size_t expected_body_length;    // Expected length of the request body (from Content-Length header)
-    size_t current_body_length;     // The length of the body data received so far
-    bool is_upload_complete;        // Flag to indicate if the upload has been fully received
+	ChunkedState chunked_state;
 
-    // Optional (if you want to track uploaded file path specifically):
-    std::string uploaded_file_path;
+	int status_code;
 
-	bool keep_alive;
+	std::string	received_body;
+	size_t		expected_body_length;
+	size_t		current_body_length;
+	bool		is_upload_complete;
+	std::string	uploaded_file_path;
+	bool	keep_alive;
+
+	ParsingPhase parsing_phase { PARSING_HEADER };
 };
-
 
 struct GlobalFDS
 {
@@ -114,15 +128,15 @@ struct CgiTunnel {
 	int out_fd = -1;
 	int client_fd = -1;
 	int server_fd = -1;
-	int	port;
+	int port = 0;
 	std::string server_name;
 	const ServerBlock* config = NULL;
 	const Location* location = NULL;
-	std::chrono::steady_clock::time_point last_used;
+	std::chrono::steady_clock::time_point last_used = std::chrono::steady_clock::now();
 	bool is_busy = false;
 	std::string script_path;
 	std::vector<char> buffer;
-	CgiTunnel() : last_used(std::chrono::steady_clock::now()) {}
+	std::vector<char*> envp;
 };
 
 #endif

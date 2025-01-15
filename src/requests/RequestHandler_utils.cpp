@@ -9,7 +9,6 @@ bool RequestHandler::checkRedirect(RequestState &req, std::stringstream *respons
 	if (!loc || loc->return_code.empty() || loc->return_url.empty())
 		return false;
 
-	// Generiere zuerst den kompletten Response-String
 	std::stringstream redirect_response;
 	redirect_response << "HTTP/1.1 " << loc->return_code << " ";
 
@@ -29,10 +28,8 @@ bool RequestHandler::checkRedirect(RequestState &req, std::stringstream *respons
 
 	std::string response_str = redirect_response.str();
 
-	// Überprüfe die Größe vor dem Zuweisen
 	if (response_str.length() > req.response_buffer.max_size())
 	{
-		// Wenn die Redirect-Response zu groß ist, sende eine kürzere Fehlerantwort
 		std::stringstream error_response;
 		buildErrorResponse(500, "Redirect response too large", &error_response, req);
 		req.response_buffer.clear();
@@ -40,70 +37,67 @@ bool RequestHandler::checkRedirect(RequestState &req, std::stringstream *respons
 	}
 	else
 	{
-		// Sicheres Zuweisen der Response
 		req.response_buffer.clear();
 		req.response_buffer.insert(req.response_buffer.begin(),
 								response_str.begin(),
 								response_str.end());
 	}
 
-	// Kopiere die Response auch in den übergebenen stringstream
 	*response = std::move(redirect_response);
 
 	return true;
 }
 
-const Location* RequestHandler::findMatchingLocation(const ServerBlock* conf, const std::string& path)
+
+std::string RequestHandler::normalizePath(const std::string& raw)
+{
+	if (raw.empty()) return "/";
+	std::string path = (raw[0] == '/') ? raw : "/" + raw;
+	if (path.size() > 1 && path.back() == '/')
+		path.pop_back();
+	return path;
+}
+
+const Location* RequestHandler::findMatchingLocation(const ServerBlock* conf, const std::string& rawPath)
 {
 	if (!conf) return nullptr;
+
+	std::string path = normalizePath(rawPath);
 
 	const Location* bestMatch = nullptr;
 	size_t bestMatchLength = 0;
 	bool hasExactMatch = false;
 
-	for (const auto& loc : conf->locations)
+	for (const auto &loc : conf->locations)
 	{
-		if (path == loc.path)
+		std::string locPath = normalizePath(loc.path);
+		if (path == locPath)
 		{
 			bestMatch = &loc;
 			hasExactMatch = true;
 			break;
 		}
 	}
-
 	if (hasExactMatch)
 		return bestMatch;
 
-	for (const auto& loc : conf->locations)
+	for (const auto &loc : conf->locations)
 	{
-		bool isPrefix = loc.path.back() == '/';
-
-		if (isPrefix)
+		std::string locPath = normalizePath(loc.path);
+		if (path.compare(0, locPath.size(), locPath) == 0)
 		{
-			if (path.compare(0, loc.path.length(), loc.path) == 0
-				&& loc.path.length() > bestMatchLength)
+			if (locPath.size() > bestMatchLength)
 			{
-					bestMatch = &loc;
-					bestMatchLength = loc.path.length();
-			}
-		}
-		else
-		{
-			if (path.length() >= loc.path.length() &&
-				path.compare(0, loc.path.length(), loc.path) == 0 &&
-				(path.length() == loc.path.length() || path[loc.path.length()] == '/'))
-			{
-					if (loc.path.length() > bestMatchLength)
-					{
-						bestMatch = &loc;
-						bestMatchLength = loc.path.length();
-					}
+				bestMatch = &loc;
+				bestMatchLength = locPath.size();
 			}
 		}
 	}
 
 	return bestMatch;
 }
+
+
 
 std::string RequestHandler::buildRequestedPath(RequestState &req, const std::string &rawPath)
 {
