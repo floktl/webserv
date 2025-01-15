@@ -30,6 +30,7 @@ $(X) 🐑 Upload Files:    Make the route able to accept uploaded files and conf
 $(X) Stress test shell script das de kiste fickt!!!!!!!!!\n\
 $(X) 🐑 Set a default file to answer if the request is a directory.\n\
 $(X) 🐑 Large files into chunks!!!!!\n\
+$(X) 🐑 Upload sucess message aendern... gescheit machen... dynamisch oder so.....\n\
 $(X) 🐑 Cookies und Session managment\n\
 $(X) 🐑 Direkt über den Server mit konfigurierbarem Speicherort\n\
 $(X) 🐑 Über CGI-Scripts mit deren eigener Upload-Logik\n\

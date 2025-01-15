@@ -35,29 +35,29 @@ void CgiHandler::cleanupCGI(RequestState &req)
 	req.cgi_out_fd = -1;
 }
 
-void CgiHandler::cleanup_tunnel(CgiTunnel &tunnel)
-{
-	if (tunnel.in_fd != -1)
-	{
+void CgiHandler::cleanup_tunnel(CgiTunnel &tunnel) {
+	if (tunnel.in_fd != -1) {
 		epoll_ctl(server.getGlobalFds().epoll_fd, EPOLL_CTL_DEL, tunnel.in_fd, NULL);
 		close(tunnel.in_fd);
 		server.getGlobalFds().svFD_to_clFD_map.erase(tunnel.in_fd);
 		fd_to_tunnel.erase(tunnel.in_fd);
 		tunnel.in_fd = -1;
 	}
-	if (tunnel.out_fd != -1)
-	{
+	if (tunnel.out_fd != -1) {
 		epoll_ctl(server.getGlobalFds().epoll_fd, EPOLL_CTL_DEL, tunnel.out_fd, NULL);
 		close(tunnel.out_fd);
 		server.getGlobalFds().svFD_to_clFD_map.erase(tunnel.out_fd);
 		fd_to_tunnel.erase(tunnel.out_fd);
 		tunnel.out_fd = -1;
 	}
-	if (tunnel.pid != -1)
-	{
+	if (tunnel.pid != -1) {
 		waitpid(tunnel.pid, NULL, 0);
 		tunnel.pid = -1;
 	}
+	for(char* ptr : tunnel.envp) {
+		if(ptr) free(ptr);
+	}
+	tunnel.envp.clear();
 }
 
 

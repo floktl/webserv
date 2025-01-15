@@ -93,7 +93,7 @@
 	}
 
 	// Create folder for uploaded files
-	$filesDir = __DIR__ . '/files';
+	$filesDir = __DIR__ . '/upload';
 	if (!is_dir($filesDir)) {
 		mkdir($filesDir, 0777, true);
 	}
@@ -175,7 +175,7 @@
 			}
 
 			function deleteFile(name) {
-				fetch("./files/" + name, {
+				fetch("./" . $_SERVER["UPLOAD_STORE"] . "/" + name, {
 					method: 'DELETE',
 					headers: {
 						'Content-Type': 'application/json',

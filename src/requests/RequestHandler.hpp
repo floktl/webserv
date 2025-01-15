@@ -46,6 +46,8 @@ private:
 	void buildAutoindexResponse(std::stringstream* response, RequestState& req);
 
 	void saveUploadedFile(const std::string &body, const std::string &path);
+	void finalizeUpload(RequestState &req);
+	bool handleChunkedUpload(RequestState &req, const std::string &request, size_t headerEnd, const Location* loc);
 
 	// Utility functions
 	bool		checkRedirect(RequestState &req, std::stringstream *response);
@@ -54,6 +56,7 @@ private:
 	// Task functions
 	void handleTaskRequest(std::stringstream* response);
 	void handleStatusRequest(const std::string& taskId, std::stringstream* response);
+	std::string normalizePath(const std::string& raw);
 
 	// Autoindex helpers
 	bool checkDirectoryPermissions(const RequestState& req, std::stringstream* response);
