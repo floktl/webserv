@@ -70,12 +70,11 @@ void ConfigHandler::parseLine(std::string line)
 			registeredServerConfs.back().locations.push_back(Location());
 			Location& newLocation = registeredServerConfs.back().locations.back();
 			newLocation.path = location_path;
-			newLocation.root = registeredServerConfs.back().root;  // Server-Root erben
+			newLocation.root = registeredServerConfs.back().root;
 			return;
 		}
 	}
 
-	// Handle block closing
 	if (keyword == "}")
 	{
 		if (!inServerBlock && !inLocationBlock)
@@ -92,7 +91,6 @@ void ConfigHandler::parseLine(std::string line)
 		return;
 	}
 
-	// Ensure directives are within a server block
 	if (!inServerBlock)
 	{
 		Logger::error("Error: Configuration outside server block at line "
@@ -101,7 +99,6 @@ void ConfigHandler::parseLine(std::string line)
 		return;
 	}
 
-	// Parse directive value
 	std::getline(stream, value);
 	value = trim(value);
 	if (value.empty() || value.back() != ';')
@@ -111,11 +108,10 @@ void ConfigHandler::parseLine(std::string line)
 		parsingErr = true;
 		return;
 	}
-	value.pop_back();  // Remove semicolon
+	value.pop_back();
 	value = trim(value);
 	value = expandEnvironmentVariables(value, env);
 
-	// Handle server-level directives
 	if (!inLocationBlock)
 	{
 		if (std::find(serverOpts.begin(), serverOpts.end(), keyword)
@@ -159,7 +155,7 @@ void ConfigHandler::parseLine(std::string line)
 				return;
 			}
 
-			std::string path = tokens.back(); // Pfad ist das letzte Token
+			std::string path = tokens.back();
 			tokens.pop_back();
 
 			for (const std::string &codeStr : tokens) {
@@ -262,7 +258,7 @@ void ConfigHandler::parseLine(std::string line)
 				return;
 			}
 		} else if (keyword == "client_max_body_size") {
-			long size = Sanitizer::parseSize(value, "M"); // Standard-Einheit setzen, falls nicht angegeben
+			long size = Sanitizer::parseSize(value, "M");
 			if (size == -1) {
 				Logger::error("Error: Invalid client_max_body_size at line " + std::to_string(linecount));
 				parsingErr = true;

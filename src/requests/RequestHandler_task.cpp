@@ -2,7 +2,7 @@
 
 void RequestHandler::handleTaskRequest(std::stringstream* response)
 {
-	TaskManager* taskManager = server.getTaskManager(); // Access TaskManager via Server
+	TaskManager* taskManager = server.getTaskManager();
 	std::string taskId = taskManager->createTask();
 
 	// Manually build the 202 Accepted response with JSON-like content

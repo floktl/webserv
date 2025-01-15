@@ -4,87 +4,64 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 
 void ClientHandler::handleClientRead(int epfd, int fd)
 {
-    auto &fds = server.getGlobalFds();
-    auto it = fds.request_state_map.find(fd);
+	auto &fds = server.getGlobalFds();
+	auto it = fds.request_state_map.find(fd);
 
-    if (it == fds.request_state_map.end())
-    {
-        std::cerr << "Invalid fd: " << fd << " not found in request_state_map" << std::endl;
-        server.delFromEpoll(epfd, fd);
-        return;
-    }
+	if (it == fds.request_state_map.end())
+	{
+		std::cerr << "Invalid fd: " << fd << " not found in request_state_map" << std::endl;
+		server.delFromEpoll(epfd, fd);
+		return;
+	}
 
-    RequestState &req = it->second;
+	RequestState &req = it->second;
+	char buf[1024];
 
-    //const size_t MAX_REQUEST_SIZE = 8192;
-    char buf[1024];
+	while (true)
+	{
+		ssize_t n = read(fd, buf, sizeof(buf));
 
-    while (true)
-    {
-        ssize_t n = read(fd, buf, sizeof(buf));
+		if (n == 0)
+		{
+			std::cerr << "Client disconnected on fd: " << fd << std::endl;
+			server.delFromEpoll(epfd, fd);
+			return;
+		}
 
-        if (n == 0)
-        {
-            std::cerr << "Client disconnected on fd: " << fd << std::endl;
-            server.delFromEpoll(epfd, fd);
-            return;
-        }
+		if (n < 0)
+		{
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				break;
+			else
+			{
+				perror("read");
+				server.delFromEpoll(epfd, fd);
+				return;
+			}
+		}
 
-        if (n < 0)
-        {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-            {
-                // No more data to read; return and wait for next event
-                break;
-            }
-            else
-            {
-                perror("read");
-                server.delFromEpoll(epfd, fd);
-                return;
-            }
-        }
+		req.request_buffer.insert(req.request_buffer.end(), buf, buf + n);
 
-        //if (req.request_buffer.size() + n > MAX_REQUEST_SIZE)
-        //{
-        //    std::cerr << "Request too large for fd: " << fd << std::endl;
-        //    server.delFromEpoll(epfd, fd);
-        //    return;
-        //}
+		try
+		{
+			server.getRequestHandler()->parseRequest(req);
+		}
+		catch (const std::exception &e)
+		{
+			std::cerr << "Error parsing request on fd: " << fd << " - " << e.what() << std::endl;
+			server.delFromEpoll(epfd, fd);
+			return;
+		}
 
-        // Append data to the request buffer
-        req.request_buffer.insert(req.request_buffer.end(), buf, buf + n);
+		if (req.method == "POST" && req.received_body.size() < req.content_length)
+		{
+			std::cerr << "POST body incomplete. Waiting for more data. Received: "
+					<< req.received_body.size() << ", Expected: " << req.content_length << std::endl;
 
-        // Check if we have received the headers
-        if (req.request_buffer.size() > 4)
-        {
-            std::string req_str(req.request_buffer.begin(), req.request_buffer.end());
-            size_t headers_end = req_str.find("\r\n\r\n");
-
-            if (headers_end != std::string::npos)
-            {
-                try
-                {
-                    server.getRequestHandler()->parseRequest(req);
-
-                    // If this is a POST request, ensure we have received the full body
-					if (req.method == "POST" && req.received_body.size() < req.content_length)
-					{
-						std::cerr << "POST body incomplete. Waiting for more data. Received: "
-								<< req.received_body.size() << ", Expected: " << req.content_length << std::endl;
-						continue; // Keep reading
-					}
-
-                }
-                catch (const std::exception &e)
-                {
-                    std::cerr << "Error parsing request on fd: " << fd << " - " << e.what() << std::endl;
-                    server.delFromEpoll(epfd, fd);
-                    return;
-                }
-            }
-        }
-    }
+			server.modEpoll(epfd, fd, EPOLLIN);
+			break;
+		}
+	}
 }
 
 
@@ -95,7 +72,6 @@ void ClientHandler::handleClientWrite(int epfd, int fd)
 {
 	RequestState &req = server.getGlobalFds().request_state_map[fd];
 
-	// Check for timeout
 	auto now = std::chrono::steady_clock::now();
 	if (now - req.last_activity > RequestState::TIMEOUT_DURATION)
 	{
@@ -115,11 +91,9 @@ void ClientHandler::handleClientWrite(int epfd, int fd)
 
 		if (!req.response_buffer.empty())
 		{
-			// Create a temporary buffer for sending
 			char send_buffer[8192];
 			size_t chunk_size = std::min(req.response_buffer.size(), sizeof(send_buffer));
 
-			// Copy data from deque to send buffer
 			std::copy(req.response_buffer.begin(),
 					req.response_buffer.begin() + chunk_size,
 					send_buffer);
@@ -161,18 +135,27 @@ void ClientHandler::handleClientWrite(int epfd, int fd)
 
 bool ClientHandler::processMethod(RequestState &req, int epoll_fd)
 {
-	if (req.request_buffer.empty())
+	if (req.parsing_phase != RequestState::PARSING_HEADER)
+	{
+		Logger::file("[processMethod] Skipping method check because parsing_phase != PARSING_HEADER");
 		return true;
+	}
+
+	if (req.request_buffer.empty())
+	{
+		Logger::file("[processMethod] request_buffer empty, no method to parse");
+		return true;
+	}
 
 	std::string method = server.getRequestHandler()->getMethod(req.request_buffer);
+	Logger::file("[processMethod] Extracted method: " + method);
+
 	if (!isMethodAllowed(req, method))
 	{
 		std::string error_response = server.getErrorHandler()->generateErrorResponse(405, "Method Not Allowed", req);
 
-		// Überprüfe die Größe der Error-Response
 		if (error_response.length() > req.response_buffer.max_size())
 		{
-			// Fallback zu einer minimalen Error-Response
 			error_response =
 				"HTTP/1.1 405 Method Not Allowed\r\n"
 				"Content-Type: text/plain\r\n"
@@ -190,18 +173,55 @@ bool ClientHandler::processMethod(RequestState &req, int epoll_fd)
 		server.modEpoll(epoll_fd, req.client_fd, EPOLLOUT);
 		return false;
 	}
+
 	return true;
 }
 
-bool ClientHandler::isMethodAllowed(const RequestState &req, const std::string &method) const
-{
-	const Location* loc = server.getRequestHandler()->findMatchingLocation(req.associated_conf, req.location_path);
-	if (!loc)
-		return false;
+bool ClientHandler::isMethodAllowed(const RequestState &req, const std::string &method) const {
+	Logger::file("[Method Check] Starting method validation for: " + method);
+	Logger::file("[Method Check] Request path: " + req.location_path);
 
-	if (method == "GET"    && loc->allowGet)    return true;
-	if (method == "POST"   && loc->allowPost)   return true;
-	if (method == "DELETE" && loc->allowDelete) return true;
-	if (method == "COOKIE" && loc->allowCookie) return true;
-	return false;
+	const Location* loc = server.getRequestHandler()->findMatchingLocation(req.associated_conf, req.location_path);
+
+	if (!loc) {
+		Logger::file("[Method Check] ERROR: No matching location found for path: " + req.location_path);
+		Logger::file("[Method Check] Method check result: FALSE (no location)");
+		return false;
+	}
+
+	Logger::file("[Method Check] Found matching location");
+	Logger::file("[Method Check] Location config:");
+	Logger::file("  - GET allowed: " + std::string(loc->allowGet ? "yes" : "no"));
+	Logger::file("  - POST allowed: " + std::string(loc->allowPost ? "yes" : "no"));
+	Logger::file("  - DELETE allowed: " + std::string(loc->allowDelete ? "yes" : "no"));
+	Logger::file("  - COOKIE allowed: " + std::string(loc->allowCookie ? "yes" : "no"));
+
+	bool isAllowed = false;
+	std::string reason;
+
+	if (method == "GET" && loc->allowGet) {
+		isAllowed = true;
+		reason = "GET method allowed for this location";
+	}
+	else if (method == "POST" && loc->allowPost) {
+		isAllowed = true;
+		reason = "POST method allowed for this location";
+	}
+	else if (method == "DELETE" && loc->allowDelete) {
+		isAllowed = true;
+		reason = "DELETE method allowed for this location";
+	}
+	else if (method == "COOKIE" && loc->allowCookie) {
+		isAllowed = true;
+		reason = "COOKIE method allowed for this location";
+	}
+	else {
+		reason = method + " method not allowed for this location";
+	}
+
+	Logger::file("[Method Check] Decision: " + std::string(isAllowed ? "ALLOWED" : "DENIED"));
+	Logger::file("[Method Check] Reason: " + reason);
+	Logger::file("[Method Check] ---- End of method check ----");
+
+	return isAllowed;
 }

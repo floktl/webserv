@@ -1,6 +1,5 @@
 #include "./ConfigHandler.hpp"
 
-// initialize handler with necessary flags
 ConfigHandler::ConfigHandler()
 {
 	configFileValid = false;

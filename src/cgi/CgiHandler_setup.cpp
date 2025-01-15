@@ -14,7 +14,6 @@ void CgiHandler::finalizeCgiResponse(RequestState &req, int epoll_fd, int client
 	size_t header_end = output.find("\r\n\r\n");
 	std::string response;
 
-	// Baue die Response basierend auf CGI-Output
 	if (header_end != std::string::npos &&
 		(output.find("Content-type:") != std::string::npos ||
 		output.find("Content-Type:") != std::string::npos))
@@ -37,10 +36,8 @@ void CgiHandler::finalizeCgiResponse(RequestState &req, int epoll_fd, int client
 				"Connection: close\r\n\r\n" + output;
 	}
 
-	// Überprüfe die Größe der finalen Response
 	if (response.length() > req.response_buffer.max_size())
 	{
-		// Wenn die Response zu groß ist, sende eine Fehlermeldung
 		std::string error_response =
 			"HTTP/1.1 500 Internal Server Error\r\n"
 			"Content-Type: text/html\r\n"
@@ -55,7 +52,6 @@ void CgiHandler::finalizeCgiResponse(RequestState &req, int epoll_fd, int client
 	}
 	else
 	{
-		// Sichere Zuweisung der Response
 		req.response_buffer.clear();
 		req.response_buffer.insert(req.response_buffer.begin(),
 								response.begin(),
@@ -66,52 +62,38 @@ void CgiHandler::finalizeCgiResponse(RequestState &req, int epoll_fd, int client
 	server.modEpoll(epoll_fd, client_fd, EPOLLOUT);
 }
 
-void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::string &method, const std::string &query)
-{
-	clearenv();
-
+std::vector<char*> CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::string &method, const std::string &query) {
+	std::vector<char*> envp;
 	std::string content_length = "0";
 	std::string content_type = "application/x-www-form-urlencoded";
 	std::string boundary;
 	std::string http_cookie;
 
 	auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
-	if (req_it != server.getGlobalFds().request_state_map.end())
-	{
+	if (req_it != server.getGlobalFds().request_state_map.end()) {
 		const RequestState &req = req_it->second;
 		http_cookie = req.cookie_header;
-
 		std::string request(req.request_buffer.begin(), req.request_buffer.end());
 		size_t header_end = request.find("\r\n\r\n");
 
-		if (method == "POST" && header_end != std::string::npos)
-		{
+		if (method == "POST" && header_end != std::string::npos) {
 			size_t cl_pos = request.find("Content-Length: ");
-			if (cl_pos != std::string::npos)
-			{
+			if (cl_pos != std::string::npos) {
 				size_t cl_end = request.find("\r\n", cl_pos);
-				if (cl_end != std::string::npos)
-				{
+				if (cl_end != std::string::npos) {
 					content_length = request.substr(cl_pos + 16, cl_end - (cl_pos + 16));
 				}
 			}
 
 			size_t ct_pos = request.find("Content-Type: ");
-			if (ct_pos != std::string::npos)
-			{
+			if (ct_pos != std::string::npos) {
 				size_t ct_end = request.find("\r\n", ct_pos);
-				if (ct_end != std::string::npos)
-				{
+				if (ct_end != std::string::npos) {
 					content_type = request.substr(ct_pos + 14, ct_end - (ct_pos + 14));
-					//Logger::file("Setze Content-Type: " + content_type);
-
-					if (content_type.find("multipart/form-data") != std::string::npos)
-					{
+					if (content_type.find("multipart/form-data") != std::string::npos) {
 						size_t boundary_pos = content_type.find("boundary=");
-						if (boundary_pos != std::string::npos)
-						{
+						if (boundary_pos != std::string::npos) {
 							boundary = content_type.substr(boundary_pos + 9);
-							//Logger::file("Gefundene Boundary: " + boundary);
 						}
 					}
 				}
@@ -119,7 +101,7 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 		}
 	}
 
-	std::vector<std::string> env_vars = {
+	std::vector<std::string> vars = {
 		"REDIRECT_STATUS=200",
 		"GATEWAY_INTERFACE=CGI/1.1",
 		"SERVER_PROTOCOL=HTTP/1.1",
@@ -131,36 +113,32 @@ void CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::strin
 		"SERVER_SOFTWARE=webserv/1.0",
 		"SERVER_NAME=" + tunnel.server_name,
 		"SERVER_PORT=" + tunnel.config->port,
+		"UPLOAD_STORE=" + tunnel.location->upload_store,
 		"CONTENT_TYPE=" + content_type,
 		"CONTENT_LENGTH=" + content_length,
 		"HTTP_COOKIE=" + http_cookie,
 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 	};
 
-	if (!boundary.empty())
-	{
-		env_vars.push_back("BOUNDARY=" + boundary);
+	if (!boundary.empty()) {
+		vars.push_back("BOUNDARY=" + boundary);
 	}
 
-	if (method == "POST")
-	{
-		if (content_type.find("multipart/form-data") != std::string::npos)
-		{
-			env_vars.push_back("REQUEST_TYPE=multipart/form-data");
+	if (method == "POST") {
+		if (content_type.find("multipart/form-data") != std::string::npos) {
+			vars.push_back("REQUEST_TYPE=multipart/form-data");
 		}
-		env_vars.push_back("HTTP_TRANSFER_ENCODING=chunked");
+		vars.push_back("HTTP_TRANSFER_ENCODING=chunked");
 	}
 
-	for (const auto& env_var : env_vars)
-	{
-		if (!env_var.empty())
-		{
-			//Logger::file("Setze env: " + env_var);
-			putenv(strdup(env_var.c_str()));
+	for (const auto& var : vars) {
+		char* env_var = strdup(var.c_str());
+		if (env_var) {
+			envp.push_back(env_var);
 		}
 	}
-
-	//Logger::file("=== Setup CGI Environment End ===");
+	envp.push_back(nullptr);
+	return envp;
 }
 
 
@@ -221,7 +199,7 @@ void CgiHandler::handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &
 	close(pipe_in[0]);
 	close(pipe_out[1]);
 
-	setup_cgi_environment(tunnel, method, query);
+	tunnel.envp = setup_cgi_environment(tunnel, method, query);
 
 	execute_cgi(tunnel);
 
@@ -233,13 +211,7 @@ void CgiHandler::handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &
 }
 
 
-void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, const std::string &query)
-{
-	//Logger::file("addCgiTunnel");
-	//Logger::file("Method: " + method + ", Content Type: ");
-	//Logger::file("Request Body: " + std::string(req.request_buffer.begin(), req.request_buffer.end()));
-	//Logger::file("Query: " + query);
-
+void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, const std::string &query) {
 	int pipe_in[2] = {-1, -1};
 	int pipe_out[2] = {-1, -1};
 	int status_pipe[2] = {-1, -1};
@@ -260,6 +232,7 @@ void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, cons
 		cleanup_pipes(pipe_in, pipe_out);
 		close(status_pipe[0]);
 		close(status_pipe[1]);
+		cleanup_tunnel(tunnel);
 		return;
 	}
 

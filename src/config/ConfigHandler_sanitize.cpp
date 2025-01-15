@@ -4,7 +4,6 @@ bool ConfigHandler::sanitizeConfData(void)
 {
 	std::set<int> usedPorts;
 	for (size_t i = 0; i < registeredServerConfs.size(); ++i) {
-		// Mandatory checks
 		if (registeredServerConfs[i].port == 0) {
 			Logger::error("Port number is mandatory for server block " + std::to_string(i + 1));
 			configFileValid = false;
@@ -25,20 +24,17 @@ bool ConfigHandler::sanitizeConfData(void)
 			return false;
 		}
 
-		// root - mandatory
 		if (!Sanitizer::sanitize_root(registeredServerConfs[i].root, expandEnvironmentVariables("$PWD", env))) {
 			configFileValid = false;
 			return false;
 		}
 
-		// server_name - optional
 		if (!registeredServerConfs[i].name.empty() &&
 			!Sanitizer::sanitize_serverName(registeredServerConfs[i].name)) {
 			configFileValid = false;
 			return false;
 		}
 
-		// index - optional
 		if (!registeredServerConfs[i].index.empty() &&
 			!Sanitizer::sanitize_index(registeredServerConfs[i].index)) {
 			configFileValid = false;
@@ -53,7 +49,6 @@ bool ConfigHandler::sanitizeConfData(void)
 			return false;
 		}
 
-		// errorPages - now handled as a map
 		for (size_t j = 0; j < registeredServerConfs.size(); ++j) {
 			ServerBlock& conf = registeredServerConfs[j];
 			std::map<int, std::string> errorPagesToValidate = conf.errorPages;
@@ -63,8 +58,7 @@ bool ConfigHandler::sanitizeConfData(void)
 				int code = it->first;
 				std::string path = it->second;
 
-				// Validierung des Pfads und der Fehlercodes
-				std::string normalizedPath = path; // Kopie für Validierung
+				std::string normalizedPath = path;
 				std::ostringstream errorPageDef;
 				errorPageDef << code << " " << normalizedPath;
 
@@ -90,17 +84,14 @@ bool ConfigHandler::sanitizeConfData(void)
 			return false;
 		}
 
-		// Location blocks validation
 		for (size_t j = 0; j < registeredServerConfs[i].locations.size(); ++j) {
 			Location& loc = registeredServerConfs[i].locations[j];
 
-			// location path - mandatory
 			if (!Sanitizer::sanitize_locationPath(loc.path, expandEnvironmentVariables("$PWD", env))) {
 				configFileValid = false;
 				return false;
 			}
 
-			// Optional location checks
 			if (!loc.methods.empty() &&
 				!Sanitizer::sanitize_locationMethods(loc.methods)) {
 				configFileValid = false;

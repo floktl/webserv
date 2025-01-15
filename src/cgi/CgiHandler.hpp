@@ -34,13 +34,12 @@ class CgiHandler
 		void cleanup_tunnel(CgiTunnel& tunnel);
 		void cleanup_pipes(int pipe_in[2], int pipe_out[2]);
 
-		void setup_cgi_environment(const CgiTunnel& tunnel, const std::string& method, const std::string& query);
+		std::vector<char*> setup_cgi_environment(const CgiTunnel& tunnel, const std::string& method, const std::string& query);
 		bool initTunnel(RequestState &req, CgiTunnel &tunnel, int pipe_in[2],
 			int pipe_out[2]);
 		void handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &tunnel,
 			const std::string &method, const std::string &query);
-
-
+		void free_environment(std::vector<char*>& env);
 };
 
 #endif

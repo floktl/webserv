@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<title>Test File Upload</title>
+</head>
+
+<body>
+	<h1>File Upload ohne CGI</h1>
+
+	<!-- Das HTML-Formular schickt per POST an /upload -->
+	<form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data">
+		<label for="myFile">Wähle eine Datei aus:</label>
+		<input type="file" id="myFile" name="myFile" />
+		<button type="submit">Hochladen</button>
+	</form>
+
+	<hr />
+
+	<!-- Noch ein JS-Test: Per Fetch hochladen -->
+	<h2>Upload via JavaScript Fetch:</h2>
+	<input type="file" id="jsFile" />
+	<button id="jsUploadBtn">Hochladen mit Fetch</button>
+
+	<script>
+		// Sobald du auf den Button klickst, wird die Datei per Fetch hochgeladen.
+		document.getElementById('jsUploadBtn').addEventListener('click', async () => {
+			const fileInput = document.getElementById('jsFile');
+			if (!fileInput.files[0]) {
+				alert('Keine Datei ausgewählt!');
+				return;
+			}
+
+			const formData = new FormData();
+			formData.append('myFile', fileInput.files[0]);
+
+			try {
+				const response = await fetch('/upload', {
+					method: 'POST',
+					body: formData,
+				});
+				if (response.ok) {
+					alert('Datei via Fetch hochgeladen! Server-Response OK.');
+				} else {
+					alert('Upload fehlgeschlagen: ' + response.status);
+				}
+			} catch (err) {
+				console.error('Error beim Fetch-Upload:', err);
+			}
+		});
+	</script>
+</body>
+
+</html>
