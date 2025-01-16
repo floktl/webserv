@@ -274,10 +274,10 @@ void RequestHandler::parseRequest(RequestState &req)
 			return;
 		}
 
+		// Spezifische Behandlung der HTTP-Methoden
 		if (method == "POST")
 		{
 			Logger::file("[parseRequest] It's a POST request");
-
 			if (is_chunked)
 			{
 				Logger::file("[parseRequest] Handling chunked upload...");
@@ -333,13 +333,21 @@ void RequestHandler::parseRequest(RequestState &req)
 				return;
 			}
 		}
+		else if (method == "DELETE")
+		{
+			Logger::file("[parseRequest] It's a DELETE request");
+			handleDeleteRequest(req);
+			req.parsing_phase = RequestState::PARSING_COMPLETE;
+			server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+			return;
+		}
 		else
 		{
 			Logger::file("[parseRequest] Handling method: " + method);
 
 			if (server.getCgiHandler()->needsCGI(req, path))
 			{
-				Logger::file("[parseRequest] This request needs CGI => PREPARE_CGI");
+				Logger::file("[parseRequest] It's a CGI request => setting up CGI");
 				req.state = RequestState::STATE_PREPARE_CGI;
 				server.getCgiHandler()->addCgiTunnel(req, method, query);
 			}

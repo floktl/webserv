@@ -12,7 +12,7 @@ if os.path.isdir(dir_path):
 	files = os.listdir(dir_path)
 	for file in files:
 		if file.endswith('.name'):
-			name = file[:-5]  # '.name' abschneiden
+			name = file[:-5]
 			with open(os.path.join(dir_path, file), 'r') as f:
 				age = f.read().strip()
 			names.append({'name': name, 'age': age})
@@ -94,13 +94,11 @@ print("""<!DOCTYPE html>
 	</header>
 	<main>
 		<h1>Hello, World!</h1>
-		<p>Dies ist die Startseite des Webservers.</p>
-		<p>Fühle dich frei, diese Seite zu erkunden und zu bearbeiten.</p>
-		<h2>Namen und Alter:</h2>
+		<h2>Names ans Age:</h2>
 		<form action="createName.py" method="post">
 			<input type="text" name="name" placeholder="Name" required>
-			<input type="number" name="age" placeholder="Alter" required>
-			<input type="submit" value="Neuen Namen hinzufügen">
+			<input type="number" name="age" placeholder="Age" required>
+			<input type="submit" value="Add">
 		</form>
 		<ul>""")
 
@@ -108,7 +106,7 @@ for entry in names:
 	print(f"""            <li>{entry['name']} (Alter: {entry['age']})<button onclick="deleteName('{entry['name']}')" style="display: inline;">X</button></li>""")
 
 print("""        </ul>
-		<a href="/about.py">Mehr über uns</a>
+		<a href="/about.py">Read more</a>
 		<script>
 			function deleteName(name) {
 				fetch("./data/" + name + ".name", {

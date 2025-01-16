@@ -74,7 +74,6 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 		}
 	};
 
-	// Spezialisierte Funktion für Größenangaben (konvertiert in K, M, G)
 	auto printSize = [](long& value, const std::string& label,
 					const std::string& default_value = "1m", int padding = 30) {
 		Logger::white(label, false, padding);
