@@ -55,14 +55,12 @@ struct ServerBlock
 
 struct RequestState
 {
-	// --- Neue Parsing-Phasen hinzufügen:
 	enum ParsingPhase {
 		PARSING_HEADER,
 		PARSING_BODY,
 		PARSING_COMPLETE
 	};
 
-	// Klassische Request-Daten
 	std::string	method;
 	size_t		content_length = 0;
 	int			client_fd;

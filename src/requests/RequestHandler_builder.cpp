@@ -84,12 +84,20 @@ void RequestHandler::handlePostRequest(RequestState &req)
 
 void RequestHandler::handleDeleteRequest(RequestState &req)
 {
-	if (access(req.requested_path.c_str(), F_OK) != 0)
+	Logger::file("[handleDeleteRequest] Entering handleDeleteRequest for path: " + req.requested_path);
+
+	// Finde die passende Location für den aktuellen Request
+	const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
+	if (!loc)
 	{
+		Logger::file("[handleDeleteRequest] No matching location found.");
 		std::stringstream response;
 		buildErrorResponse(404, "Not Found", &response, req);
 
 		std::string response_data = response.str();
+		// Füge "Connection: close" hinzu
+		response_data.insert(response_data.find("\r\n"), "Connection: close\r\n");
+
 		size_t chunk_size_delete = 64;
 		size_t total_size_delete = response_data.size();
 
@@ -97,18 +105,28 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 		for (size_t i = 0; i < total_size_delete; i += chunk_size_delete) {
 			size_t length = std::min(chunk_size_delete, total_size_delete - i);
 			req.response_buffer.insert(req.response_buffer.end(),
-									response_data.begin() + i,
-									response_data.begin() + i + length);
+										response_data.begin() + i,
+										response_data.begin() + i + length);
 		}
+		Logger::file("[handleDeleteRequest] Sent 404 Not Found response");
+		// Setze den Zustand auf SENDING_RESPONSE
+		req.state = RequestState::STATE_SENDING_RESPONSE;
+		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 		return;
 	}
 
-	if (unlink(req.requested_path.c_str()) != 0)
+	// Verwende upload_store, um den Dateipfad zu konstruieren
+	std::string uploadStore = loc->upload_store;
+	if (uploadStore.empty())
 	{
+		Logger::file("[handleDeleteRequest] upload_store is not defined for location: " + std::string(loc->path));
 		std::stringstream response;
 		buildErrorResponse(500, "Internal Server Error", &response, req);
 
 		std::string response_data = response.str();
+		// Füge "Connection: close" hinzu
+		response_data.insert(response_data.find("\r\n"), "Connection: close\r\n");
+
 		size_t chunk_size_delete_err = 64;
 		size_t total_size_delete_err = response_data.size();
 
@@ -116,15 +134,121 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 		for (size_t i = 0; i < total_size_delete_err; i += chunk_size_delete_err) {
 			size_t length = std::min(chunk_size_delete_err, total_size_delete_err - i);
 			req.response_buffer.insert(req.response_buffer.end(),
-									response_data.begin() + i,
-									response_data.begin() + i + length);
+										response_data.begin() + i,
+										response_data.begin() + i + length);
 		}
+		Logger::file("[handleDeleteRequest] Sent 500 Internal Server Error response");
+		// Setze den Zustand auf SENDING_RESPONSE
+		req.state = RequestState::STATE_SENDING_RESPONSE;
+		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 		return;
 	}
 
+	// Sicherstellen, dass uploadStore nicht mit '/' endet
+	if (!uploadStore.empty() && uploadStore.back() == '/')
+		uploadStore.pop_back();
+
+	// Extrahiere den Dateinamen aus dem Pfad
+	std::string filename = req.location_path;
+	std::string prefix = "/upload/";
+	if (filename.find(prefix) == 0)
+	{
+		filename = filename.substr(prefix.length());
+	}
+	else
+	{
+		Logger::file("[handleDeleteRequest] Invalid path prefix: " + req.location_path);
+		std::stringstream response;
+		buildErrorResponse(400, "Bad Request", &response, req);
+
+		std::string response_data = response.str();
+		// Füge "Connection: close" hinzu
+		response_data.insert(response_data.find("\r\n"), "Connection: close\r\n");
+
+		size_t chunk_size_bad_request = 64;
+		size_t total_size_bad_request = response_data.size();
+
+		req.response_buffer.clear();
+		for (size_t i = 0; i < total_size_bad_request; i += chunk_size_bad_request) {
+			size_t length = std::min(chunk_size_bad_request, total_size_bad_request - i);
+			req.response_buffer.insert(req.response_buffer.end(),
+										response_data.begin() + i,
+										response_data.begin() + i + length);
+		}
+		Logger::file("[handleDeleteRequest] Sent 400 Bad Request response");
+		// Setze den Zustand auf SENDING_RESPONSE
+		req.state = RequestState::STATE_SENDING_RESPONSE;
+		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+		return;
+	}
+
+	std::string filePath = uploadStore + "/" + filename;
+
+	Logger::file("[handleDeleteRequest] Constructed file path: " + filePath);
+
+	// Überprüfen, ob die Datei existiert
+	if (access(filePath.c_str(), F_OK) != 0)
+	{
+		Logger::file("[handleDeleteRequest] File not found: " + filePath);
+		std::stringstream response;
+		buildErrorResponse(404, "Not Found", &response, req);
+
+		std::string response_data = response.str();
+		// Füge "Connection: close" hinzu
+		response_data.insert(response_data.find("\r\n"), "Connection: close\r\n");
+
+		size_t chunk_size_delete = 64;
+		size_t total_size_delete = response_data.size();
+
+		req.response_buffer.clear();
+		for (size_t i = 0; i < total_size_delete; i += chunk_size_delete) {
+			size_t length = std::min(chunk_size_delete, total_size_delete - i);
+			req.response_buffer.insert(req.response_buffer.end(),
+										response_data.begin() + i,
+										response_data.begin() + i + length);
+		}
+		Logger::file("[handleDeleteRequest] Sent 404 Not Found response");
+		// Setze den Zustand auf SENDING_RESPONSE
+		req.state = RequestState::STATE_SENDING_RESPONSE;
+		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+		return;
+	}
+
+	// Versuch, die Datei zu löschen
+	if (unlink(filePath.c_str()) != 0)
+	{
+		Logger::file("[handleDeleteRequest] Failed to delete file: " + filePath + " Error: " + std::string(strerror(errno)));
+		std::stringstream response;
+		buildErrorResponse(500, "Internal Server Error", &response, req);
+
+		std::string response_data = response.str();
+		// Füge "Connection: close" hinzu
+		response_data.insert(response_data.find("\r\n"), "Connection: close\r\n");
+
+		size_t chunk_size_delete_err = 64;
+		size_t total_size_delete_err = response_data.size();
+
+		req.response_buffer.clear();
+		for (size_t i = 0; i < total_size_delete_err; i += chunk_size_delete_err) {
+			size_t length = std::min(chunk_size_delete_err, total_size_delete_err - i);
+			req.response_buffer.insert(req.response_buffer.end(),
+										response_data.begin() + i,
+										response_data.begin() + i + length);
+		}
+		Logger::file("[handleDeleteRequest] Sent 500 Internal Server Error response");
+		// Setze den Zustand auf SENDING_RESPONSE
+		req.state = RequestState::STATE_SENDING_RESPONSE;
+		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
+		return;
+	}
+
+	Logger::file("[handleDeleteRequest] Successfully deleted file: " + filePath);
+
+	// Senden der 204 No Content Antwort mit "Connection: close"
 	std::string headers = "HTTP/1.1 204 No Content\r\n";
 	if (!req.cookie_header.empty())
 		headers += "Set-Cookie: " + req.cookie_header + "\r\n";
+	headers += "Connection: close\r\n";
 	headers += "\r\n";
 
 	req.response_buffer.clear();
@@ -136,9 +260,15 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 	for (size_t i = 0; i < total_size_no_content; i += chunk_size_no_content) {
 		size_t length = std::min(chunk_size_no_content, total_size_no_content - i);
 		req.response_buffer.insert(req.response_buffer.end(),
-								headers_data.begin() + i,
-								headers_data.begin() + i + length);
+									headers_data.begin() + i,
+									headers_data.begin() + i + length);
 	}
+
+	Logger::file("[handleDeleteRequest] Sent 204 No Content response");
+
+	// Setze den Zustand auf SENDING_RESPONSE
+	req.state = RequestState::STATE_SENDING_RESPONSE;
+	server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 }
 
 void RequestHandler::handleOtherRequests(RequestState &req, const Location* loc)

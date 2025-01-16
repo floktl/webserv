@@ -63,6 +63,7 @@ const Location* RequestHandler::findMatchingLocation(const ServerBlock* conf, co
 	if (!conf) return nullptr;
 
 	std::string path = normalizePath(rawPath);
+	Logger::file("[findMatchingLocation] Normalized Path: " + path);
 
 	const Location* bestMatch = nullptr;
 	size_t bestMatchLength = 0;
@@ -71,10 +72,12 @@ const Location* RequestHandler::findMatchingLocation(const ServerBlock* conf, co
 	for (const auto &loc : conf->locations)
 	{
 		std::string locPath = normalizePath(loc.path);
+		Logger::file("[findMatchingLocation] Checking Location Path: " + locPath);
 		if (path == locPath)
 		{
 			bestMatch = &loc;
 			hasExactMatch = true;
+			Logger::file("[findMatchingLocation] Exact match found: " + locPath);
 			break;
 		}
 	}
@@ -90,9 +93,15 @@ const Location* RequestHandler::findMatchingLocation(const ServerBlock* conf, co
 			{
 				bestMatch = &loc;
 				bestMatchLength = locPath.size();
+				Logger::file("[findMatchingLocation] Best match updated to: " + locPath);
 			}
 		}
 	}
+
+	if (bestMatch)
+		Logger::file("[findMatchingLocation] Final Best Match: " + std::string(bestMatch->path));
+	else
+		Logger::file("[findMatchingLocation] No matching location found.");
 
 	return bestMatch;
 }
@@ -102,11 +111,22 @@ const Location* RequestHandler::findMatchingLocation(const ServerBlock* conf, co
 std::string RequestHandler::buildRequestedPath(RequestState &req, const std::string &rawPath)
 {
 	const Location* loc = findMatchingLocation(req.associated_conf, rawPath);
-
 	std::string usedRoot = extractUsedRoot(loc, req.associated_conf);
 	std::string pathAfterLocation = processPathAfterLocation(rawPath, loc);
+	std::string fullPath;
 
-	std::string fullPath = usedRoot + "/" + pathAfterLocation;
+	// Wenn es sich um eine DELETE- oder POST-Anfrage handelt, verwende upload_store
+	if ((req.method == "DELETE" || req.method == "POST") && !loc->upload_store.empty()) {
+		fullPath = loc->upload_store + "/" + pathAfterLocation;
+	}
+	else {
+		fullPath = usedRoot + "/" + pathAfterLocation;
+	}
+
+	Logger::file("[buildRequestedPath] Raw Path: " + rawPath);
+	Logger::file("[buildRequestedPath] Used Root: " + usedRoot);
+	Logger::file("[buildRequestedPath] Path After Location: " + pathAfterLocation);
+	Logger::file("[buildRequestedPath] Full Path: " + fullPath);
 
 	std::string defaultFilePath = handleDefaultFile(fullPath, loc, req);
 	if (!defaultFilePath.empty())
