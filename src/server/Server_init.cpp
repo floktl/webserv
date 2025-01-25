@@ -59,6 +59,29 @@ int Server::initEpoll()
 	return epoll_fd;
 }
 
+bool addServerNameToHosts(const std::string &server_name) {
+    const std::string hosts_file = "/etc/hosts";
+    std::ifstream infile(hosts_file);
+    std::string line;
+
+    // Check if the server_name already exists in /etc/hosts
+    while (std::getline(infile, line)) {
+        if (line.find(server_name) != std::string::npos) {
+            return true; // Already present, no need to add
+        }
+    }
+
+    // Add server_name to /etc/hosts
+    std::ofstream outfile(hosts_file, std::ios::app);
+    if (!outfile.is_open()) {
+        throw std::runtime_error("Failed to open /etc/hosts");
+    }
+    outfile << "127.0.0.1 " << server_name << "\n";
+    outfile.close();
+
+    return true;
+}
+
 bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 {
 	for (auto &conf : configs)
@@ -97,7 +120,16 @@ bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 
 		setNonBlocking(conf.server_fd);
 		modEpoll(epoll_fd, conf.server_fd, EPOLLIN);
-
+		// Add server_name to /etc/hosts
+        try
+		{
+            if (!addServerNameToHosts(conf.name)) {
+                Logger::file("Warning: Failed to add server_name to /etc/hosts\n");
+            }
+        }
+		catch (const std::exception &e) {
+            Logger::file(std::string("Error updating /etc/hosts: ") + e.what());
+        }
 		std::stringstream ss;
 		ss << "Server listening on port: " << conf.port;
 		Logger::green() << ss.str() << "\n";
