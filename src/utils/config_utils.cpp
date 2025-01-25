@@ -135,7 +135,7 @@ void printRequestState(const RequestState& req)
 	{
 		std::cout << "Request Buffer Content (first 50 chars): "
 			<< std::string(req.request_buffer.begin(),
-			req.request_buffer.begin() + std::min(req.request_buffer.size(), size_t(50)))
+			req.request_buffer.end())
 			<< std::endl;
 	}
 
@@ -144,7 +144,7 @@ void printRequestState(const RequestState& req)
 	{
 		std::cout << "Response Buffer Content (first 50 chars): "
 			<< std::string(req.response_buffer.begin(),
-							req.response_buffer.begin() + std::min(req.response_buffer.size(), size_t(50)))
+							req.response_buffer.end())
 			<< std::endl;
 	}
 
@@ -153,7 +153,7 @@ void printRequestState(const RequestState& req)
 	{
 		std::cout << "CGI Output Buffer Content (first 50 chars): "
 			<< std::string(req.cgi_output_buffer.begin(),
-							req.cgi_output_buffer.begin() + std::min(req.cgi_output_buffer.size(), size_t(50)))
+							req.cgi_output_buffer.end())
 			<< std::endl;
 	}
 
