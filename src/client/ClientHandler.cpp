@@ -135,22 +135,25 @@ void ClientHandler::handleClientWrite(int epfd, int fd)
 
 bool ClientHandler::processMethod(RequestState &req, int epoll_fd)
 {
-	// Only check during initial request and not during CGI
-	if (req.state == RequestState::STATE_CGI_RUNNING ||
-		req.state == RequestState::STATE_PREPARE_CGI)
-		return true;
+	//// Only check during initial request and not during CGI
+	//if (req.state == RequestState::STATE_CGI_RUNNING ||
+	//	req.state == RequestState::STATE_PREPARE_CGI)
+	//{
+	//	Logger::file("[processMethod] break out");
+	//	return true;
+	//}
 
-	if (req.parsing_phase != RequestState::PARSING_HEADER)
-	{
-		Logger::file("[processMethod] Skipping method check because parsing_phase != PARSING_HEADER");
-		return true;
-	}
+	//if (req.parsing_phase != RequestState::PARSING_HEADER)
+	//{
+	//	Logger::file("[processMethod] Skipping method check because parsing_phase != PARSING_HEADER");
+	//	return true;
+	//}
 
-	if (req.request_buffer.empty())
-	{
-		Logger::file("[processMethod] request_buffer empty, no method to parse");
-		return true;
-	}
+	//if (req.request_buffer.empty())
+	//{
+	//	Logger::file("[processMethod] request_buffer empty, no method to parse");
+	//	return true;
+	//}
 
 	std::string method = server.getRequestHandler()->getMethod(req.request_buffer);
 	Logger::file("[processMethod] Extracted method: " + method);
