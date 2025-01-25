@@ -1,90 +1,272 @@
-[2025-01-16 11:28:07] [parseRequest] Entering parseRequest. ParsingPhase = 0, request_buffer size: 99
-[2025-01-16 11:28:07] [parseRequest] Found header boundary at: 95
-[2025-01-16 11:28:07] [parseRequest] Headers:
-DELETE /upload/example.txt HTTP/1.1
-Host: localhost:8050
-User-Agent: curl/7.64.1
-Accept: */*
-[2025-01-16 11:28:07] [parseRequest] Parsed Method: 'DELETE', Path: '/upload/example.txt', Version: 'HTTP/1.1'
-[2025-01-16 11:28:07] [parseRequest] Header line: Host: localhost:8050
-[2025-01-16 11:28:07] [parseRequest] Header line: User-Agent: curl/7.64.1
-[2025-01-16 11:28:07] [parseRequest] Header line: Accept: */*
-[2025-01-16 11:28:07] [findMatchingLocation] Normalized Path: /upload/example.txt
-[2025-01-16 11:28:07] [findMatchingLocation] Checking Location Path: /
-[2025-01-16 11:28:07] [findMatchingLocation] Checking Location Path: /upload
-[2025-01-16 11:28:07] [findMatchingLocation] Best match updated to: /
-[2025-01-16 11:28:07] [findMatchingLocation] Best match updated to: /upload
-[2025-01-16 11:28:07] [findMatchingLocation] Final Best Match: /upload
-[2025-01-16 11:28:07] [findMatchingLocation] Normalized Path: /upload/example.txt
-[2025-01-16 11:28:07] [findMatchingLocation] Checking Location Path: /
-[2025-01-16 11:28:07] [findMatchingLocation] Checking Location Path: /upload
-[2025-01-16 11:28:07] [findMatchingLocation] Best match updated to: /
-[2025-01-16 11:28:07] [findMatchingLocation] Best match updated to: /upload
-[2025-01-16 11:28:07] [findMatchingLocation] Final Best Match: /upload
-[2025-01-16 11:28:07] [buildRequestedPath] Raw Path: /upload/example.txt
-[2025-01-16 11:28:07] [buildRequestedPath] Used Root: /app/var/www/staticupload
-[2025-01-16 11:28:07] [buildRequestedPath] Path After Location: example.txt
-[2025-01-16 11:28:07] [buildRequestedPath] Full Path: /app/var/www/staticupload/upload/example.txt
-[2025-01-16 11:28:07] [findMatchingLocation] Normalized Path: /upload/example.txt
-[2025-01-16 11:28:07] [findMatchingLocation] Checking Location Path: /
-[2025-01-16 11:28:07] [findMatchingLocation] Checking Location Path: /upload
-[2025-01-16 11:28:07] [findMatchingLocation] Best match updated to: /
-[2025-01-16 11:28:07] [findMatchingLocation] Best match updated to: /upload
-[2025-01-16 11:28:07] [findMatchingLocation] Final Best Match: /upload
-[2025-01-16 11:28:07] [parseRequest] It's a DELETE request
-[2025-01-16 11:28:07] [handleDeleteRequest] Entering handleDeleteRequest for path: /app/var/www/staticupload/upload/example.txt
-[2025-01-16 11:28:07] [findMatchingLocation] Normalized Path: /upload/example.txt
-[2025-01-16 11:28:07] [findMatchingLocation] Checking Location Path: /
-[2025-01-16 11:28:07] [findMatchingLocation] Checking Location Path: /upload
-[2025-01-16 11:28:07] [findMatchingLocation] Best match updated to: /
-[2025-01-16 11:28:07] [findMatchingLocation] Best match updated to: /upload
-[2025-01-16 11:28:07] [findMatchingLocation] Final Best Match: /upload
-[2025-01-16 11:28:07] [handleDeleteRequest] Constructed file path: /app/var/www/staticupload/upload/example.txt
-[2025-01-16 11:28:07] [handleDeleteRequest] File not found: /app/var/www/staticupload/upload/example.txt
-[2025-01-16 11:28:07] [handleDeleteRequest] Sent 404 Not Found response
-[2025-01-16 11:28:07] [processMethod] Skipping method check because parsing_phase != PARSING_HEADER
-[2025-01-16 11:28:28] [parseRequest] Entering parseRequest. ParsingPhase = 0, request_buffer size: 99
-[2025-01-16 11:28:28] [parseRequest] Found header boundary at: 95
-[2025-01-16 11:28:28] [parseRequest] Headers:
-DELETE /upload/example.txt HTTP/1.1
-Host: localhost:8050
-User-Agent: curl/7.64.1
-Accept: */*
-[2025-01-16 11:28:28] [parseRequest] Parsed Method: 'DELETE', Path: '/upload/example.txt', Version: 'HTTP/1.1'
-[2025-01-16 11:28:28] [parseRequest] Header line: Host: localhost:8050
-[2025-01-16 11:28:28] [parseRequest] Header line: User-Agent: curl/7.64.1
-[2025-01-16 11:28:28] [parseRequest] Header line: Accept: */*
-[2025-01-16 11:28:28] [findMatchingLocation] Normalized Path: /upload/example.txt
-[2025-01-16 11:28:28] [findMatchingLocation] Checking Location Path: /
-[2025-01-16 11:28:28] [findMatchingLocation] Checking Location Path: /upload
-[2025-01-16 11:28:28] [findMatchingLocation] Best match updated to: /
-[2025-01-16 11:28:28] [findMatchingLocation] Best match updated to: /upload
-[2025-01-16 11:28:28] [findMatchingLocation] Final Best Match: /upload
-[2025-01-16 11:28:28] [findMatchingLocation] Normalized Path: /upload/example.txt
-[2025-01-16 11:28:28] [findMatchingLocation] Checking Location Path: /
-[2025-01-16 11:28:28] [findMatchingLocation] Checking Location Path: /upload
-[2025-01-16 11:28:28] [findMatchingLocation] Best match updated to: /
-[2025-01-16 11:28:28] [findMatchingLocation] Best match updated to: /upload
-[2025-01-16 11:28:28] [findMatchingLocation] Final Best Match: /upload
-[2025-01-16 11:28:28] [buildRequestedPath] Raw Path: /upload/example.txt
-[2025-01-16 11:28:28] [buildRequestedPath] Used Root: /app/var/www/staticupload
-[2025-01-16 11:28:28] [buildRequestedPath] Path After Location: example.txt
-[2025-01-16 11:28:28] [buildRequestedPath] Full Path: /app/var/www/staticupload/upload/example.txt
-[2025-01-16 11:28:28] [findMatchingLocation] Normalized Path: /upload/example.txt
-[2025-01-16 11:28:28] [findMatchingLocation] Checking Location Path: /
-[2025-01-16 11:28:28] [findMatchingLocation] Checking Location Path: /upload
-[2025-01-16 11:28:28] [findMatchingLocation] Best match updated to: /
-[2025-01-16 11:28:28] [findMatchingLocation] Best match updated to: /upload
-[2025-01-16 11:28:28] [findMatchingLocation] Final Best Match: /upload
-[2025-01-16 11:28:28] [parseRequest] It's a DELETE request
-[2025-01-16 11:28:28] [handleDeleteRequest] Entering handleDeleteRequest for path: /app/var/www/staticupload/upload/example.txt
-[2025-01-16 11:28:28] [findMatchingLocation] Normalized Path: /upload/example.txt
-[2025-01-16 11:28:28] [findMatchingLocation] Checking Location Path: /
-[2025-01-16 11:28:28] [findMatchingLocation] Checking Location Path: /upload
-[2025-01-16 11:28:28] [findMatchingLocation] Best match updated to: /
-[2025-01-16 11:28:28] [findMatchingLocation] Best match updated to: /upload
-[2025-01-16 11:28:28] [findMatchingLocation] Final Best Match: /upload
-[2025-01-16 11:28:28] [handleDeleteRequest] Constructed file path: /app/var/www/staticupload/upload/example.txt
-[2025-01-16 11:28:28] [handleDeleteRequest] Successfully deleted file: /app/var/www/staticupload/upload/example.txt
-[2025-01-16 11:28:28] [handleDeleteRequest] Sent 204 No Content response
-[2025-01-16 11:28:28] [processMethod] Skipping method check because parsing_phase != PARSING_HEADER
+[2025-01-25 13:44:57] [parseRequest] Entering parseRequest. ParsingPhase = 0, request_buffer size: 689
+[2025-01-25 13:44:57] [parseRequest] Found header boundary at: 685
+[2025-01-25 13:44:57] [parseRequest] Headers:
+GET / HTTP/1.1
+Host: localhost:8001
+Connection: keep-alive
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+[2025-01-25 13:44:57] [parseRequest] Parsed Method: 'GET', Path: '/', Version: 'HTTP/1.1'
+[2025-01-25 13:44:57] [parseRequest] Header line: Host: localhost:8001
+[2025-01-25 13:44:57] [parseRequest] Header line: Connection: keep-alive
+[2025-01-25 13:44:57] [parseRequest] Header line: sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+[2025-01-25 13:44:57] [parseRequest] Header line: sec-ch-ua-mobile: ?0
+[2025-01-25 13:44:57] [parseRequest] Header line: sec-ch-ua-platform: "macOS"
+[2025-01-25 13:44:57] [parseRequest] Header line: Upgrade-Insecure-Requests: 1
+[2025-01-25 13:44:57] [parseRequest] Header line: User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+[2025-01-25 13:44:57] [parseRequest] Header line: Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+[2025-01-25 13:44:57] [parseRequest] Header line: Sec-Fetch-Site: none
+[2025-01-25 13:44:57] [parseRequest] Header line: Sec-Fetch-Mode: navigate
+[2025-01-25 13:44:57] [parseRequest] Header line: Sec-Fetch-User: ?1
+[2025-01-25 13:44:57] [parseRequest] Header line: Sec-Fetch-Dest: document
+[2025-01-25 13:44:57] [parseRequest] Header line: Accept-Encoding: gzip, deflate, br, zstd
+[2025-01-25 13:44:57] [parseRequest] Header line: Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+[2025-01-25 13:44:57] [findMatchingLocation] Normalized Path: /
+[2025-01-25 13:44:57] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:44:57] [findMatchingLocation] Exact match found: /
+[2025-01-25 13:44:57] [findMatchingLocation] Normalized Path: /
+[2025-01-25 13:44:57] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:44:57] [findMatchingLocation] Exact match found: /
+[2025-01-25 13:44:57] [buildRequestedPath] Raw Path: /
+[2025-01-25 13:44:57] [buildRequestedPath] Used Root: /app/var/www/php
+[2025-01-25 13:44:57] [buildRequestedPath] Path After Location: 
+[2025-01-25 13:44:57] [buildRequestedPath] Full Path: /app/var/www/php/
+[2025-01-25 13:44:57] [detectMultipartFormData] No multipart form-data detected.
+[2025-01-25 13:44:57] [findMatchingLocation] Normalized Path: /
+[2025-01-25 13:44:57] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:44:57] [findMatchingLocation] Exact match found: /
+[2025-01-25 13:44:57] [parseRequest] Handling method: GET
+[2025-01-25 13:44:57] [needsCGI] Entering function with path: /
+[2025-01-25 13:44:57] [needsCGI] Regular form submission detected.
+[2025-01-25 13:44:57] [needsCGI] Checking file status for path: /app/var/www/php/index.php
+[2025-01-25 13:44:57] [needsCGI] Checking for CGI configuration...
+[2025-01-25 13:44:57] [findMatchingLocation] Normalized Path: /
+[2025-01-25 13:44:57] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:44:57] [findMatchingLocation] Exact match found: /
+[2025-01-25 13:44:57] [needsCGI] Found file extension: .php
+[2025-01-25 13:44:57] [needsCGI] CGI script detected for path: /app/var/www/php/index.php
+[2025-01-25 13:44:57] [parseRequest] It's a CGI request => setting up CGI
+[2025-01-25 13:44:57] [findMatchingLocation] Normalized Path: /
+[2025-01-25 13:44:57] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:44:57] [findMatchingLocation] Exact match found: /
+[2025-01-25 13:44:58] [parseRequest] Entering parseRequest. ParsingPhase = 0, request_buffer size: 732
+[2025-01-25 13:44:58] [parseRequest] Found header boundary at: 728
+[2025-01-25 13:44:58] [parseRequest] Headers:
+GET / HTTP/1.1
+Host: localhost:8001
+Connection: keep-alive
+Pragma: no-cache
+Cache-Control: no-cache
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+[2025-01-25 13:44:58] [parseRequest] Parsed Method: 'GET', Path: '/', Version: 'HTTP/1.1'
+[2025-01-25 13:44:58] [parseRequest] Header line: Host: localhost:8001
+[2025-01-25 13:44:58] [parseRequest] Header line: Connection: keep-alive
+[2025-01-25 13:44:58] [parseRequest] Header line: Pragma: no-cache
+[2025-01-25 13:44:58] [parseRequest] Header line: Cache-Control: no-cache
+[2025-01-25 13:44:58] [parseRequest] Header line: sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+[2025-01-25 13:44:58] [parseRequest] Header line: sec-ch-ua-mobile: ?0
+[2025-01-25 13:44:58] [parseRequest] Header line: sec-ch-ua-platform: "macOS"
+[2025-01-25 13:44:58] [parseRequest] Header line: Upgrade-Insecure-Requests: 1
+[2025-01-25 13:44:58] [parseRequest] Header line: User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+[2025-01-25 13:44:58] [parseRequest] Header line: Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+[2025-01-25 13:44:58] [parseRequest] Header line: Sec-Fetch-Site: none
+[2025-01-25 13:44:58] [parseRequest] Header line: Sec-Fetch-Mode: navigate
+[2025-01-25 13:44:58] [parseRequest] Header line: Sec-Fetch-User: ?1
+[2025-01-25 13:44:58] [parseRequest] Header line: Sec-Fetch-Dest: document
+[2025-01-25 13:44:58] [parseRequest] Header line: Accept-Encoding: gzip, deflate, br, zstd
+[2025-01-25 13:44:58] [parseRequest] Header line: Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+[2025-01-25 13:44:58] [findMatchingLocation] Normalized Path: /
+[2025-01-25 13:44:58] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:44:58] [findMatchingLocation] Exact match found: /
+[2025-01-25 13:44:58] [findMatchingLocation] Normalized Path: /
+[2025-01-25 13:44:58] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:44:58] [findMatchingLocation] Exact match found: /
+[2025-01-25 13:44:58] [buildRequestedPath] Raw Path: /
+[2025-01-25 13:44:58] [buildRequestedPath] Used Root: /app/var/www/php
+[2025-01-25 13:44:58] [buildRequestedPath] Path After Location: 
+[2025-01-25 13:44:58] [buildRequestedPath] Full Path: /app/var/www/php/
+[2025-01-25 13:44:58] [detectMultipartFormData] No multipart form-data detected.
+[2025-01-25 13:44:58] [findMatchingLocation] Normalized Path: /
+[2025-01-25 13:44:58] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:44:58] [findMatchingLocation] Exact match found: /
+[2025-01-25 13:44:58] [parseRequest] Handling method: GET
+[2025-01-25 13:44:58] [needsCGI] Entering function with path: /
+[2025-01-25 13:44:58] [needsCGI] Regular form submission detected.
+[2025-01-25 13:44:58] [needsCGI] Checking file status for path: /app/var/www/php/index.php
+[2025-01-25 13:44:58] [needsCGI] Checking for CGI configuration...
+[2025-01-25 13:44:58] [findMatchingLocation] Normalized Path: /
+[2025-01-25 13:44:58] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:44:58] [findMatchingLocation] Exact match found: /
+[2025-01-25 13:44:58] [needsCGI] Found file extension: .php
+[2025-01-25 13:44:58] [needsCGI] CGI script detected for path: /app/var/www/php/index.php
+[2025-01-25 13:44:58] [parseRequest] It's a CGI request => setting up CGI
+[2025-01-25 13:44:58] [findMatchingLocation] Normalized Path: /
+[2025-01-25 13:44:58] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:44:58] [findMatchingLocation] Exact match found: /
+[2025-01-25 13:45:01] [parseRequest] Entering parseRequest. ParsingPhase = 0, request_buffer size: 887
+[2025-01-25 13:45:01] [parseRequest] Found header boundary at: 866
+[2025-01-25 13:45:01] [parseRequest] Headers:
+POST /createName.php HTTP/1.1
+Host: localhost:8001
+Connection: keep-alive
+Content-Length: 17
+Cache-Control: max-age=0
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Upgrade-Insecure-Requests: 1
+Origin: http://localhost:8001
+Content-Type: application/x-www-form-urlencoded
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Referer: http://localhost:8001/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+[2025-01-25 13:45:01] [parseRequest] Parsed Method: 'POST', Path: '/createName.php', Version: 'HTTP/1.1'
+[2025-01-25 13:45:01] [parseRequest] Header line: Host: localhost:8001
+[2025-01-25 13:45:01] [parseRequest] Header line: Connection: keep-alive
+[2025-01-25 13:45:01] [parseRequest] Header line: Content-Length: 17
+[2025-01-25 13:45:01] [parseRequest] Found Content-Length: 17
+[2025-01-25 13:45:01] [parseRequest] Header line: Cache-Control: max-age=0
+[2025-01-25 13:45:01] [parseRequest] Header line: sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+[2025-01-25 13:45:01] [parseRequest] Header line: sec-ch-ua-mobile: ?0
+[2025-01-25 13:45:01] [parseRequest] Header line: sec-ch-ua-platform: "macOS"
+[2025-01-25 13:45:01] [parseRequest] Header line: Upgrade-Insecure-Requests: 1
+[2025-01-25 13:45:01] [parseRequest] Header line: Origin: http://localhost:8001
+[2025-01-25 13:45:01] [parseRequest] Header line: Content-Type: application/x-www-form-urlencoded
+[2025-01-25 13:45:01] [parseRequest] Header line: User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+[2025-01-25 13:45:01] [parseRequest] Header line: Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+[2025-01-25 13:45:01] [parseRequest] Header line: Sec-Fetch-Site: same-origin
+[2025-01-25 13:45:01] [parseRequest] Header line: Sec-Fetch-Mode: navigate
+[2025-01-25 13:45:01] [parseRequest] Header line: Sec-Fetch-User: ?1
+[2025-01-25 13:45:01] [parseRequest] Header line: Sec-Fetch-Dest: document
+[2025-01-25 13:45:01] [parseRequest] Header line: Referer: http://localhost:8001/
+[2025-01-25 13:45:01] [parseRequest] Header line: Accept-Encoding: gzip, deflate, br, zstd
+[2025-01-25 13:45:01] [parseRequest] Header line: Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+[2025-01-25 13:45:01] [findMatchingLocation] Normalized Path: /createName.php
+[2025-01-25 13:45:01] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:45:01] [findMatchingLocation] Best match updated to: /
+[2025-01-25 13:45:01] [findMatchingLocation] Final Best Match: /
+[2025-01-25 13:45:01] [findMatchingLocation] Normalized Path: /createName.php
+[2025-01-25 13:45:01] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:45:01] [findMatchingLocation] Best match updated to: /
+[2025-01-25 13:45:01] [findMatchingLocation] Final Best Match: /
+[2025-01-25 13:45:01] [buildRequestedPath] Raw Path: /createName.php
+[2025-01-25 13:45:01] [buildRequestedPath] Used Root: /app/var/www/php
+[2025-01-25 13:45:01] [buildRequestedPath] Path After Location: createName.php
+[2025-01-25 13:45:01] [buildRequestedPath] Full Path: /app/var/www/php/upload/createName.php
+[2025-01-25 13:45:01] [detectMultipartFormData] No multipart form-data detected.
+[2025-01-25 13:45:01] [findMatchingLocation] Normalized Path: /createName.php
+[2025-01-25 13:45:01] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:45:01] [findMatchingLocation] Best match updated to: /
+[2025-01-25 13:45:02] [findMatchingLocation] Final Best Match: /
+[2025-01-25 13:45:02] [parseRequest] It's a POST request
+[2025-01-25 13:45:02] [parseRequest] Body fully in first chunk (17 bytes)
+[2025-01-25 13:45:02] [needsCGI] Entering function with path: /createName.php
+[2025-01-25 13:45:02] [needsCGI] Regular form submission detected.
+[2025-01-25 13:45:02] [needsCGI] Checking file status for path: /app/var/www/php/upload/createName.php
+[2025-01-25 13:45:02] [needsCGI] Checking for CGI configuration...
+[2025-01-25 13:45:02] [findMatchingLocation] Normalized Path: /createName.php
+[2025-01-25 13:45:02] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:45:02] [findMatchingLocation] Best match updated to: /
+[2025-01-25 13:45:02] [findMatchingLocation] Final Best Match: /
+[2025-01-25 13:45:02] [needsCGI] Found file extension: .php
+[2025-01-25 13:45:02] [needsCGI] CGI script detected for path: /app/var/www/php/upload/createName.php
+[2025-01-25 13:45:02] [parseRequest] It's a CGI request => setting up CGI
+[2025-01-25 13:45:02] [findMatchingLocation] Normalized Path: /createName.php
+[2025-01-25 13:45:02] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:45:02] [findMatchingLocation] Best match updated to: /
+[2025-01-25 13:45:02] [findMatchingLocation] Final Best Match: /
+[2025-01-25 13:45:02] [parseRequest] CGI setup done, returning
+[2025-01-25 13:45:12] 10
+[2025-01-25 13:45:12] [parseRequest] Entering parseRequest. ParsingPhase = 0, request_buffer size: 629
+[2025-01-25 13:45:12] [parseRequest] Found header boundary at: 625
+[2025-01-25 13:45:12] [parseRequest] Headers:
+GET /favicon.ico HTTP/1.1
+Host: localhost:8001
+Connection: keep-alive
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua-platform: "macOS"
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: image
+Referer: http://localhost:8001/createName.php
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+[2025-01-25 13:45:12] [parseRequest] Parsed Method: 'GET', Path: '/favicon.ico', Version: 'HTTP/1.1'
+[2025-01-25 13:45:12] [parseRequest] Header line: Host: localhost:8001
+[2025-01-25 13:45:12] [parseRequest] Header line: Connection: keep-alive
+[2025-01-25 13:45:12] [parseRequest] Header line: sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+[2025-01-25 13:45:12] [parseRequest] Header line: sec-ch-ua-mobile: ?0
+[2025-01-25 13:45:12] [parseRequest] Header line: User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+[2025-01-25 13:45:12] [parseRequest] Header line: sec-ch-ua-platform: "macOS"
+[2025-01-25 13:45:12] [parseRequest] Header line: Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+[2025-01-25 13:45:12] [parseRequest] Header line: Sec-Fetch-Site: same-origin
+[2025-01-25 13:45:12] [parseRequest] Header line: Sec-Fetch-Mode: no-cors
+[2025-01-25 13:45:12] [parseRequest] Header line: Sec-Fetch-Dest: image
+[2025-01-25 13:45:12] [parseRequest] Header line: Referer: http://localhost:8001/createName.php
+[2025-01-25 13:45:12] [parseRequest] Header line: Accept-Encoding: gzip, deflate, br, zstd
+[2025-01-25 13:45:12] [parseRequest] Header line: Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+[2025-01-25 13:45:12] [findMatchingLocation] Normalized Path: /favicon.ico
+[2025-01-25 13:45:12] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:45:12] [findMatchingLocation] Best match updated to: /
+[2025-01-25 13:45:12] [findMatchingLocation] Final Best Match: /
+[2025-01-25 13:45:12] [findMatchingLocation] Normalized Path: /favicon.ico
+[2025-01-25 13:45:12] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:45:12] [findMatchingLocation] Best match updated to: /
+[2025-01-25 13:45:12] [findMatchingLocation] Final Best Match: /
+[2025-01-25 13:45:12] [buildRequestedPath] Raw Path: /favicon.ico
+[2025-01-25 13:45:12] [buildRequestedPath] Used Root: /app/var/www/php
+[2025-01-25 13:45:12] [buildRequestedPath] Path After Location: favicon.ico
+[2025-01-25 13:45:12] [buildRequestedPath] Full Path: /app/var/www/php/favicon.ico
+[2025-01-25 13:45:12] [detectMultipartFormData] No multipart form-data detected.
+[2025-01-25 13:45:12] [findMatchingLocation] Normalized Path: /favicon.ico
+[2025-01-25 13:45:12] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:45:12] [findMatchingLocation] Best match updated to: /
+[2025-01-25 13:45:12] [findMatchingLocation] Final Best Match: /
+[2025-01-25 13:45:13] [parseRequest] Handling method: GET
+[2025-01-25 13:45:13] [needsCGI] Entering function with path: /favicon.ico
+[2025-01-25 13:45:13] [needsCGI] Regular form submission detected.
+[2025-01-25 13:45:13] [needsCGI] Checking file status for path: /app/var/www/php/favicon.ico
+[2025-01-25 13:45:13] [needsCGI] Checking for CGI configuration...
+[2025-01-25 13:45:13] [findMatchingLocation] Normalized Path: /favicon.ico
+[2025-01-25 13:45:13] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:45:13] [findMatchingLocation] Best match updated to: /
+[2025-01-25 13:45:13] [findMatchingLocation] Final Best Match: /
+[2025-01-25 13:45:13] [needsCGI] Found file extension: .ico
+[2025-01-25 13:45:13] [needsCGI] File extension .ico does not match CGI type .php
+[2025-01-25 13:45:13] [needsCGI] No matching CGI file type for path: /app/var/www/php/favicon.ico
+[2025-01-25 13:45:13] [parseRequest] buildResponse for normal request
+[2025-01-25 13:45:13] [findMatchingLocation] Normalized Path: /favicon.ico
+[2025-01-25 13:45:13] [findMatchingLocation] Checking Location Path: /
+[2025-01-25 13:45:13] [findMatchingLocation] Best match updated to: /
+[2025-01-25 13:45:13] [findMatchingLocation] Final Best Match: /
+[2025-01-25 13:45:13] [processMethod] Skipping method check because parsing_phase != PARSING_HEADER
