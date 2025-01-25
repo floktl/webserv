@@ -135,6 +135,11 @@ void ClientHandler::handleClientWrite(int epfd, int fd)
 
 bool ClientHandler::processMethod(RequestState &req, int epoll_fd)
 {
+	// Only check during initial request and not during CGI
+	if (req.state == RequestState::STATE_CGI_RUNNING ||
+		req.state == RequestState::STATE_PREPARE_CGI)
+		return true;
+
 	if (req.parsing_phase != RequestState::PARSING_HEADER)
 	{
 		Logger::file("[processMethod] Skipping method check because parsing_phase != PARSING_HEADER");

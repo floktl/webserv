@@ -109,6 +109,7 @@ struct RequestState
 	bool		is_upload_complete;
 	std::string	uploaded_file_path;
 	bool	keep_alive;
+	bool is_multipart;
 
 	ParsingPhase parsing_phase { PARSING_HEADER };
 };

@@ -67,10 +67,10 @@ bool Server::handleClientEvent(int epoll_fd, int fd, uint32_t ev)
 
 		if (written > 0)
 		{
-			req.response_buffer.erase(
-				req.response_buffer.begin(),
-				req.response_buffer.begin() + written
-			);
+			//req.response_buffer.erase(
+			//	req.response_buffer.begin(),
+			//	req.response_buffer.begin() + written
+			//);
 			if (req.response_buffer.empty())
 				delFromEpoll(epoll_fd, fd);
 		}
@@ -81,37 +81,43 @@ bool Server::handleClientEvent(int epoll_fd, int fd, uint32_t ev)
 	return true;
 }
 
-bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev)
-{
-	int client_fd = globalFDS.svFD_to_clFD_map[fd];
-	RequestState &req = globalFDS.request_state_map[client_fd];
-
-	if (ev & EPOLLIN)
-		cgiHandler->handleCGIRead(epoll_fd, fd);
-
-	if (!clientHandler->processMethod(req, epoll_fd))
-		return true;
-
-	if (fd == req.cgi_out_fd && (ev & EPOLLHUP))
-	{
-		if (!req.cgi_output_buffer.empty())
-			cgiHandler->finalizeCgiResponse(req, epoll_fd, client_fd);
-		cgiHandler->cleanupCGI(req);
-	}
-
-	if (fd == req.cgi_in_fd)
-	{
-		if (ev & EPOLLOUT)
-			cgiHandler->handleCGIWrite(epoll_fd, fd, ev);
-
-		if (ev & (EPOLLHUP | EPOLLERR))
-		{
-			epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-			close(fd);
-			req.cgi_in_fd = -1;
-			globalFDS.svFD_to_clFD_map.erase(fd);
-		}
-	}
-
-	return true;
+bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev) {
+    int client_fd = globalFDS.svFD_to_clFD_map[fd];
+    RequestState &req = globalFDS.request_state_map[client_fd];
+	// Only process method check once at start
+    static bool methodChecked = false;
+    if (!methodChecked) {
+        methodChecked = true;
+        if (!clientHandler->processMethod(req, epoll_fd))
+            return true;
+    }
+    //if (req.state == RequestState::STATE_READING_REQUEST) {
+    //    if (!clientHandler->processMethod(req, epoll_fd))
+    //        return true;
+    //}
+    if (ev & EPOLLIN)
+        cgiHandler->handleCGIRead(epoll_fd, fd);
+    if (fd == req.cgi_out_fd && (ev & EPOLLHUP)) {
+        if (!req.cgi_output_buffer.empty())
+            cgiHandler->finalizeCgiResponse(req, epoll_fd, client_fd);
+        cgiHandler->cleanupCGI(req);
+    }
+    if (fd == req.cgi_in_fd) {
+        if (ev & EPOLLOUT)
+            cgiHandler->handleCGIWrite(epoll_fd, fd, ev);
+        if (ev & (EPOLLHUP | EPOLLERR)) {
+            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+            close(fd);
+            req.cgi_in_fd = -1;
+            globalFDS.svFD_to_clFD_map.erase(fd);
+        }
+    }
+    return true;
 }
+
+
+
+
+
+
+

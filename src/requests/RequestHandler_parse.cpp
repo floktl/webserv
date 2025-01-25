@@ -145,6 +145,21 @@ void RequestHandler::finalizeUpload(RequestState &req) {
 	Logger::file("[Upload] Upload finalized, response ready to send");
 }
 
+bool detectMultipartFormData(RequestState &req)
+{
+    std::string bufferStr(req.request_buffer.begin(), req.request_buffer.end());
+
+    if (bufferStr.find("Content-Type: multipart/form-data") != std::string::npos)
+    {
+        req.is_multipart = true;  // Assign boolean flag to RequestState
+        Logger::file("[detectMultipartFormData] Multipart form-data detected in request.");
+        return true;
+    }
+
+    req.is_multipart = false;
+    Logger::file("[detectMultipartFormData] No multipart form-data detected.");
+    return false;
+}
 
 void RequestHandler::parseRequest(RequestState &req)
 {
@@ -263,6 +278,8 @@ void RequestHandler::parseRequest(RequestState &req)
 		req.requested_path = buildRequestedPath(req, path);
 		req.content_length = content_length;
 		req.received_body  = bodyPart;
+		detectMultipartFormData(req);
+		printRequestState(req);
 		req.request_buffer.clear();
 
 		std::stringstream redirectResponse;
