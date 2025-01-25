@@ -136,6 +136,7 @@ struct CgiTunnel {
 	std::string script_path;
 	std::vector<char> buffer;
 	std::vector<char*> envp;
+	RequestState request;
 };
 
 #endif

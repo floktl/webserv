@@ -41,8 +41,13 @@ bool Server::handleClientEvent(int epoll_fd, int fd, uint32_t ev)
 	if (ev & EPOLLIN)
 	{
 		clientHandler->handleClientRead(epoll_fd, fd);
-		if (!clientHandler->processMethod(req, epoll_fd))
-			return true;
+
+		//if (!clientHandler->processMethod(req, epoll_fd))
+		//{
+		Logger::file("handleClient");
+		//	return true;
+
+		//}
 	}
 
 	if (req.state != RequestState::STATE_CGI_RUNNING &&
@@ -67,10 +72,10 @@ bool Server::handleClientEvent(int epoll_fd, int fd, uint32_t ev)
 
 		if (written > 0)
 		{
-			//req.response_buffer.erase(
-			//	req.response_buffer.begin(),
-			//	req.response_buffer.begin() + written
-			//);
+			req.response_buffer.erase(
+				req.response_buffer.begin(),
+				req.response_buffer.begin() + written
+			);
 			if (req.response_buffer.empty())
 				delFromEpoll(epoll_fd, fd);
 		}

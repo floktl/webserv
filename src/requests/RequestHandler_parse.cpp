@@ -427,6 +427,7 @@ void RequestHandler::parseRequest(RequestState &req)
 			{
 				Logger::file("[parseRequest] It's a CGI request => setting up CGI");
 				req.state = RequestState::STATE_PREPARE_CGI;
+				printRequestState(req);
 				server.getCgiHandler()->addCgiTunnel(req, req.method, /* query */ "");
 				Logger::file("[parseRequest] CGI setup done, returning");
 				req.parsing_phase = RequestState::PARSING_COMPLETE;

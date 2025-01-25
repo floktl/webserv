@@ -138,15 +138,6 @@ bool ConfigHandler::sanitizeConfData(void)
 				return false;
 			}
 
-			if (!Sanitizer::sanitize_locationUploadStore(
-					loc.upload_store,
-					expandEnvironmentVariables("$PWD", env),
-					registeredServerConfs[i].root,
-					loc.root)) {
-				configFileValid = false;
-				return false;
-			}
-
 
 			if (!loc.cgi.empty() &&
 				!Sanitizer::sanitize_locationCgi(loc.cgi, loc.cgi_filetype, expandEnvironmentVariables("$PWD", env))) {
@@ -166,6 +157,18 @@ bool ConfigHandler::sanitizeConfData(void)
 
 			if (loc.client_max_body_size == 0) {
 				loc.client_max_body_size = 1048576;
+			}
+			if (!Sanitizer::sanitize_locationUploadStore(
+					loc.upload_store,
+					expandEnvironmentVariables("$PWD", env),
+					registeredServerConfs[i].root,
+					loc.root)) {
+				configFileValid = false;
+				return false;
+			}
+			if (!loc.cgi.empty())
+			{
+				loc.upload_store = "";
 			}
 		}
 	}

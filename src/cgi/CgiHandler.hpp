@@ -29,7 +29,6 @@ class CgiHandler
 		std::map<int, CgiTunnel> tunnels;
 		std::map<int, CgiTunnel*> fd_to_tunnel;
 
-		void execute_cgi(const CgiTunnel& tunnel);
 
 		void cleanup_tunnel(CgiTunnel& tunnel);
 		void cleanup_pipes(int pipe_in[2], int pipe_out[2]);
