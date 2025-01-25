@@ -63,82 +63,85 @@ void CgiHandler::finalizeCgiResponse(RequestState &req, int epoll_fd, int client
 }
 
 std::vector<char*> CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::string &method, const std::string &query) {
-	std::vector<char*> envp;
-	std::string content_length = "0";
-	std::string content_type = "application/x-www-form-urlencoded";
-	std::string boundary;
-	std::string http_cookie;
+    std::vector<char*> envp;
+    std::string content_length = "0";
+    std::string content_type = "application/x-www-form-urlencoded";
+    std::string boundary;
+    std::string http_cookie;
 
-	auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
-	if (req_it != server.getGlobalFds().request_state_map.end()) {
-		const RequestState &req = req_it->second;
-		http_cookie = req.cookie_header;
-		std::string request(req.request_buffer.begin(), req.request_buffer.end());
-		size_t header_end = request.find("\r\n\r\n");
+    auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
+    if (req_it != server.getGlobalFds().request_state_map.end()) {
+        const RequestState &req = req_it->second;
+        http_cookie = req.cookie_header;
+        std::string request(req.request_buffer.begin(), req.request_buffer.end());
+        size_t header_end = request.find("\r\n\r\n");
 
-		if (method == "POST" && header_end != std::string::npos) {
-			size_t cl_pos = request.find("Content-Length: ");
-			if (cl_pos != std::string::npos) {
-				size_t cl_end = request.find("\r\n", cl_pos);
-				if (cl_end != std::string::npos) {
-					content_length = request.substr(cl_pos + 16, cl_end - (cl_pos + 16));
-				}
-			}
+        if (method == "POST" && header_end != std::string::npos) {
+            size_t cl_pos = request.find("Content-Length: ");
+            if (cl_pos != std::string::npos) {
+                size_t cl_end = request.find("\r\n", cl_pos);
+                if (cl_end != std::string::npos) {
+                    content_length = request.substr(cl_pos + 16, cl_end - (cl_pos + 16));
+                }
+            }
 
-			size_t ct_pos = request.find("Content-Type: ");
-			if (ct_pos != std::string::npos) {
-				size_t ct_end = request.find("\r\n", ct_pos);
-				if (ct_end != std::string::npos) {
-					content_type = request.substr(ct_pos + 14, ct_end - (ct_pos + 14));
-					if (content_type.find("multipart/form-data") != std::string::npos) {
-						size_t boundary_pos = content_type.find("boundary=");
-						if (boundary_pos != std::string::npos) {
-							boundary = content_type.substr(boundary_pos + 9);
-						}
-					}
-				}
-			}
-		}
-	}
+            size_t ct_pos = request.find("Content-Type: ");
+            if (ct_pos != std::string::npos) {
+                size_t ct_end = request.find("\r\n", ct_pos);
+                if (ct_end != std::string::npos) {
+                    content_type = request.substr(ct_pos + 14, ct_end - (ct_pos + 14));
+                    if (content_type.find("multipart/form-data") != std::string::npos) {
+                        size_t boundary_pos = content_type.find("boundary=");
+                        if (boundary_pos != std::string::npos) {
+                            boundary = content_type.substr(boundary_pos + 9);
+                        }
+                    }
+                }
+            }
+        }
 
-	std::vector<std::string> vars = {
-		"REDIRECT_STATUS=200",
-		"GATEWAY_INTERFACE=CGI/1.1",
-		"SERVER_PROTOCOL=HTTP/1.1",
-		"REQUEST_METHOD=" + method,
-		"QUERY_STRING=" + query,
-		"SCRIPT_FILENAME=" + tunnel.script_path,
-		"SCRIPT_NAME=" + tunnel.script_path,
-		"DOCUMENT_ROOT=" + tunnel.config->root,
-		"SERVER_SOFTWARE=webserv/1.0",
-		"SERVER_NAME=" + tunnel.server_name,
-		"SERVER_PORT=" + tunnel.config->port,
-		"UPLOAD_STORE=" + tunnel.location->upload_store,
-		"CONTENT_TYPE=" + content_type,
-		"CONTENT_LENGTH=" + content_length,
-		"HTTP_COOKIE=" + http_cookie,
-		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-	};
+        // Log request body to check content
+        Logger::file("CGI Request Body:\n" + req.request_body);
+    }
 
-	if (!boundary.empty()) {
-		vars.push_back("BOUNDARY=" + boundary);
-	}
+    std::vector<std::string> vars = {
+        "REDIRECT_STATUS=200",
+        "GATEWAY_INTERFACE=CGI/1.1",
+        "SERVER_PROTOCOL=HTTP/1.1",
+        "REQUEST_METHOD=" + method,
+        "QUERY_STRING=" + query,
+        "SCRIPT_FILENAME=" + tunnel.script_path,
+        "SCRIPT_NAME=" + tunnel.script_path,
+        "DOCUMENT_ROOT=" + tunnel.config->root,
+        "SERVER_SOFTWARE=webserv/1.0",
+        "SERVER_NAME=" + tunnel.server_name,
+        "SERVER_PORT=" + tunnel.config->port,
+        "UPLOAD_STORE=" + tunnel.location->upload_store,
+        "CONTENT_TYPE=" + content_type,
+        "CONTENT_LENGTH=" + content_length,
+        "HTTP_COOKIE=" + http_cookie,
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    };
 
-	if (method == "POST") {
-		if (content_type.find("multipart/form-data") != std::string::npos) {
-			vars.push_back("REQUEST_TYPE=multipart/form-data");
-		}
-		vars.push_back("HTTP_TRANSFER_ENCODING=chunked");
-	}
+    if (!boundary.empty()) {
+        vars.push_back("BOUNDARY=" + boundary);
+    }
 
-	for (const auto& var : vars) {
-		char* env_var = strdup(var.c_str());
-		if (env_var) {
-			envp.push_back(env_var);
-		}
-	}
-	envp.push_back(nullptr);
-	return envp;
+    if (method == "POST") {
+        if (content_type.find("multipart/form-data") != std::string::npos) {
+            vars.push_back("REQUEST_TYPE=multipart/form-data");
+        }
+        vars.push_back("HTTP_TRANSFER_ENCODING=chunked");
+    }
+
+    for (const auto& var : vars) {
+        char* env_var = strdup(var.c_str());
+        if (env_var) {
+            envp.push_back(env_var);
+        }
+    }
+    envp.push_back(nullptr);
+    return envp;
 }
 
 
@@ -170,8 +173,9 @@ bool CgiHandler::initTunnel(RequestState &req, CgiTunnel &tunnel, int pipe_in[2]
 	tunnel.is_busy = true;
 	tunnel.last_used = std::chrono::steady_clock::now();
 	tunnel.pid = -1;
+	Logger::file("req.upload_store: " + tunnel.location->upload_store);
 	tunnel.script_path = req.requested_path;
-
+	tunnel.request = req;
 	return true;
 }
 
@@ -198,11 +202,39 @@ void CgiHandler::handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &
 
 	close(pipe_in[0]);
 	close(pipe_out[1]);
+	//tunnel.envp = setup_cgi_environment(tunnel, method, query);
+	Logger::file("Executing CGI script: " + tunnel.script_path);
+    Logger::file("Request body content: " + tunnel.request.request_body);
 
-	tunnel.envp = setup_cgi_environment(tunnel, method, query);
+    if (access(tunnel.location->cgi.c_str(), X_OK) != 0 ||
+        !tunnel.location ||
+        access(tunnel.script_path.c_str(), R_OK) != 0) {
+        Logger::file("[ERROR] Cannot execute CGI script at: " + tunnel.script_path);
+        _exit(1);
+    }
 
-	execute_cgi(tunnel);
+    // Prepare arguments for execve
+    std::vector<char*> args;
+    args.push_back(strdup(tunnel.location->cgi.c_str()));  // CGI interpreter
+    args.push_back(strdup(tunnel.script_path.c_str()));    // Script path
+    args.push_back(nullptr);
 
+    // Set up the environment
+    std::vector<char*> envp = setup_cgi_environment(tunnel, method, query);
+
+	// Send request body to stdin of CGI process
+    if (!tunnel.request.request_body.empty()) {
+        ssize_t written = write(STDIN_FILENO, tunnel.request.request_body.c_str(), tunnel.request.request_body.size());
+        if (written < 0) {
+            Logger::file("[ERROR] Failed to write request body to CGI script: " + std::string(strerror(errno)));
+            _exit(1);
+        }
+    }
+
+    execve(args[0], args.data(), envp.data());
+
+    Logger::file("[ERROR] execve failed: " + std::string(strerror(errno)));
+    _exit(1);
 	status = RequestState::COMPLETED;
 	write(status_pipe[1], &status, sizeof(status));
 

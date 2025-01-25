@@ -7,22 +7,6 @@ void CgiHandler::free_environment(std::vector<char*>& env) {
 	env.clear();
 }
 
-void CgiHandler::execute_cgi(const CgiTunnel &tunnel) {
-	if (access(tunnel.location->cgi.c_str(), X_OK) != 0 ||
-		!tunnel.location ||
-		access(tunnel.script_path.c_str(), R_OK) != 0) {
-		_exit(1);
-	}
-
-	char* const args[] = {
-		(char*)tunnel.location->cgi.c_str(),
-		(char*)tunnel.script_path.c_str(),
-		nullptr
-	};
-
-	execve(args[0], args, tunnel.envp.data());
-	_exit(1);
-}
 
 bool CgiHandler::needsCGI(RequestState &req, const std::string &path)
 {
@@ -30,25 +14,30 @@ bool CgiHandler::needsCGI(RequestState &req, const std::string &path)
 
 	if (req.is_multipart)
 	{
-        Logger::file("[needsCGI] Detected file upload request, skipping CGI processing.");
-		struct stat file_stat;
-    	if (stat(req.requested_path.c_str(), &file_stat) != 0)
-    	{
-    	    Logger::file("[needsCGI] Stat failed for path: " + req.requested_path);
-    	    return false;
-    	}
+		Logger::file("[needsCGI] Detected multipart request, checking CGI processing.");
 
-    	if (S_ISDIR(file_stat.st_mode))
-    	{
-    	    Logger::file("[needsCGI] Path is a directory: " + req.requested_path);
-    	    req.is_directory = true;
-    	    return false;
-    	}
-        return false;
-    }
+		// Prüfe, ob die angeforderte Datei tatsächlich ein CGI-Skript ist
+		size_t dot_pos = req.requested_path.find_last_of('.');
+		if (dot_pos != std::string::npos)
+		{
+			std::string extension = req.requested_path.substr(dot_pos);
+			Logger::file("[needsCGI] Found file extension: " + extension);
+
+			const Location* loc = server.getRequestHandler()->findMatchingLocation(req.associated_conf, path);
+			if (loc && !loc->cgi.empty() && extension == loc->cgi_filetype)
+			{
+				Logger::file("[needsCGI] Multipart request matches CGI type: " + extension);
+				return true;
+			}
+			else
+			{
+				Logger::file("[needsCGI] Multipart request does not match CGI, treating as file upload.");
+			}
+		}
+	}
 	else
 	{
-        Logger::file("[needsCGI] Regular form submission detected.");
+    Logger::file("[needsCGI] Regular form submission detected.");
     Logger::file("[needsCGI] Checking file status for path: " + req.requested_path);
 
 
