@@ -43,11 +43,11 @@ bool ConfigHandler::sanitizeConfData(void)
 
 		if (registeredServerConfs[i].client_max_body_size == 0) {
 			registeredServerConfs[i].client_max_body_size = 1048576;
-		} else if (!Sanitizer::sanitize_clMaxBodSize(registeredServerConfs[i].client_max_body_size)) {
-			Logger::red("Invalid client_max_body_size for server block " + std::to_string(i + 1));
-			configFileValid = false;
-			return false;
-		}
+		} //else if (!Sanitizer::sanitize_clMaxBodSize(registeredServerConfs[i].client_max_body_size)) {
+		//	Logger::red("Invalid client_max_body_size for server block " + std::to_string(i + 1));
+		//	configFileValid = false;
+		//	return false;
+		//}
 
 		for (size_t j = 0; j < registeredServerConfs.size(); ++j) {
 			ServerBlock& conf = registeredServerConfs[j];

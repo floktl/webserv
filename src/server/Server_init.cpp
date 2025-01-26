@@ -33,7 +33,6 @@ Server::~Server()
 
 void Server::cleanup()
 {
-    Logger::yellow() << "\nServer is shutting down gracefully...";
     removeAddedServerNamesFromHosts();
 }
 
@@ -96,7 +95,7 @@ bool Server::addServerNameToHosts(const std::string &server_name)
 	}
 	outfile << "127.0.0.1 " << server_name << "\n";
 	outfile.close();
-
+	Logger::yellow("Added " + server_name + " to /etc/hosts file");
 	// Store the added server name
 	added_server_names.push_back(server_name);
 	return true;
@@ -109,13 +108,14 @@ void Server::removeAddedServerNamesFromHosts()
 	if (!infile.is_open()) {
 		throw std::runtime_error("Failed to open /etc/hosts");
 	}
-	Logger::red("test");
+
 	std::vector<std::string> lines;
 	std::string line;
 	while (std::getline(infile, line)) {
 		bool shouldRemove = false;
 		for (const auto &name : added_server_names) {
 			if (line.find(name) != std::string::npos) {
+				Logger::yellow("Remove " + name + " from /etc/host file");
 				shouldRemove = true;
 				break;
 			}
@@ -141,6 +141,7 @@ void Server::removeAddedServerNamesFromHosts()
 
 bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 {
+	Logger::green("Server listening on the ports:");
 	for (auto &conf : configs)
 	{
 		conf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -187,9 +188,8 @@ bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 		catch (const std::exception &e) {
             Logger::file(std::string("Error updating /etc/hosts: ") + e.what());
         }
-		std::stringstream ss;
-		ss << "Server listening on port: " << conf.port;
-		Logger::green() << ss.str() << "\n";
+		Logger::green("Port: " + std::to_string(conf.port) + ", Servername: " + conf.name);
+
 	}
 	return true;
 }

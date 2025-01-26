@@ -10,7 +10,7 @@ void handle_sigint(int sig)
     (void)sig;
     if (serverInstance)
     {
-        std::cout << "\nCTRL+C received, shutting down gracefully..." << std::endl;
+        Logger::cyan("\nCTRL+C received, shutting down gracefully...");
         serverInstance->cleanup();
         serverInstance.reset();  // Ensure cleanup
     }
@@ -30,7 +30,7 @@ int main(int argc, char **argv, char **envp)
     action.sa_handler = handle_sigint;  // Register the function
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;  // No special flags needed
-
+	Logger::yellow("Server Starting...");
     if (sigaction(SIGINT, &action, NULL) == -1)
     {
         Logger::red() << "Failed to set signal handler!";
