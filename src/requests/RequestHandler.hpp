@@ -35,6 +35,7 @@ public:
 		const Location*	findMatchingLocation(const ServerBlock* conf, const std::string& path);
 
 	void buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req);
+	std::string normalizePath(const std::string& raw);
 private:
 	Server& server;
 
@@ -56,7 +57,6 @@ private:
 	// Task functions
 	void handleTaskRequest(std::stringstream* response);
 	void handleStatusRequest(const std::string& taskId, std::stringstream* response);
-	std::string normalizePath(const std::string& raw);
 
 	// Autoindex helpers
 	bool checkDirectoryPermissions(const RequestState& req, std::stringstream* response);

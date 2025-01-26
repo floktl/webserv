@@ -38,6 +38,7 @@
 #include <sstream>
 #include <poll.h>
 #include <deque>
+#include <thread>
 #include "./structs/webserv.hpp"
 #include "./config/ConfigHandler.hpp"
 #include "./utils/Logger.hpp"

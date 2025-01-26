@@ -22,8 +22,8 @@ int main(int argc, char **argv, char **envp)
     ConfigHandler utils;
     GlobalFDS globalFDS;
     serverInstance = std::make_unique<Server>(globalFDS);
-    ClientHandler clientHandler(*serverInstance);
-    CgiHandler cgiHandler(*serverInstance);
+    //ClientHandler clientHandler(*serverInstance);
+    //CgiHandler cgiHandler(*serverInstance);
 
     // Set up signal handling
     struct sigaction action;
