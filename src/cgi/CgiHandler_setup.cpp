@@ -199,7 +199,7 @@ void CgiHandler::handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &
 		write(status_pipe[1], &status, sizeof(status));
 		_exit(1);
 	}
-
+	status = RequestState::COMPLETED;
 	close(pipe_in[0]);
 	close(pipe_out[1]);
 	//tunnel.envp = setup_cgi_environment(tunnel, method, query);
@@ -234,7 +234,6 @@ void CgiHandler::handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &
     execve(args[0], args.data(), envp.data());
 
     Logger::file("[ERROR] execve failed: " + std::string(strerror(errno)));
-    _exit(1);
 	status = RequestState::COMPLETED;
 	write(status_pipe[1], &status, sizeof(status));
 
