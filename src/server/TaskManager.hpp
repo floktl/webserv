@@ -1,40 +1,40 @@
-#ifndef TASKMANAGER_HPP
-#define TASKMANAGER_HPP
+// #ifndef TASKMANAGER_HPP
+// #define TASKMANAGER_HPP
 
 
-#include "../main.hpp"
-#include <mutex>
-#include <thread>
+// #include "../main.hpp"
+// #include <mutex>
+// #include <thread>
 
-class TaskManager {
-public:
-	struct Task {
-		std::string id;
-		RequestState::Task status;
-		int progress;
-	};
+// class TaskManager {
+// public:
+// 	struct Task {
+// 		std::string id;
+// 		RequestState::Task status;
+// 		int progress;
+// 	};
 
-	struct TaskUpdate {
-		int client_fd;
-		RequestState::Task status;
-	};
-	TaskManager(Server& server);
-	~TaskManager();
+// 	struct TaskUpdate {
+// 		int client_fd;
+// 		RequestState::Task status;
+// 	};
+// 	TaskManager(Server& server);
+// 	~TaskManager();
 
-	int getPipeReadFd() const;
+// 	int getPipeReadFd() const;
 
-	std::string createTask();
-	Task getTaskStatus(const std::string& taskId);
-	void processTask(int epoll_fd = -1);
-	void sendTaskStatusUpdate(int client_fd, RequestState::Task status);
+// 	std::string createTask();
+// 	Task getTaskStatus(const std::string& taskId);
+// 	void processTask(int epoll_fd = -1);
+// 	void sendTaskStatusUpdate(int client_fd, RequestState::Task status);
 
-private:
-	std::map<std::string, Task> tasks;
-	std::mutex taskMutex;
-	Server& server;
-	int pipe_fd[2];
+// private:
+// 	std::map<std::string, Task> tasks;
+// 	std::mutex taskMutex;
+// 	Server& server;
+// 	int pipe_fd[2];
 
-	void handleTaskUpdates();
-};
+// 	void handleTaskUpdates();
+// };
 
-#endif
+// #endif

@@ -69,6 +69,8 @@ struct RequestState
 	pid_t		cgi_pid;
 	bool		cgi_done;
 	bool		is_directory{false};
+	bool		cgiMethodChecked{false};
+	bool		clientMethodChecked{false};
 
 	enum State {
 		STATE_READING_REQUEST,
@@ -114,12 +116,6 @@ struct RequestState
 	ParsingPhase parsing_phase { PARSING_HEADER };
 };
 
-struct GlobalFDS
-{
-	int epoll_fd = -1;
-	std::map<int, RequestState> request_state_map;
-	std::map<int, int> svFD_to_clFD_map;
-};
 
 struct CgiTunnel {
 	pid_t pid = -1;
@@ -137,6 +133,40 @@ struct CgiTunnel {
 	std::vector<char> buffer;
 	std::vector<char*> envp;
 	RequestState request;
+};
+
+
+enum RequestType {
+	INITIAL,
+	STATIC,
+	CGI,
+	ERROR
+};
+
+struct Context
+{
+	int epoll_fd = -1;
+	int client_fd = -1;
+	int server_fd = -1;
+	RequestType type;
+	std::string method;
+	std::string path;
+	std::string version;
+	std::map<std::string, std::string> headers;
+	std::string body;
+	std::chrono::steady_clock::time_point last_activity;
+	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
+
+	std::string location_path;
+	std::string requested_path;
+	const Location* location;
+};
+
+struct GlobalFDS
+{
+	int epoll_fd = -1;
+	std::map<int, Context> request_state_map;
+	std::map<int, int> svFD_to_clFD_map;
 };
 
 #endif
