@@ -48,7 +48,7 @@ NAME=webserv
 #------------------------------------------------------------------------------#
 
 CC=c++
-CFLAGS=-Wall -Wextra -Werror -Wshadow -std=c++11 -g
+CFLAGS=-Wall -Wextra -Werror -Wshadow -std=c++17 -g
 LDFLAGS=
 
 ifeq ($(DEBUG), 1)
@@ -157,6 +157,7 @@ container:
 	@make container-build
 	@make container-up
 	@docker exec -it webserv bash
+	@make test
 
 prune:
 	@if docker ps -a | grep -q $(NAME); then \
@@ -179,7 +180,7 @@ leak:
 		echo "$(YELLOW)Clearing webserv.log$(X)"; \
 		> ./webserv.log; \
 	fi
-	@make && valgrind --leak-check=full --track-origins=yes ./$(NAME) config/test.conf
+	@make && valgrind --leak-check=full --track-origins=yes ./$(NAME)  config/test.conf
 
 clean:
 	@rm -rf $(OBJ_DIR)

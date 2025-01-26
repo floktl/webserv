@@ -3,6 +3,7 @@
 
 #include "TaskManager.hpp"
 #include "../main.hpp"
+#include <csignal>
 
 struct GlobalFDS;
 struct ServerBlock;
@@ -36,6 +37,8 @@ class Server
 		void setTimeout(int t);
 		int getTimeout() const;
 		void setTaskStatus(enum RequestState::Task new_task, int client_fd);
+		void cleanup();
+		int runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs);
 	private:
 		GlobalFDS& globalFDS;
 		ClientHandler* clientHandler;
@@ -44,6 +47,7 @@ class Server
 		ErrorHandler* errorHandler;
 		TaskManager* taskManager;
 		int timeout;
+		std::vector<std::string> added_server_names;
 
 		// server_init
 		int initEpoll();
@@ -51,6 +55,8 @@ class Server
 
 		// server_helpers
 		const ServerBlock* findServerBlock(const std::vector<ServerBlock> &configs, int fd);
+		bool addServerNameToHosts(const std::string &server_name);
+		void removeAddedServerNamesFromHosts();
 
 		// server_event_handlers
 		bool handleClientEvent(int epoll_fd, int fd, uint32_t ev);
@@ -58,10 +64,10 @@ class Server
 
 		// Server loop
 		bool dispatchEvent(int epoll_fd, int fd, uint32_t ev, std::vector<ServerBlock> &configs);
-		int runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs);
 		bool handleNewConnection(int epoll_fd, int fd, const ServerBlock& conf);
 		void checkAndCleanupTimeouts();
 		void killTimeoutedCGI(RequestState &req);
+
 };
 
 #endif
