@@ -62,78 +62,151 @@ void CgiHandler::finalizeCgiResponse(RequestState &req, int epoll_fd, int client
 	server.modEpoll(epoll_fd, client_fd, EPOLLOUT);
 }
 
-std::vector<char*> CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, const std::string &method, const std::string &query) {
+std::vector<char*> CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel,
+                                                     const std::string &method,
+                                                     const std::string &query)
+{
     std::vector<char*> envp;
+
+    // Default-Werte
     std::string content_length = "0";
-    std::string content_type = "application/x-www-form-urlencoded";
+    std::string content_type   = "application/x-www-form-urlencoded";
     std::string boundary;
     std::string http_cookie;
 
+    bool is_chunked = false;  // Falls wir später herausfinden, dass TE: chunked war
+
+    // ----------------------------------------------------------------------------
+    // Request aus dem RequestState holen (falls vorhanden)
+    // ----------------------------------------------------------------------------
     auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
-    if (req_it != server.getGlobalFds().request_state_map.end()) {
+    if (req_it != server.getGlobalFds().request_state_map.end())
+    {
         const RequestState &req = req_it->second;
         http_cookie = req.cookie_header;
+
+        // Lies den rohen Header aus request_buffer (sofern noch vorhanden).
+        // Oft hast du den Header längst anderswo geparst.
+        // Hier nur ein Beispiel:
         std::string request(req.request_buffer.begin(), req.request_buffer.end());
         size_t header_end = request.find("\r\n\r\n");
 
-        if (method == "POST" && header_end != std::string::npos) {
-            size_t cl_pos = request.find("Content-Length: ");
-            if (cl_pos != std::string::npos) {
-                size_t cl_end = request.find("\r\n", cl_pos);
-                if (cl_end != std::string::npos) {
-                    content_length = request.substr(cl_pos + 16, cl_end - (cl_pos + 16));
+        // ---------------------------------------------
+        // Suche Content-Length & -Type im rohen Header
+        // ---------------------------------------------
+        if (method == "POST" && header_end != std::string::npos)
+        {
+            // A) Content-Length
+            {
+                size_t cl_pos = request.find("Content-Length: ");
+                if (cl_pos != std::string::npos) {
+                    size_t cl_end = request.find("\r\n", cl_pos);
+                    if (cl_end != std::string::npos) {
+                        content_length = request.substr(cl_pos + 16, cl_end - (cl_pos + 16));
+                    }
                 }
             }
 
-            size_t ct_pos = request.find("Content-Type: ");
-            if (ct_pos != std::string::npos) {
-                size_t ct_end = request.find("\r\n", ct_pos);
-                if (ct_end != std::string::npos) {
-                    content_type = request.substr(ct_pos + 14, ct_end - (ct_pos + 14));
-                    if (content_type.find("multipart/form-data") != std::string::npos) {
-                        size_t boundary_pos = content_type.find("boundary=");
-                        if (boundary_pos != std::string::npos) {
-                            boundary = content_type.substr(boundary_pos + 9);
+            // B) Content-Type
+            {
+                size_t ct_pos = request.find("Content-Type: ");
+                if (ct_pos != std::string::npos) {
+                    size_t ct_end = request.find("\r\n", ct_pos);
+                    if (ct_end != std::string::npos) {
+                        content_type = request.substr(ct_pos + 14, ct_end - (ct_pos + 14));
+                        // Wenn multipart, Boundary ggf. extrahieren
+                        if (content_type.find("multipart/form-data") != std::string::npos) {
+                            size_t boundary_pos = content_type.find("boundary=");
+                            if (boundary_pos != std::string::npos) {
+                                boundary = content_type.substr(boundary_pos + 9);
+                                // Optional: Hier könnte man content_type wieder zusammensetzen, z.B.:
+                                // content_type = "multipart/form-data; boundary=" + boundary;
+                            }
                         }
+                    }
+                }
+            }
+
+            // C) Transfer-Encoding (falls chunked)
+            {
+                size_t te_pos = request.find("Transfer-Encoding: ");
+                if (te_pos != std::string::npos) {
+                    size_t te_end = request.find("\r\n", te_pos);
+                    if (te_end != std::string::npos) {
+                        std::string te_val = request.substr(te_pos + 19, te_end - (te_pos + 19));
+                        if (te_val.find("chunked") != std::string::npos)
+                            is_chunked = true;
                     }
                 }
             }
         }
 
-        // Log request body to check content
+        // ---------------------------------------------
+        // Beispiel: Überschreibe content_length
+        // mit tatsächlicher Größe, falls du sicher bist,
+        // dass req.request_body alles enthält:
+        // ---------------------------------------------
+        if (method == "POST") {
+            // Falls du dem Script immer die echte Body-Länge geben willst:
+            content_length = std::to_string(req.request_body.size());
+        }
+
         Logger::file("CGI Request Body:\n" + req.request_body);
     }
 
-    std::vector<std::string> vars = {
-        "REDIRECT_STATUS=200",
-        "GATEWAY_INTERFACE=CGI/1.1",
-        "SERVER_PROTOCOL=HTTP/1.1",
-        "REQUEST_METHOD=" + method,
-        "QUERY_STRING=" + query,
-        "SCRIPT_FILENAME=" + tunnel.script_path,
-        "SCRIPT_NAME=" + tunnel.script_path,
-        "DOCUMENT_ROOT=" + tunnel.config->root,
-        "SERVER_SOFTWARE=webserv/1.0",
-        "SERVER_NAME=" + tunnel.server_name,
-        "SERVER_PORT=" + tunnel.config->port,
-        "UPLOAD_STORE=" + tunnel.location->upload_store,
-        "CONTENT_TYPE=" + content_type,
-        "CONTENT_LENGTH=" + content_length,
-        "HTTP_COOKIE=" + http_cookie,
-        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-    };
+    // ----------------------------------------------------------------------------
+    // Environment-Variablen aufbauen
+    // ----------------------------------------------------------------------------
+    std::vector<std::string> vars;
 
+    vars.push_back("REDIRECT_STATUS=200");
+    vars.push_back("GATEWAY_INTERFACE=CGI/1.1");
+    vars.push_back("SERVER_PROTOCOL=HTTP/1.1");
+    vars.push_back("REQUEST_METHOD=" + method);
+    vars.push_back("QUERY_STRING=" + query);
+
+    // Das CGI-Script selbst:
+    vars.push_back("SCRIPT_FILENAME=" + tunnel.script_path);
+    vars.push_back("SCRIPT_NAME=" + tunnel.script_path);
+
+    // Dokument-Root (aus Deiner Server-Konfiguration)
+    vars.push_back("DOCUMENT_ROOT=" + tunnel.config->root);
+
+    // Zusätzliche CGI/Server-Variablen
+    vars.push_back("SERVER_SOFTWARE=webserv/1.0");
+    vars.push_back("SERVER_NAME=" + tunnel.server_name);
+
+    // SERVER_PORT **unbedingt** in einen String konvertieren
+    vars.push_back("SERVER_PORT=" + std::to_string(tunnel.config->port));
+
+    // Nicht standard, aber evtl. intern von dir genutzt:
+    vars.push_back("UPLOAD_STORE=" + tunnel.location->upload_store);
+
+    // Inhalt des Bodys
+    vars.push_back("CONTENT_TYPE=" + content_type);
+    vars.push_back("CONTENT_LENGTH=" + content_length);
+
+    // Cookies
+    vars.push_back("HTTP_COOKIE=" + http_cookie);
+
+    // Für dein CGI-Script evtl. wichtig:
+    vars.push_back("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
+
+    // Wenn wir einen Boundary aus dem Content-Type geparsed haben,
+    // kannst du den zusätzlich setzen (manche Skripte brauchen das):
     if (!boundary.empty()) {
         vars.push_back("BOUNDARY=" + boundary);
     }
 
-    if (method == "POST") {
-        if (content_type.find("multipart/form-data") != std::string::npos) {
-            vars.push_back("REQUEST_TYPE=multipart/form-data");
-        }
+    // Falls wir chunked hatten, nur dann "HTTP_TRANSFER_ENCODING=chunked"
+    // oder so ähnlich.
+    if (is_chunked) {
         vars.push_back("HTTP_TRANSFER_ENCODING=chunked");
     }
 
+    // ----------------------------------------------------------------------------
+    // Letzter Schritt: Umwandlung in char*[] (argv/Env-Format) + nullptr Terminierung
+    // ----------------------------------------------------------------------------
     for (const auto& var : vars) {
         char* env_var = strdup(var.c_str());
         if (env_var) {
@@ -141,8 +214,10 @@ std::vector<char*> CgiHandler::setup_cgi_environment(const CgiTunnel &tunnel, co
         }
     }
     envp.push_back(nullptr);
+
     return envp;
 }
+
 
 
 bool CgiHandler::initTunnel(RequestState &req, CgiTunnel &tunnel, int pipe_in[2],
@@ -185,6 +260,7 @@ void CgiHandler::handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &
 
 	int status_pipe[2];
 	if (pipe(status_pipe) < 0) {
+		Logger::file("[ERROR] Failed to create status pipe: " + std::string(strerror(errno)));
 		_exit(1);
 	}
 
@@ -195,51 +271,62 @@ void CgiHandler::handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &
 	write(status_pipe[1], &status, sizeof(status));
 
 	if (dup2(pipe_in[0], STDIN_FILENO) < 0 || dup2(pipe_out[1], STDOUT_FILENO) < 0) {
+		Logger::file("[ERROR] Failed to duplicate file descriptors: " + std::string(strerror(errno)));
 		status = RequestState::COMPLETED;
 		write(status_pipe[1], &status, sizeof(status));
 		_exit(1);
 	}
+
 	status = RequestState::COMPLETED;
 	close(pipe_in[0]);
 	close(pipe_out[1]);
-	//tunnel.envp = setup_cgi_environment(tunnel, method, query);
-	Logger::file("Executing CGI script: " + tunnel.script_path);
-    Logger::file("Request body content: " + tunnel.request.request_body);
 
-    if (access(tunnel.location->cgi.c_str(), X_OK) != 0 ||
-        !tunnel.location ||
-        access(tunnel.script_path.c_str(), R_OK) != 0) {
-        Logger::file("[ERROR] Cannot execute CGI script at: " + tunnel.script_path);
-        _exit(1);
-    }
+	Logger::file("[INFO] Executing CGI script: " + tunnel.script_path);
+	Logger::file("[INFO] Request body content: " + tunnel.request.request_body);
 
-    // Prepare arguments for execve
-    std::vector<char*> args;
-    args.push_back(strdup(tunnel.location->cgi.c_str()));  // CGI interpreter
-    args.push_back(strdup(tunnel.script_path.c_str()));    // Script path
-    args.push_back(nullptr);
+	if (access(tunnel.location->cgi.c_str(), X_OK) != 0 ||
+		!tunnel.location ||
+		access(tunnel.script_path.c_str(), R_OK) != 0) {
+		Logger::file("[ERROR] Cannot execute CGI script at: " + tunnel.script_path + ", Error: " + std::string(strerror(errno)));
+		_exit(1);
+	}
 
-    // Set up the environment
-    std::vector<char*> envp = setup_cgi_environment(tunnel, method, query);
+	// Prepare arguments for execve
+	std::vector<char*> args;
+	args.push_back(strdup(tunnel.location->cgi.c_str()));  // CGI interpreter
+	args.push_back(strdup(tunnel.script_path.c_str()));    // Script path
+	args.push_back(nullptr);
 
+	Logger::file("[INFO] Preparing environment for CGI script execution.");
+	// Set up the environment
+
+	std::vector<char*> envp = setup_cgi_environment(tunnel, method, query);
+	Logger::file("Request body: " + tunnel.request.request_body);
+	Logger::file("[INFO] Sending request body to CGI script.");
 	// Send request body to stdin of CGI process
-    if (!tunnel.request.request_body.empty()) {
-        ssize_t written = write(STDIN_FILENO, tunnel.request.request_body.c_str(), tunnel.request.request_body.size());
-        if (written < 0) {
-            Logger::file("[ERROR] Failed to write request body to CGI script: " + std::string(strerror(errno)));
-            _exit(1);
-        }
-    }
+	if (!tunnel.request.request_body.empty()) {
+		ssize_t written = write(STDOUT_FILENO,
+								tunnel.request.request_body.c_str(),
+								tunnel.request.request_body.size());
+		if (written < 0) {
+			Logger::file("[ERROR] Failed to write request body to CGI script: "
+						+ std::string(strerror(errno)));
+			_exit(1);
+		}
+	}
+	else
+		Logger::file("[Info] request body to CGI script is EMPTY");
 
-    execve(args[0], args.data(), envp.data());
+	execve(args[0], args.data(), envp.data());
 
-    Logger::file("[ERROR] execve failed: " + std::string(strerror(errno)));
+	Logger::file("[ERROR] execve failed: " + std::string(strerror(errno)));
 	status = RequestState::COMPLETED;
 	write(status_pipe[1], &status, sizeof(status));
 
 	close(status_pipe[1]);
 	_exit(1);
 }
+
 
 
 void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, const std::string &query) {

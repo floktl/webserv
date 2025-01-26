@@ -1,6 +1,25 @@
 #include "RequestHandler.hpp"
 
 #include <regex>
+void RequestHandler::handlePostBodyComplete(RequestState &req, const Location* location)
+{
+	Logger::file("[handlePostBodyComplete] POST-Body komplett empfangen.");
+
+	// Falls CGI notwendig:
+	if (server.getCgiHandler()->needsCGI(req, req.location_path))
+	{
+		Logger::file("[handlePostBodyComplete] CGI wird benötigt -> CGI vorbereiten.");
+		req.state = RequestState::STATE_PREPARE_CGI;
+		server.getCgiHandler()->addCgiTunnel(req, req.method, /* query */ "");
+		return;
+	}
+	else
+	{
+		Logger::file("[handlePostBodyComplete] Kein CGI -> Datei speichern und Upload finalisieren.");
+		saveUploadedFile(req.request_body, location->upload_store + "/");
+		finalizeUpload(req);
+	}
+}
 
 bool RequestHandler::handleChunkedUpload(RequestState &req, const std::string &request, size_t headerEnd, const Location* loc)
 {
@@ -147,26 +166,26 @@ void RequestHandler::finalizeUpload(RequestState &req) {
 
 bool detectMultipartFormData(RequestState &req)
 {
-    std::string bufferStr(req.request_buffer.begin(), req.request_buffer.end());
+	std::string bufferStr(req.request_buffer.begin(), req.request_buffer.end());
 
-    if (bufferStr.find("Content-Type: multipart/form-data") != std::string::npos)
-    {
-        req.is_multipart = true;  // Assign boolean flag to RequestState
-        Logger::file("[detectMultipartFormData] Multipart form-data detected in request.");
-        return true;
-    }
+	if (bufferStr.find("Content-Type: multipart/form-data") != std::string::npos)
+	{
+		req.is_multipart = true;
+		Logger::file("[detectMultipartFormData] multipart/form-data erkannt.");
+		return true;
+	}
 
-    req.is_multipart = false;
-    Logger::file("[detectMultipartFormData] No multipart form-data detected.");
-    return false;
+	req.is_multipart = false;
+	Logger::file("[detectMultipartFormData] Kein multipart/form-data.");
+	return false;
 }
 
 void RequestHandler::parseRequest(RequestState &req)
 {
-	Logger::file("[parseRequest] Entering parseRequest. ParsingPhase = "
-				+ std::to_string(req.parsing_phase)
-				+ ", request_buffer size: "
-				+ std::to_string(req.request_buffer.size()));
+	Logger::file("[parseRequest] Starte Parse. Phase = "
+	             + std::to_string(req.parsing_phase)
+	             + ", request_buffer size: "
+	             + std::to_string(req.request_buffer.size()));
 
 	if (req.parsing_phase == RequestState::PARSING_HEADER)
 	{
@@ -174,12 +193,13 @@ void RequestHandler::parseRequest(RequestState &req)
 		size_t headerEndPos = bufferContent.find("\r\n\r\n");
 		if (headerEndPos == std::string::npos)
 		{
-			Logger::file("[parseRequest] Header not complete -> waiting for more data");
+			Logger::file("[parseRequest] Header unvollständig -> warte auf mehr Daten");
 			return;
 		}
 
+		// Header-Teil herauslösen
 		std::string headers = bufferContent.substr(0, headerEndPos);
-		Logger::file("[parseRequest] Found header boundary at: " + std::to_string(headerEndPos));
+		Logger::file("[parseRequest] Header gefunden bis Pos: " + std::to_string(headerEndPos));
 		Logger::file("[parseRequest] Headers:\n" + headers);
 
 		std::istringstream headerStream(headers);
@@ -188,10 +208,11 @@ void RequestHandler::parseRequest(RequestState &req)
 
 		if (requestLine.empty())
 		{
-			Logger::file("[parseRequest] Request line is empty -> Something's off. Waiting...");
+			Logger::file("[parseRequest] Request-Line leer -> warten...");
 			return;
 		}
 
+		// Request-Line splitten in METHOD PATH VERSION
 		std::string method, path, version;
 		{
 			std::istringstream rlstream(requestLine);
@@ -199,20 +220,20 @@ void RequestHandler::parseRequest(RequestState &req)
 			if (path.empty()) path = "/";
 		}
 
-		Logger::file("[parseRequest] Parsed Method: '" + method
-					+ "', Path: '" + path
-					+ "', Version: '" + version + "'");
+		Logger::file("[parseRequest] Methode: '" + method
+		             + "', Pfad: '" + path
+		             + "', Version: '" + version + "'");
 
 		static const std::set<std::string> validMethods = {
-			"GET", "POST", "DELETE", "HEAD", "PUT", "OPTIONS", "PATCH"
+		    "GET", "POST", "DELETE", "HEAD", "PUT", "OPTIONS", "PATCH"
 		};
 		if (validMethods.find(method) == validMethods.end())
 		{
-			Logger::file("[parseRequest] Unknown or incomplete method '"
-						+ method + "' -> waiting for more data");
+			Logger::file("[parseRequest] Unbekannte Methode: '" + method + "' -> warte");
 			return;
 		}
 
+		// Query-Teil extrahieren falls ? vorhanden
 		std::string query;
 		size_t qpos = path.find('?');
 		if (qpos != std::string::npos)
@@ -221,6 +242,7 @@ void RequestHandler::parseRequest(RequestState &req)
 			path  = path.substr(0, qpos);
 		}
 
+		// Header untersuchen auf Content-Length oder Transfer-Encoding
 		bool   is_chunked      = false;
 		size_t content_length  = 0;
 		std::string line;
@@ -228,8 +250,6 @@ void RequestHandler::parseRequest(RequestState &req)
 		{
 			if (!line.empty() && line.back() == '\r')
 				line.pop_back();
-
-			Logger::file("[parseRequest] Header line: " + line);
 
 			if (line.rfind("Cookie:", 0) == 0)
 			{
@@ -240,15 +260,14 @@ void RequestHandler::parseRequest(RequestState &req)
 				content_length = static_cast<size_t>(
 					std::stoul(line.substr(std::strlen("Content-Length: ")))
 				);
-				Logger::file("[parseRequest] Found Content-Length: "
-							+ std::to_string(content_length));
+				Logger::file("[parseRequest] Content-Length: " + std::to_string(content_length));
 			}
 			else if (line.rfind("Transfer-Encoding:", 0) == 0)
 			{
 				std::string encoding = line.substr(std::strlen("Transfer-Encoding: "));
 				if (encoding.find("chunked") != std::string::npos)
 				{
-					Logger::file("[parseRequest] Found chunked Transfer-Encoding");
+					Logger::file("[parseRequest] Transfer-Encoding: chunked erkannt.");
 					is_chunked = true;
 				}
 			}
@@ -257,7 +276,7 @@ void RequestHandler::parseRequest(RequestState &req)
 		const Location* location = findMatchingLocation(req.associated_conf, path);
 		if (!location)
 		{
-			Logger::file("[parseRequest] No matching location -> sending 404");
+			Logger::file("[parseRequest] Kein passendes Location -> 404 senden.");
 			std::stringstream errorStream;
 			buildErrorResponse(404, "Not Found", &errorStream, req);
 			std::string err = errorStream.str();
@@ -268,45 +287,54 @@ void RequestHandler::parseRequest(RequestState &req)
 			return;
 		}
 
+		// Body-Anteil, der ggf. in diesem Paket schon vorliegt
 		size_t bodyPos = headerEndPos + 4;
 		std::string bodyPart;
 		if (bufferContent.size() > bodyPos)
 			bodyPart = bufferContent.substr(bodyPos);
 
+		// Header gelesen => wir löschen den Header-Puffer
+		req.request_buffer.clear();
+
+		// Grundlegende RequestState-Felder belegen
 		req.method         = method;
 		req.location_path  = path;
 		req.requested_path = buildRequestedPath(req, path);
 		req.content_length = content_length;
-		req.received_body  = bodyPart;
-		detectMultipartFormData(req);
-		printRequestState(req);
-		req.request_buffer.clear();
 
+		// multipart-FormData-Erkennung
+		detectMultipartFormData(req);
+
+		// Optional: Weiterer Code, z.B. Debug-Ausgabe
+		printRequestState(req);
+
+		// Check auf Redirect
 		std::stringstream redirectResponse;
 		if (checkRedirect(req, &redirectResponse))
 		{
-			Logger::file("[parseRequest] checkRedirect -> redirect response set");
+			Logger::file("[parseRequest] Redirect definiert, send Response");
 			req.state = RequestState::STATE_SENDING_RESPONSE;
 			server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 			return;
 		}
 
-		// Spezifische Behandlung der HTTP-Methoden
+		// Behandlung der Methoden
 		if (method == "POST")
 		{
-			Logger::file("[parseRequest] It's a POST request");
 			if (is_chunked)
 			{
-				Logger::file("[parseRequest] Handling chunked upload...");
+				Logger::file("[parseRequest] POST mit chunked Transfer-Encoding");
 				if (!handleChunkedUpload(req, bufferContent, headerEndPos, location))
 				{
-					Logger::file("[parseRequest] Not all chunks available yet -> waiting");
+					Logger::file("[parseRequest] Noch nicht alle Chunks -> warten.");
 					return;
 				}
+				// Wenn handleChunkedUpload() true zurückgibt, ist der Upload abgeschlossen.
 				req.parsing_phase = RequestState::PARSING_COMPLETE;
 				return;
 			}
 
+			// Normaler Content-Length basierter POST
 			if (content_length > (size_t)location->client_max_body_size)
 			{
 				Logger::file("[parseRequest] 413 Payload Too Large");
@@ -320,39 +348,27 @@ void RequestHandler::parseRequest(RequestState &req)
 				return;
 			}
 
-			if (req.received_body.size() >= content_length)
-			{
-				Logger::file("[parseRequest] Body fully in first chunk ("
-							+ std::to_string(req.received_body.size()) + " bytes)");
+			// bodyPart direkt in request_body übernehmen
+			req.request_body = bodyPart;
 
-				if (server.getCgiHandler()->needsCGI(req, req.location_path))
-				{
-					Logger::file("[parseRequest] It's a CGI request => setting up CGI");
-					req.state = RequestState::STATE_PREPARE_CGI;
-					server.getCgiHandler()->addCgiTunnel(req, req.method, /* query */ "");
-					Logger::file("[parseRequest] CGI setup done, returning");
-					req.parsing_phase = RequestState::PARSING_COMPLETE;
-					return;
-				}
-				else
-				{
-					Logger::file("[parseRequest] It's a normal (non-CGI) upload => finalizing file");
-					saveUploadedFile(req.received_body, location->upload_store + "/");
-					finalizeUpload(req);
-					req.parsing_phase = RequestState::PARSING_COMPLETE;
-					return;
-				}
+			// Haben wir schon alles?
+			if (req.request_body.size() >= content_length)
+			{
+				Logger::file("[parseRequest] POST-Body vollständig im ersten Paket.");
+				handlePostBodyComplete(req, location);
+				req.parsing_phase = RequestState::PARSING_COMPLETE;
+				return;
 			}
 			else
 			{
-				Logger::file("[parseRequest] Body incomplete => switching to PARSING_BODY");
+				Logger::file("[parseRequest] POST-Body noch unvollständig -> PARSING_BODY");
 				req.parsing_phase = RequestState::PARSING_BODY;
 				return;
 			}
 		}
 		else if (method == "DELETE")
 		{
-			Logger::file("[parseRequest] It's a DELETE request");
+			Logger::file("[parseRequest] DELETE-Anfrage erkannt");
 			handleDeleteRequest(req);
 			req.parsing_phase = RequestState::PARSING_COMPLETE;
 			server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
@@ -360,17 +376,16 @@ void RequestHandler::parseRequest(RequestState &req)
 		}
 		else
 		{
-			Logger::file("[parseRequest] Handling method: " + method);
-
+			Logger::file("[parseRequest] " + method + "-Anfrage -> weiterverarbeiten.");
 			if (server.getCgiHandler()->needsCGI(req, path))
 			{
-				Logger::file("[parseRequest] It's a CGI request => setting up CGI");
+				Logger::file("[parseRequest] -> CGI");
 				req.state = RequestState::STATE_PREPARE_CGI;
 				server.getCgiHandler()->addCgiTunnel(req, method, query);
 			}
 			else
 			{
-				Logger::file("[parseRequest] buildResponse for normal request");
+				Logger::file("[parseRequest] -> Statisches buildResponse()");
 				buildResponse(req);
 				req.state = RequestState::STATE_SENDING_RESPONSE;
 			}
@@ -379,23 +394,21 @@ void RequestHandler::parseRequest(RequestState &req)
 			return;
 		}
 	}
-
 	else if (req.parsing_phase == RequestState::PARSING_BODY)
 	{
-		Logger::file("[parseRequest] PARSING_BODY -> collecting leftover body bytes");
+		Logger::file("[parseRequest] PARSING_BODY -> empfange Restdaten.");
 
+		// Alles, was an neuem Datenmaterial eingetroffen ist, ansammeln
 		if (!req.request_buffer.empty())
 		{
-			req.received_body.insert(req.received_body.end(),
-									req.request_buffer.begin(),
-									req.request_buffer.end());
+			req.request_body.append(req.request_buffer.begin(), req.request_buffer.end());
 			req.request_buffer.clear();
 		}
 
 		const Location* location = findMatchingLocation(req.associated_conf, req.location_path);
 		if (!location)
 		{
-			Logger::file("[parseRequest] Lost location? -> 404");
+			Logger::file("[parseRequest] Location weg -> 404");
 			std::stringstream errorStream;
 			buildErrorResponse(404, "Not Found", &errorStream, req);
 			std::string err = errorStream.str();
@@ -406,9 +419,10 @@ void RequestHandler::parseRequest(RequestState &req)
 			return;
 		}
 
-		if (req.received_body.size() > (size_t)location->client_max_body_size)
+		// Maximalgröße prüfen
+		if (req.request_body.size() > (size_t)location->client_max_body_size)
 		{
-			Logger::file("[parseRequest] 413 Payload Too Large while reading body");
+			Logger::file("[parseRequest] 413 Payload Too Large (PARSING_BODY)");
 			std::stringstream errorStream;
 			buildErrorResponse(413, "Payload Too Large", &errorStream, req);
 			std::string err = errorStream.str();
@@ -419,38 +433,23 @@ void RequestHandler::parseRequest(RequestState &req)
 			return;
 		}
 
-		if (req.received_body.size() >= req.content_length)
+		// Wenn vollständig -> handlePostBodyComplete
+		if (req.request_body.size() >= req.content_length)
 		{
-			Logger::file("[parseRequest] Body is now complete => deciding next steps");
-
-			if (server.getCgiHandler()->needsCGI(req, req.location_path))
-			{
-				Logger::file("[parseRequest] It's a CGI request => setting up CGI");
-				req.state = RequestState::STATE_PREPARE_CGI;
-				printRequestState(req);
-				server.getCgiHandler()->addCgiTunnel(req, req.method, /* query */ "");
-				Logger::file("[parseRequest] CGI setup done, returning");
-				req.parsing_phase = RequestState::PARSING_COMPLETE;
-				return;
-			}
-			else
-			{
-				Logger::file("[parseRequest] It's a normal (non-CGI) upload => finalizing file");
-				saveUploadedFile(req.received_body, location->upload_store + "/");
-				finalizeUpload(req);
-				req.parsing_phase = RequestState::PARSING_COMPLETE;
-				return;
-			}
+			Logger::file("[parseRequest] Body nun komplett -> handlePostBodyComplete.");
+			handlePostBodyComplete(req, location);
+			req.parsing_phase = RequestState::PARSING_COMPLETE;
+			return;
 		}
 		else
 		{
-			Logger::file("[parseRequest] Still not enough body data -> waiting for more");
+			Logger::file("[parseRequest] Body noch nicht komplett -> weiter warten.");
 			return;
 		}
 	}
 	else if (req.parsing_phase == RequestState::PARSING_COMPLETE)
 	{
-		Logger::file("[parseRequest] PARSING_COMPLETE -> Doing nothing, request is done");
+		Logger::file("[parseRequest] PARSING_COMPLETE -> Keine weitere Aktion.");
 		return;
 	}
 }

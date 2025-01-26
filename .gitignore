@@ -1,8 +1,10 @@
 .vscode
 var/www/html/data/*
 var/www/php/data/*
+var/www/php/upload/*
 var/www/python/data/*
 ./webserv.log
 ./obj
 webserv
 **/.DS_Store
+.var/
