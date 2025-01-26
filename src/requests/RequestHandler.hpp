@@ -83,6 +83,7 @@ private:
 	std::string handleDefaultFile(const std::string& fullPath, const Location* loc, RequestState& req);
 	std::string handleDirectoryRequest(const std::string& fullPath, const Location* loc,
 		const ServerBlock* conf, RequestState& req);
+		void handlePostBodyComplete(RequestState &req, const Location* location);
 };
 
 #endif // REQUESTHANDLER_HPP

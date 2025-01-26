@@ -143,3 +143,67 @@ enum RequestState::Task Server::getTaskStatus(int client_fd)
 		return RequestState::Task::PENDING;
 	}
 }
+
+bool Server::addServerNameToHosts(const std::string &server_name)
+{
+	const std::string hosts_file = "/etc/hosts";
+	std::ifstream infile(hosts_file);
+	std::string line;
+
+	// Check if the server_name already exists in /etc/hosts
+	while (std::getline(infile, line)) {
+		if (line.find(server_name) != std::string::npos) {
+			return true; // Already present, no need to add
+		}
+	}
+
+	// Add server_name to /etc/hosts
+	std::ofstream outfile(hosts_file, std::ios::app);
+	if (!outfile.is_open()) {
+		throw std::runtime_error("Failed to open /etc/hosts");
+	}
+	outfile << "127.0.0.1 " << server_name << "\n";
+	outfile.close();
+	Logger::yellow("Added " + server_name + " to /etc/hosts file");
+	// Store the added server name
+	added_server_names.push_back(server_name);
+	return true;
+}
+
+void Server::removeAddedServerNamesFromHosts()
+{
+	const std::string hosts_file = "/etc/hosts";
+	std::ifstream infile(hosts_file);
+	if (!infile.is_open()) {
+		throw std::runtime_error("Failed to open /etc/hosts");
+	}
+
+	std::vector<std::string> lines;
+	std::string line;
+	while (std::getline(infile, line)) {
+		bool shouldRemove = false;
+		for (const auto &name : added_server_names) {
+			if (line.find(name) != std::string::npos) {
+				Logger::yellow("Remove " + name + " from /etc/host file");
+				shouldRemove = true;
+				break;
+			}
+		}
+		if (!shouldRemove) {
+			lines.push_back(line);
+		}
+	}
+	infile.close();
+
+	std::ofstream outfile(hosts_file, std::ios::trunc);
+	if (!outfile.is_open()) {
+		throw std::runtime_error("Failed to open /etc/hosts for writing");
+	}
+	for (const auto &l : lines) {
+		outfile << l << "\n";
+	}
+	outfile.close();
+
+	// Clear the added server names
+	added_server_names.clear();
+}
