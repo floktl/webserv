@@ -26,8 +26,27 @@ std::string ErrorHandler::loadErrorPage(const std::string& filePath) const
 
 std::string ErrorHandler::generateErrorResponse(int statusCode, const std::string& message, RequestState &req) const
 {
-	auto it = req.associated_conf->errorPages.find(statusCode);
-	std::string content;
+		Logger::red("code:");
+			// Ensure associated_conf is not null
+		if (req.associated_conf == nullptr) {
+			return "";
+		}
+
+		// Look for the error page for the given status code
+		auto it = req.associated_conf->errorPages.find(statusCode);
+		std::string content;
+
+		if (it != req.associated_conf->errorPages.end())
+		{
+			content = loadErrorPage(it->second);
+			if (content.empty())
+			{
+				std::cerr << "Failed to load custom error page: " << it->second << std::endl;
+			}
+		} else {
+			std::cerr << "Error: Status code " << statusCode << " not found in errorPages" << std::endl;
+			content = "Default error page content for status " + std::to_string(statusCode);
+		}
 
 	if (it != req.associated_conf->errorPages.end())
 	{

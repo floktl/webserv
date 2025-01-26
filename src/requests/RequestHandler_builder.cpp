@@ -8,14 +8,13 @@ void RequestHandler::buildResponse(RequestState &req)
 	if (!conf) return;
 
 	const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
-	std::string method = getMethod(req.request_buffer);
 
-	if (method == "POST")	{
+	if (req.method == "POST")	{
 		handlePostRequest(req);
 		return;
 	}
 
-	if (method == "DELETE")	{
+	if (req.method == "DELETE")	{
 		handleDeleteRequest(req);
 		return;
 	}
@@ -84,13 +83,13 @@ void RequestHandler::handlePostRequest(RequestState &req)
 
 void RequestHandler::handleDeleteRequest(RequestState &req)
 {
-	Logger::file("[handleDeleteRequest] Entering handleDeleteRequest for path: " + req.requested_path);
+	//Logger::file("[handleDeleteRequest] Entering handleDeleteRequest for path: " + req.requested_path);
 
 	// Finde die passende Location für den aktuellen Request
 	const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
 	if (!loc)
 	{
-		Logger::file("[handleDeleteRequest] No matching location found.");
+		//Logger::file("[handleDeleteRequest] No matching location found.");
 		std::stringstream response;
 		buildErrorResponse(404, "Not Found", &response, req);
 
@@ -108,7 +107,7 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 										response_data.begin() + i,
 										response_data.begin() + i + length);
 		}
-		Logger::file("[handleDeleteRequest] Sent 404 Not Found response");
+		//Logger::file("[handleDeleteRequest] Sent 404 Not Found response");
 		// Setze den Zustand auf SENDING_RESPONSE
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
@@ -119,7 +118,7 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 	std::string uploadStore = loc->upload_store;
 	if (uploadStore.empty())
 	{
-		Logger::file("[handleDeleteRequest] upload_store is not defined for location: " + std::string(loc->path));
+		//Logger::file("[handleDeleteRequest] upload_store is not defined for location: " + std::string(loc->path));
 		std::stringstream response;
 		buildErrorResponse(500, "Internal Server Error", &response, req);
 
@@ -137,7 +136,7 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 										response_data.begin() + i,
 										response_data.begin() + i + length);
 		}
-		Logger::file("[handleDeleteRequest] Sent 500 Internal Server Error response");
+		//Logger::file("[handleDeleteRequest] Sent 500 Internal Server Error response");
 		// Setze den Zustand auf SENDING_RESPONSE
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
@@ -157,7 +156,7 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 	}
 	else
 	{
-		Logger::file("[handleDeleteRequest] Invalid path prefix: " + req.location_path);
+		//Logger::file("[handleDeleteRequest] Invalid path prefix: " + req.location_path);
 		std::stringstream response;
 		buildErrorResponse(400, "Bad Request", &response, req);
 
@@ -175,7 +174,7 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 										response_data.begin() + i,
 										response_data.begin() + i + length);
 		}
-		Logger::file("[handleDeleteRequest] Sent 400 Bad Request response");
+		//Logger::file("[handleDeleteRequest] Sent 400 Bad Request response");
 		// Setze den Zustand auf SENDING_RESPONSE
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
@@ -184,12 +183,12 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 
 	std::string filePath = uploadStore + "/" + filename;
 
-	Logger::file("[handleDeleteRequest] Constructed file path: " + filePath);
+	//Logger::file("[handleDeleteRequest] Constructed file path: " + filePath);
 
 	// Überprüfen, ob die Datei existiert
 	if (access(filePath.c_str(), F_OK) != 0)
 	{
-		Logger::file("[handleDeleteRequest] File not found: " + filePath);
+		//Logger::file("[handleDeleteRequest] File not found: " + filePath);
 		std::stringstream response;
 		buildErrorResponse(404, "Not Found", &response, req);
 
@@ -207,7 +206,7 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 										response_data.begin() + i,
 										response_data.begin() + i + length);
 		}
-		Logger::file("[handleDeleteRequest] Sent 404 Not Found response");
+		//Logger::file("[handleDeleteRequest] Sent 404 Not Found response");
 		// Setze den Zustand auf SENDING_RESPONSE
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
@@ -217,7 +216,7 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 	// Versuch, die Datei zu löschen
 	if (unlink(filePath.c_str()) != 0)
 	{
-		Logger::file("[handleDeleteRequest] Failed to delete file: " + filePath + " Error: " + std::string(strerror(errno)));
+		//Logger::file("[handleDeleteRequest] Failed to delete file: " + filePath + " Error: " + std::string(strerror(errno)));
 		std::stringstream response;
 		buildErrorResponse(500, "Internal Server Error", &response, req);
 
@@ -235,14 +234,14 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 										response_data.begin() + i,
 										response_data.begin() + i + length);
 		}
-		Logger::file("[handleDeleteRequest] Sent 500 Internal Server Error response");
+		//Logger::file("[handleDeleteRequest] Sent 500 Internal Server Error response");
 		// Setze den Zustand auf SENDING_RESPONSE
 		req.state = RequestState::STATE_SENDING_RESPONSE;
 		server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 		return;
 	}
 
-	Logger::file("[handleDeleteRequest] Successfully deleted file: " + filePath);
+	//Logger::file("[handleDeleteRequest] Successfully deleted file: " + filePath);
 
 	// Senden der 204 No Content Antwort mit "Connection: close"
 	std::string headers = "HTTP/1.1 204 No Content\r\n";
@@ -264,7 +263,7 @@ void RequestHandler::handleDeleteRequest(RequestState &req)
 									headers_data.begin() + i + length);
 	}
 
-	Logger::file("[handleDeleteRequest] Sent 204 No Content response");
+	//Logger::file("[handleDeleteRequest] Sent 204 No Content response");
 
 	// Setze den Zustand auf SENDING_RESPONSE
 	req.state = RequestState::STATE_SENDING_RESPONSE;
