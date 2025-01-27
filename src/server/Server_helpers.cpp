@@ -27,56 +27,30 @@ int Server::getTimeout() const {
 
 void Server::delFromEpoll(int epfd, int fd)
 {
-    epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+	Logger::file("Removing fd " + std::to_string(fd) + " from epoll");
 
-    auto it = globalFDS.svFD_to_clFD_map.find(fd);
-    if (it != globalFDS.svFD_to_clFD_map.end())
-    {
-        int client_fd = it->second;
-        auto ctx_it = globalFDS.request_state_map.find(client_fd);
-        if (ctx_it != globalFDS.request_state_map.end())
-        {
-            Context &ctx = ctx_it->second;
-			RequestBody &req = ctx.req;
+	if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL) < 0)
+		Logger::file("Error removing from epoll: " + std::string(strerror(errno)));
 
-			if (fd == req.cgi_in_fd)
-				req.cgi_in_fd = -1;
-			if (fd == req.cgi_out_fd)
-				req.cgi_out_fd = -1;
+	auto ctx_it = globalFDS.request_state_map.find(fd);
+	if (ctx_it != globalFDS.request_state_map.end()) {
+		RequestBody &req = ctx_it->second.req;
+		if (req.cgi_in_fd != -1) {
+			close(req.cgi_in_fd);
+			globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
+		}
+		if (req.cgi_out_fd != -1) {
+			close(req.cgi_out_fd);
+			globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
+		}
 
-			if (req.cgi_in_fd == -1 && req.cgi_out_fd == -1 &&
-				req.state != RequestBody::STATE_SENDING_RESPONSE)
-			{
-				globalFDS.request_state_map.erase(client_fd);
-			}
-        }
-        globalFDS.svFD_to_clFD_map.erase(it);
-    }
-    else
-    {
-        auto ctx_it = globalFDS.request_state_map.find(fd);
-        if (ctx_it != globalFDS.request_state_map.end())
-        {
-            Context &ctx = ctx_it->second;
-                RequestBody &req = ctx.req;
+		globalFDS.request_state_map.erase(fd);
+	}
 
-			if (req.cgi_in_fd != -1)
-			{
-				epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
-				close(req.cgi_in_fd);
-				globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
-			}
-			if (req.cgi_out_fd != -1)
-			{
-				epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
-				close(req.cgi_out_fd);
-				globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
-			}
-            globalFDS.request_state_map.erase(fd);
-        }
-    }
+	globalFDS.svFD_to_clFD_map.erase(fd);
 
-    close(fd);
+	close(fd);
+	Logger::file("Successfully removed fd " + std::to_string(fd));
 }
 
 bool Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd) {
