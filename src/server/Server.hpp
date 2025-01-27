@@ -63,7 +63,7 @@ class Server
 		void removeAddedServerNamesFromHosts();
 
 		// server_event_handlers
-		bool staticHandler(Context& ctx, uint32_t ev);
+		bool staticHandler(Context& ctx);
 		bool errorsHandler(Context& ctx, uint32_t ev);
 		bool handleCGIEvent(int epoll_fd, int fd, uint32_t ev);
 		void buildStaticResponse(Context &ctx);

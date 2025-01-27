@@ -40,91 +40,96 @@ while (count != 0)
 
 bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vector<ServerBlock> &configs)
 {
-	int client_fd;
-	int server_fd;
+    int client_fd;
+    int server_fd;
 
-	Logger::file("dispatchEvent:");
-	if (ev & EPOLLIN)
-    Logger::file("EPOLLIN event: " + std::to_string(ev) + " triggered (data available to read)");
-	if (ev & EPOLLOUT)
-		Logger::file("EPOLLOUT event: " + std::to_string(ev) + " triggered (ready for writing)");
-	if (ev & EPOLLERR)
-		Logger::file("EPOLLERR event: " + std::to_string(ev) + " detected (error on fd)");
-	if (ev & EPOLLHUP)
-		Logger::file("EPOLLHUP event: " + std::to_string(ev) + " detected (connection closed)");
+    Logger::file("dispatchEvent:");
+    if (ev & EPOLLIN)
+        Logger::file("EPOLLIN event: " + std::to_string(ev) + " triggered (data available to read)");
+    if (ev & EPOLLOUT)
+        Logger::file("EPOLLOUT event: " + std::to_string(ev) + " triggered (ready for writing)");
+    if (ev & EPOLLERR)
+        Logger::file("EPOLLERR event: " + std::to_string(ev) + " detected (error on fd)");
+    if (ev & EPOLLHUP)
+        Logger::file("EPOLLHUP event: " + std::to_string(ev) + " detected (connection closed)");
 
-	// 1. Check if this is an existing client connection
-	logRequestBodyMapFDs();
-	if (globalFDS.request_state_map.find(incoming_fd) != globalFDS.request_state_map.end())
-	{
-		client_fd = incoming_fd;  // Clarify that fd is a client connection
-		Logger::file("Found Client_fd: " + std::to_string(client_fd) + " in globalFDS.request_state_map");
-		Context& ctx = globalFDS.request_state_map[client_fd];
-		ctx.last_activity = std::chrono::steady_clock::now();
+    logRequestBodyMapFDs();
 
-		// Handle errors
-		if (ev & (EPOLLHUP | EPOLLERR))
-		{
-			Logger::file("Connection Error on client_fd: " + std::to_string(client_fd));
-			// TODO: Implement cleanup
-			return true;
-		}
+    // 1. Handle existing client connection
+    if (globalFDS.request_state_map.find(incoming_fd) != globalFDS.request_state_map.end())
+    {
+        client_fd = incoming_fd;
+        Logger::file("Found Client_fd: " + std::to_string(client_fd) + " in globalFDS.request_state_map");
+        Context& ctx = globalFDS.request_state_map[client_fd];
+        ctx.last_activity = std::chrono::steady_clock::now();
 
-		// Handle based on request type
-		while (true)
-		{
-			switch (ctx.type)
-			{
-				case INITIAL:
-					Logger::file("Handling INITIAL request for client_fd: " + std::to_string(client_fd));
-					if (ev & EPOLLIN)
-					{
-						parseRequest(ctx);
-						determineType(ctx, configs);
-						Logger::file("Type after Parse: " + requestTypeToString(ctx.type) + "\n");
-						// Continue to re-evaluate the updated type
-						continue;
-					}
-					break;
+        // Handle connection errors
+        if (ev & (EPOLLHUP | EPOLLERR))
+        {
+            Logger::file("Connection Error on client_fd: " + std::to_string(client_fd));
+            delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+            return true;
+        }
 
-				case STATIC:
-					Logger::file("Handling STATIC request for client_fd: " + std::to_string(client_fd));
-					staticHandler(ctx, ev);
-					// TODO: Implement static file handling
-					continue;
+        // Handle request based on type
+        switch (ctx.type)
+        {
+            case INITIAL:
+                if (ev & EPOLLIN)
+                {
+                    Logger::file("Handling INITIAL request for client_fd: " + std::to_string(client_fd));
+                    parseRequest(ctx);
+                    determineType(ctx, configs);
 
-				case CGI:
-					Logger::file("Handling CGI request for client_fd: " + std::to_string(client_fd));
-					// TODO: Implement CGI handling
-					continue;
+                    switch (ctx.type)
+                    {
+                        case STATIC:
+                			Logger::file("Handling STATIC request for client_fd: " + std::to_string(client_fd));
+                            return staticHandler(ctx);
+                        case CGI:
+                            Logger::file("CGI request determined for client_fd: " + std::to_string(client_fd));
+                            return true;
+                        case ERROR:
+                			Logger::file("Handling ERROR request for client_fd: " + std::to_string(client_fd));
+                            return errorsHandler(ctx, ev);
+                        default:
+                            return true;
+                    }
+                }
+                break;
 
-				case ERROR:
-					Logger::file("Handling ERROR request for client_fd: " + std::to_string(client_fd));
-					errorsHandler(ctx, ev);
-					return true;
+            case STATIC:
+                Logger::file("Handling STATIC request for client_fd: " + std::to_string(client_fd));
+                return staticHandler(ctx);
 
-				default:
-					//Logger::file("Unknown request type for client_fd: " + std::to_string(client_fd));
-					return true;
-			}
+            case CGI:
+                Logger::file("Handling CGI request for client_fd: " + std::to_string(client_fd));
+                return true;
 
-			// Break the loop once the request has been handled
-			break;
-		}
-	}
+            case ERROR:
+                Logger::file("Handling ERROR request for client_fd: " + std::to_string(client_fd));
+                return errorsHandler(ctx, ev);
 
-	// 2. Check if this is a server socket (new connection)
-	if (findServerBlock(configs, incoming_fd))
-	{
-		server_fd = incoming_fd;  // Clarify that fd is a server socket
-		Logger::file("New connection on server_fd: " + std::to_string(server_fd) + " epoll_fd: " + std::to_string(epoll_fd));
-		return handleNewConnection(epoll_fd, server_fd);
-	}
+            default:
+                Logger::file("Unknown request type for client_fd: " + std::to_string(client_fd));
+                delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+                return false;
+        }
+        return true;
+    }
 
-	// 3. Unknown fd - this shouldn't happen
-	Logger::file("ERROR: Unknown fd: " + std::to_string(incoming_fd));
-	delFromEpoll(epoll_fd, incoming_fd);
-	return false;
+    // 2. Handle new connection on server socket
+    if (findServerBlock(configs, incoming_fd))
+    {
+        server_fd = incoming_fd;
+        Logger::file("New connection on server_fd: " + std::to_string(server_fd) + " epoll_fd: " + std::to_string(epoll_fd));
+        return handleNewConnection(epoll_fd, server_fd);
+    }
+
+    // 3. Handle unknown fd
+    Logger::file("ERROR: Unknown fd: " + std::to_string(incoming_fd));
+    delFromEpoll(epoll_fd, incoming_fd);
+    return false;
 }
 
 bool Server::isMethodAllowed(Context& ctx) {
@@ -154,44 +159,70 @@ bool Server::isMethodAllowed(Context& ctx) {
 	return isAllowed;
 }
 
-void Server::parseAcessRights(Context& ctx)
-{
-    Logger::file("parseAcessRights");
-	ctx.access_flag = FILE_EXISTS;
-	checkAccessRights(ctx, ctx.root);
-	std::string rootAndLocation = concatenatePath(ctx.root, ctx.location->path);
-	std::string aprovedIndex;
-    size_t dot_pos = ctx.location->default_file.find_last_of('.');
-    if (dot_pos != std::string::npos)
-    {
-        std::string extension = ctx.location->default_file.substr(dot_pos);
-        if ((extension == ctx.location->cgi_filetype) || (ctx.location->cgi_filetype.empty() && extension == "html"))
-        {
-            aprovedIndex = ctx.location->default_file;
-        }
-        else
-        {
-			ctx.error_code = 500;
-			ctx.type = ERROR;
-			ctx.error_message = "Internal Server Error";
-        }
-    }
-	if (!rootAndLocation.empty() && rootAndLocation.back() != '/')
-    {
-        rootAndLocation += "/";
-    }
-	std::string rootAndLocationIndex = rootAndLocation + aprovedIndex;
-	ctx.access_flag = FILE_EXISTS;
-	checkAccessRights(ctx, rootAndLocationIndex);
-	ctx.access_flag = FILE_READ;
-	checkAccessRights(ctx, rootAndLocationIndex);
-	ctx.access_flag = FILE_EXECUTE;
-	checkAccessRights(ctx, rootAndLocationIndex);
-	// error pages extance read -> std fallbacks
-	// root/location exitance and access for current HTTP Method: flag ob autoindex wird...
-	// root/location->index exitance and access for current HTTP Method and CGI Type: flag ob autoindex wird...
-	// bei static root/location/upload_store access w
+void Server::parseAcessRights(Context& ctx) {
+    Logger::file("parseAcessRights: Starting access rights parsing");
 
+    ctx.access_flag = FILE_EXISTS;
+    checkAccessRights(ctx, ctx.root);
+    Logger::file("Root access check completed - Path: " + ctx.root);
+
+    std::string rootAndLocation = concatenatePath(ctx.root, ctx.location->path);
+    Logger::file("Combined path: " + rootAndLocation);
+
+    std::string aprovedIndex;
+    size_t dot_pos = ctx.location->default_file.find_last_of('.');
+    if (dot_pos != std::string::npos) {
+        // Get extension WITHOUT the dot
+        std::string extension = ctx.location->default_file.substr(dot_pos + 1);
+        Logger::file("Checking default file extension (without dot): " + extension);
+
+        if ((extension == ctx.location->cgi_filetype) ||
+            (ctx.location->cgi_filetype.empty() && extension == "html")) {
+            aprovedIndex = ctx.location->default_file;
+            Logger::file("Default file approved: " + aprovedIndex);
+        } else {
+            Logger::file("Extension validation failed - CGI type: [" + ctx.location->cgi_filetype +
+                        "], Extension: [" + extension + "]");
+            ctx.error_code = 500;
+            ctx.type = ERROR;
+            ctx.error_message = "Internal Server Error";
+        }
+    } else {
+        Logger::file("WARNING: No extension found in default file");
+    }
+
+    // Path normalization
+    if (!rootAndLocation.empty() && rootAndLocation.back() != '/') {
+        rootAndLocation += "/";
+        Logger::file("Path normalized with trailing slash: " + rootAndLocation);
+    }
+
+    // Construct full index path
+    std::string rootAndLocationIndex = rootAndLocation + aprovedIndex;
+    Logger::file("Full index path: " + rootAndLocationIndex);
+
+    // File existence check
+    ctx.access_flag = FILE_EXISTS;
+    checkAccessRights(ctx, rootAndLocationIndex);
+    Logger::file("File existence check completed for: " + rootAndLocationIndex);
+
+    // Read permission check
+    ctx.access_flag = FILE_READ;
+    checkAccessRights(ctx, rootAndLocationIndex);
+    Logger::file("Read permission check completed for: " + rootAndLocationIndex);
+
+    // Execute permission check
+    ctx.access_flag = FILE_EXECUTE;
+    checkAccessRights(ctx, rootAndLocationIndex);
+    Logger::file("Execute permission check completed for: " + rootAndLocationIndex);
+
+    Logger::file("parseAcessRights: Completed all access rights checks");
+
+    // Additional debug information about context state
+    std::string contextState = "Context state - Error code: " +
+                             std::to_string(ctx.error_code) +
+                             ", Type: " + std::to_string(ctx.type);
+    Logger::file(contextState);
 }
 
 void Server::checkAccessRights(Context &ctx, std::string path)
