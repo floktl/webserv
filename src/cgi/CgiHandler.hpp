@@ -4,7 +4,7 @@
 #include "../main.hpp"
 
 struct ServerBlock;
-struct RequestState;
+struct RequestBody;
 struct Location;
 struct CgiTunnel;
 
@@ -15,14 +15,14 @@ class CgiHandler
 	public:
 		CgiHandler(Server& server);
 		~CgiHandler();
-		void finalizeCgiResponse(RequestState &req, int epoll_fd, int client_fd);
+		void finalizeCgiResponse(RequestBody &req, int epoll_fd, int client_fd);
 
 		void handleCGIWrite(int epfd, int fd, uint32_t events);
 		void handleCGIRead(int epfd, int fd);
-		void addCgiTunnel(RequestState& req, const std::string& method, const std::string& query);
-		bool needsCGI(RequestState &req, const std::string &path);
+		void addCgiTunnel(RequestBody& req, const std::string& method, const std::string& query);
+		bool needsCGI(RequestBody &req, const std::string &path);
 
-		void cleanupCGI(RequestState &req);
+		void cleanupCGI(RequestBody &req);
 
 	private:
 		Server& server;
@@ -34,7 +34,7 @@ class CgiHandler
 		void cleanup_pipes(int pipe_in[2], int pipe_out[2]);
 
 		std::vector<char*> setup_cgi_environment(const CgiTunnel& tunnel, const std::string& method, const std::string& query);
-		bool initTunnel(RequestState &req, CgiTunnel &tunnel, int pipe_in[2],
+		bool initTunnel(RequestBody &req, CgiTunnel &tunnel, int pipe_in[2],
 			int pipe_out[2]);
 		void handleChildProcess(int pipe_in[2], int pipe_out[2], CgiTunnel &tunnel,
 			const std::string &method, const std::string &query);

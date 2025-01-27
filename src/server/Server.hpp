@@ -11,7 +11,7 @@ struct ServerBlock;
 // class ClientHandler;
 // class CgiHandler;
 // class RequestHandler;
-// class ErrorHandler;
+class ErrorHandler;
 
 class Server
 {
@@ -26,26 +26,29 @@ class Server
 		// ClientHandler* getClientHandler(void);
 		// CgiHandler* getCgiHandler(void);
 		// RequestHandler* getRequestHandler(void);
-		// ErrorHandler* getErrorHandler(void);
+		ErrorHandler* getErrorHandler(void);
 		//TaskManager* getTaskManager(void);
 
 		//server_helpers
 		void modEpoll(int epfd, int fd, uint32_t events);
 		void delFromEpoll(int epfd, int fd);
 		int setNonBlocking(int fd);
-		enum RequestState::Task getTaskStatus(int client_fd);
+		enum RequestBody::Task getTaskStatus(int client_fd);
 		void setTimeout(int t);
 		int getTimeout() const;
-		void setTaskStatus(enum RequestState::Task new_task, int client_fd);
+		void setTaskStatus(enum RequestBody::Task new_task, int client_fd);
 		void cleanup();
 		int runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs);
-		void logRequestStateMapFDs();
+		void logRequestBodyMapFDs();
+		void parseAcessRights(Context& ctx);
+		void checkAccessRights(Context &ctx, std::string errorString);
+		bool sendWrapper(Context& ctx, std::string http_response);
 	private:
 		GlobalFDS& globalFDS;
 		// ClientHandler* clientHandler;
 		// CgiHandler* cgiHandler;
 		// RequestHandler* requestHandler;
-		// ErrorHandler* errorHandler;
+		ErrorHandler* errorHandler;
 		//TaskManager* taskManager;
 		int timeout;
 		std::vector<std::string> added_server_names;
@@ -60,14 +63,16 @@ class Server
 		void removeAddedServerNamesFromHosts();
 
 		// server_event_handlers
-		bool handleClientEvent(int epoll_fd, int fd, uint32_t ev);
+		bool staticHandler(Context& ctx, uint32_t ev);
+		bool errorsHandler(Context& ctx, uint32_t ev);
 		bool handleCGIEvent(int epoll_fd, int fd, uint32_t ev);
+		void buildStaticResponse(Context &ctx);
 
 		// Server loop
 		bool dispatchEvent(int epoll_fd, int fd, uint32_t ev, std::vector<ServerBlock> &configs);
 		bool handleNewConnection(int epoll_fd, int fd);
 		void checkAndCleanupTimeouts();
-		void killTimeoutedCGI(RequestState &req);
+		void killTimeoutedCGI(RequestBody &req);
 
 		void logContext(const Context& ctx, const std::string& event = "");
 		void parseRequest(Context& ctx);
@@ -75,7 +80,10 @@ class Server
 		void determineType(Context& ctx, const std::vector<ServerBlock>& configs);
 		bool matchLoc(const Location& loc, std::string rawPath);
 		std::string normalizePath(const std::string& raw);
-
+		bool isMethodAllowed(Context& ctx);
+		std::string concatenatePath(const std::string& root, const std::string& path);
+		std::string getDirectory(const std::string& path);
+		bool buildAutoIndexResponse(Context& ctx, std::stringstream* response);
 };
 
 #endif

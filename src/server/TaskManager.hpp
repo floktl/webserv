@@ -10,13 +10,13 @@
 // public:
 // 	struct Task {
 // 		std::string id;
-// 		RequestState::Task status;
+// 		RequestBody::Task status;
 // 		int progress;
 // 	};
 
 // 	struct TaskUpdate {
 // 		int client_fd;
-// 		RequestState::Task status;
+// 		RequestBody::Task status;
 // 	};
 // 	TaskManager(Server& server);
 // 	~TaskManager();
@@ -26,7 +26,7 @@
 // 	std::string createTask();
 // 	Task getTaskStatus(const std::string& taskId);
 // 	void processTask(int epoll_fd = -1);
-// 	void sendTaskStatusUpdate(int client_fd, RequestState::Task status);
+// 	void sendTaskStatusUpdate(int client_fd, RequestBody::Task status);
 
 // private:
 // 	std::map<std::string, Task> tasks;
