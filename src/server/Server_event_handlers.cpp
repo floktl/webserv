@@ -70,7 +70,7 @@ bool Server::errorsHandler(Context& ctx, uint32_t ev)
 	return (sendWrapper(ctx, errorResponse));
 }
 
-bool Server::staticHandler(Context& ctx, uint32_t ev) {
+bool Server::staticHandler(Context& ctx) {
     Logger::file("Entering staticHandler for client_fd: " + std::to_string(ctx.client_fd) + ", epoll_fd: " + std::to_string(ctx.epoll_fd));
 
     auto now = std::chrono::steady_clock::now();
@@ -106,10 +106,6 @@ bool Server::staticHandler(Context& ctx, uint32_t ev) {
 
     Logger::file("Exiting staticHandler for client_fd: " + std::to_string(ctx.client_fd));
 
-    (void)ctx;
-    (void)ctx.epoll_fd;
-
-	(void)ev;
     return true;
 }
 
