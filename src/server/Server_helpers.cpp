@@ -78,9 +78,9 @@ int Server::getTimeout() const {
 bool Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd) {
 	Logger::file("Finding ServerBlock for fd: " + std::to_string(fd));
 	for (const auto &conf : configs) {
-		Logger::file("Checking config with fd: " + std::to_string(conf.server_fd));
+		//Logger::file("Checking config with fd: " + std::to_string(conf.server_fd));
 		if (conf.server_fd == fd) {
-			Logger::file("Found matching ServerBlock");
+			Logger::file("Found matching ServerBlock with fd: " + std::to_string(conf.server_fd) + " on Port: " + std::to_string(conf.port));
 			return true;
 		}
 	}

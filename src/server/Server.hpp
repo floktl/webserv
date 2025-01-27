@@ -39,6 +39,7 @@ class Server
 		void setTaskStatus(enum RequestState::Task new_task, int client_fd);
 		void cleanup();
 		int runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs);
+		void logRequestStateMapFDs();
 	private:
 		GlobalFDS& globalFDS;
 		// ClientHandler* clientHandler;
