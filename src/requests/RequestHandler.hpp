@@ -10,7 +10,7 @@
 #include <sys/stat.h>
 #include <ctime>
 
-struct RequestState;
+struct RequestBody;
 
 class CgiHandler;
 class Server;
@@ -29,61 +29,61 @@ public:
 	RequestHandler(Server& server);
 
 	// Parse functions
-	void			parseRequest(RequestState &req);
+	void			parseRequest(RequestBody &req);
 	// Utility functions
 	std::string getMethod(const std::deque<char>& request_buffer);
 		const Location*	findMatchingLocation(const ServerBlock* conf, const std::string& path);
 
-	void buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestState &req);
+	void buildErrorResponse(int statusCode, const std::string& message, std::stringstream *response, RequestBody &req);
 	std::string normalizePath(const std::string& raw);
 private:
 	Server& server;
 
 	// Build response functions
-	void buildResponse(RequestState &req);
-	void handlePostRequest(RequestState &req);
-	void handleDeleteRequest(RequestState &req);
-	void handleOtherRequests(RequestState &req, const Location* loc);
-	void buildAutoindexResponse(std::stringstream* response, RequestState& req);
+	void buildResponse(RequestBody &req);
+	void handlePostRequest(RequestBody &req);
+	void handleDeleteRequest(RequestBody &req);
+	void handleOtherRequests(RequestBody &req, const Location* loc);
+	void buildAutoindexResponse(std::stringstream* response, RequestBody& req);
 
 	void saveUploadedFile(const std::string &body, const std::string &path);
-	void finalizeUpload(RequestState &req);
-	bool handleChunkedUpload(RequestState &req, const std::string &request, size_t headerEnd, const Location* loc);
+	void finalizeUpload(RequestBody &req);
+	bool handleChunkedUpload(RequestBody &req, const std::string &request, size_t headerEnd, const Location* loc);
 
 	// Utility functions
-	bool		checkRedirect(RequestState &req, std::stringstream *response);
-	std::string buildRequestedPath(RequestState &req, const std::string &rawPath);
+	bool		checkRedirect(RequestBody &req, std::stringstream *response);
+	std::string buildRequestedPath(RequestBody &req, const std::string &rawPath);
 
 	// Task functions
 	void handleTaskRequest(std::stringstream* response);
 	void handleStatusRequest(const std::string& taskId, std::stringstream* response);
 
 	// Autoindex helpers
-	bool checkDirectoryPermissions(const RequestState& req, std::stringstream* response);
-	std::vector<DirEntry> getDirectoryEntries(RequestState& req, std::stringstream* response);
-	void processDirectoryEntry(const RequestState& req, struct dirent* dir_entry, std::vector<DirEntry>& entries);
+	bool checkDirectoryPermissions(const RequestBody& req, std::stringstream* response);
+	std::vector<DirEntry> getDirectoryEntries(RequestBody& req, std::stringstream* response);
+	void processDirectoryEntry(const RequestBody& req, struct dirent* dir_entry, std::vector<DirEntry>& entries);
 	void sortDirectoryEntries(std::vector<DirEntry>& entries);
-	void generateAutoindexHtml(std::stringstream* response, const RequestState& req, const std::vector<DirEntry>& entries);
+	void generateAutoindexHtml(std::stringstream* response, const RequestBody& req, const std::vector<DirEntry>& entries);
 	void generateEntryHtml(std::stringstream* response, const DirEntry& entry);
 	std::string formatFileSize(off_t size);
 
 	// Helper functions for parsing requests
-	void  make_respone(RequestState &req, std::string method, std::string path, std::string query);
+	void  make_respone(RequestBody &req, std::string method, std::string path, std::string query);
 	size_t findHeaderEnd(const std::string &request);
 	std::string extractHeaders(const std::string &request, size_t header_end);
 	void parseRequestLine(const std::string &headers, std::string &method, std::string &path, std::string &version);
 	void processQueryString(std::string &path, std::string &query);
-	void processHeaders(const std::string &headers, RequestState &req);
+	void processHeaders(const std::string &headers, RequestBody &req);
 	std::string extractRequestBody(const std::string &request, size_t header_end);
-	bool handleRedirect(RequestState &req);
+	bool handleRedirect(RequestBody &req);
 
 	// Helper functions for requested path
 	std::string extractUsedRoot(const Location* loc, const ServerBlock* conf);
 	std::string processPathAfterLocation(const std::string& rawPath, const Location* loc);
-	std::string handleDefaultFile(const std::string& fullPath, const Location* loc, RequestState& req);
+	std::string handleDefaultFile(const std::string& fullPath, const Location* loc, RequestBody& req);
 	std::string handleDirectoryRequest(const std::string& fullPath, const Location* loc,
-		const ServerBlock* conf, RequestState& req);
-		void handlePostBodyComplete(RequestState &req, const Location* location);
+		const ServerBlock* conf, RequestBody& req);
+		void handlePostBodyComplete(RequestBody &req, const Location* location);
 };
 
 #endif // REQUESTHANDLER_HPP

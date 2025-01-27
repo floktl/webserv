@@ -1,6 +1,6 @@
 #include "CgiHandler.hpp"
 
-void CgiHandler::cleanupCGI(RequestState &req)
+void CgiHandler::cleanupCGI(RequestBody &req)
 {
 
 	if (req.cgi_pid > 0)

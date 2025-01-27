@@ -8,7 +8,7 @@
 // }
 
 
-// bool CgiHandler::needsCGI(RequestState &req, const std::string &path)
+// bool CgiHandler::needsCGI(RequestBody &req, const std::string &path)
 // {
 //     //Logger::file("[needsCGI] Entering function with path: " + path);
 
@@ -98,12 +98,12 @@
 //         cleanup_tunnel(*tunnel);
 //         return;
 //     }
-//     RequestState &req = req_it->second;
+//     RequestBody &req = req_it->second;
 
 //     //Logger::file("[INFO] Processing CGI write for client FD: " + std::to_string(tunnel->client_fd));
 //     //Logger::file("[INFO] Request body content: " + req.request_body);
 
-//     if (req.state != RequestState::STATE_CGI_RUNNING) {
+//     if (req.state != RequestBody::STATE_CGI_RUNNING) {
 //         //Logger::file("[INFO] Request no longer active, cleaning up.");
 //         cleanup_tunnel(*tunnel);
 //         return;
@@ -187,11 +187,11 @@
 //         cleanup_tunnel(*tunnel);
 //         return;
 //     }
-//     RequestState &req = req_it->second;
+//     RequestBody &req = req_it->second;
 
 //     //Logger::file("[INFO] Processing CGI read for client FD: " + std::to_string(tunnel->client_fd));
 
-//     if (req.state != RequestState::STATE_CGI_RUNNING) {
+//     if (req.state != RequestBody::STATE_CGI_RUNNING) {
 //         //Logger::file("[INFO] Request no longer active, cleaning up.");
 //         cleanup_tunnel(*tunnel);
 //         return;
@@ -212,9 +212,9 @@
 //             req.response_buffer.insert(req.response_buffer.begin(),
 //                                        error_response.begin(),
 //                                        error_response.end());
-//             req.state = RequestState::STATE_SENDING_RESPONSE;
+//             req.state = RequestBody::STATE_SENDING_RESPONSE;
 //             server.modEpoll(epfd, tunnel->client_fd, EPOLLOUT);
-//             server.getTaskManager()->sendTaskStatusUpdate(tunnel->client_fd, RequestState::COMPLETED);
+//             server.getTaskManager()->sendTaskStatusUpdate(tunnel->client_fd, RequestBody::COMPLETED);
 //             cleanup_tunnel(*tunnel);
 //             return;
 //         }

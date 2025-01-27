@@ -24,56 +24,60 @@ int Server::getTimeout() const {
 	return timeout;
 }
 
-// void Server::delFromEpoll(int epfd, int fd)
-// {
-// 	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 
-// 	std::map<int,int>::iterator it = globalFDS.svFD_to_clFD_map.find(fd);
-// 	if (it != globalFDS.svFD_to_clFD_map.end())
-// 	{
-// 		int client_fd = it->second;
-// 		RequestState &req = globalFDS.request_state_map[client_fd];
+void Server::delFromEpoll(int epfd, int fd)
+{
+    epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 
-// 		if (fd == req.cgi_in_fd)
-// 		{
-// 			req.cgi_in_fd = -1;
-// 		}
-// 		if (fd == req.cgi_out_fd)
-// 		{
-// 			req.cgi_out_fd = -1;
-// 		}
+    auto it = globalFDS.svFD_to_clFD_map.find(fd);
+    if (it != globalFDS.svFD_to_clFD_map.end())
+    {
+        int client_fd = it->second;
+        auto ctx_it = globalFDS.request_state_map.find(client_fd);
+        if (ctx_it != globalFDS.request_state_map.end())
+        {
+            Context &ctx = ctx_it->second;
+			RequestBody &req = ctx.req;
 
-// 		if (req.cgi_in_fd == -1 && req.cgi_out_fd == -1 &&
-// 			req.state != RequestState::STATE_SENDING_RESPONSE)
-// 		{
-// 			globalFDS.request_state_map.erase(client_fd);
-// 		}
+			if (fd == req.cgi_in_fd)
+				req.cgi_in_fd = -1;
+			if (fd == req.cgi_out_fd)
+				req.cgi_out_fd = -1;
 
-// 		globalFDS.svFD_to_clFD_map.erase(it);
-// 	}
-// 	else
-// 	{
-// 		RequestState &req = globalFDS.request_state_map[fd];
+			if (req.cgi_in_fd == -1 && req.cgi_out_fd == -1 &&
+				req.state != RequestBody::STATE_SENDING_RESPONSE)
+			{
+				globalFDS.request_state_map.erase(client_fd);
+			}
+        }
+        globalFDS.svFD_to_clFD_map.erase(it);
+    }
+    else
+    {
+        auto ctx_it = globalFDS.request_state_map.find(fd);
+        if (ctx_it != globalFDS.request_state_map.end())
+        {
+            Context &ctx = ctx_it->second;
+                RequestBody &req = ctx.req;
 
-// 		if (req.cgi_in_fd != -1)
-// 		{
-// 			epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
-// 			close(req.cgi_in_fd);
-// 			globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
-// 		}
-// 		if (req.cgi_out_fd != -1)
-// 		{
-// 			epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
-// 			close(req.cgi_out_fd);
-// 			globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
-// 		}
+			if (req.cgi_in_fd != -1)
+			{
+				epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
+				close(req.cgi_in_fd);
+				globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
+			}
+			if (req.cgi_out_fd != -1)
+			{
+				epoll_ctl(epfd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
+				close(req.cgi_out_fd);
+				globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
+			}
+            globalFDS.request_state_map.erase(fd);
+        }
+    }
 
-// 		globalFDS.request_state_map.erase(fd);
-// 	}
-
-// 	close(fd);
-// }
-
+    close(fd);
+}
 
 bool Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd) {
 	Logger::file("Finding ServerBlock for fd: " + std::to_string(fd));
@@ -97,7 +101,7 @@ int Server::setNonBlocking(int fd)
 }
 
 
-// void Server::setTaskStatus(enum RequestState::Task new_task, int client_fd)
+// void Server::setTaskStatus(enum RequestBody::Task new_task, int client_fd)
 // {
 // 	if (client_fd < 0)
 // 	{
@@ -111,9 +115,9 @@ int Server::setNonBlocking(int fd)
 // 	{
 // 		it->second.task = new_task;
 
-// 		std::string taskName = (new_task == RequestState::PENDING ? "PENDING" :
-// 							new_task == RequestState::IN_PROGRESS ? "IN_PROGRESS" :
-// 							new_task == RequestState::COMPLETED ? "COMPLETED" :
+// 		std::string taskName = (new_task == RequestBody::PENDING ? "PENDING" :
+// 							new_task == RequestBody::IN_PROGRESS ? "IN_PROGRESS" :
+// 							new_task == RequestBody::COMPLETED ? "COMPLETED" :
 // 							"UNKNOWN");
 
 // 	}
@@ -124,7 +128,7 @@ int Server::setNonBlocking(int fd)
 // }
 
 
-// enum RequestState::Task Server::getTaskStatus(int client_fd)
+// enum RequestBody::Task Server::getTaskStatus(int client_fd)
 // {
 // 	auto it = globalFDS.request_state_map.find(client_fd);
 
@@ -135,7 +139,7 @@ int Server::setNonBlocking(int fd)
 // 	else
 // 	{
 // 		//Logger::file("Error: client_fd " + std::to_string(client_fd) + " not found in request_state_map");
-// 		return RequestState::Task::PENDING;
+// 		return RequestBody::Task::PENDING;
 // 	}
 // }
 
