@@ -99,29 +99,29 @@ void printServerBlock(const ServerBlock& serverBlock)
 	std::cout << "---------------------------------" << std::endl;
 }
 
-void printRequestState(const RequestState& req)
+void printRequestBody(const Context& ctx)
 {
-	std::cout << "---- RequestState Information ----" << std::endl;
+	std::cout << "---- RequestBody Information ----" << std::endl;
 
-	std::cout << "Client FD: " << req.client_fd << std::endl;
-	std::cout << "CGI Input FD: " << req.cgi_in_fd << std::endl;
-	std::cout << "CGI Output FD: " << req.cgi_out_fd << std::endl;
-	std::cout << "CGI PID: " << req.cgi_pid << std::endl;
-	std::cout << "CGI Done: " << (req.cgi_done ? "true" : "false") << std::endl;
+	std::cout << "Client FD: " << ctx.client_fd << std::endl;
+	std::cout << "CGI Input FD: " << ctx.req.cgi_in_fd << std::endl;
+	std::cout << "CGI Output FD: " << ctx.req.cgi_out_fd << std::endl;
+	std::cout << "CGI PID: " << ctx.req.cgi_pid << std::endl;
+	std::cout << "CGI Done: " << (ctx.req.cgi_done ? "true" : "false") << std::endl;
 
 	std::cout << "State: ";
-	switch (req.state)
+	switch (ctx.req.state)
 	{
-	case RequestState::STATE_READING_REQUEST:
+	case RequestBody::STATE_READING_REQUEST:
 		std::cout << "STATE_READING_REQUEST";
 		break;
-	case RequestState::STATE_PREPARE_CGI:
+	case RequestBody::STATE_PREPARE_CGI:
 		std::cout << "STATE_PREPARE_CGI";
 		break;
-	case RequestState::STATE_CGI_RUNNING:
+	case RequestBody::STATE_CGI_RUNNING:
 		std::cout << "STATE_CGI_RUNNING";
 		break;
-	case RequestState::STATE_SENDING_RESPONSE:
+	case RequestBody::STATE_SENDING_RESPONSE:
 		std::cout << "STATE_SENDING_RESPONSE";
 		break;
 	default:
@@ -130,43 +130,43 @@ void printRequestState(const RequestState& req)
 	}
 	std::cout << std::endl;
 
-	std::cout << "Request Buffer Size: " << req.request_buffer.size() << std::endl;
-	if (!req.request_buffer.empty())
+	std::cout << "Request Buffer Size: " << ctx.req.request_buffer.size() << std::endl;
+	if (!ctx.req.request_buffer.empty())
 	{
 		std::cout << "Request Buffer Content (first 50 chars): "
-			<< std::string(req.request_buffer.begin(),
-			req.request_buffer.end())
+			<< std::string(ctx.req.request_buffer.begin(),
+			ctx.req.request_buffer.end())
 			<< std::endl;
 	}
 
-	std::cout << "Response Buffer Size: " << req.response_buffer.size() << std::endl;
-	if (!req.response_buffer.empty())
+	std::cout << "Response Buffer Size: " << ctx.req.response_buffer.size() << std::endl;
+	if (!ctx.req.response_buffer.empty())
 	{
 		std::cout << "Response Buffer Content (first 50 chars): "
-			<< std::string(req.response_buffer.begin(),
-							req.response_buffer.end())
+			<< std::string(ctx.req.response_buffer.begin(),
+							ctx.req.response_buffer.end())
 			<< std::endl;
 	}
 
-	std::cout << "CGI Output Buffer Size: " << req.cgi_output_buffer.size() << std::endl;
-	if (!req.cgi_output_buffer.empty())
+	std::cout << "CGI Output Buffer Size: " << ctx.req.cgi_output_buffer.size() << std::endl;
+	if (!ctx.req.cgi_output_buffer.empty())
 	{
 		std::cout << "CGI Output Buffer Content (first 50 chars): "
-			<< std::string(req.cgi_output_buffer.begin(),
-							req.cgi_output_buffer.end())
+			<< std::string(ctx.req.cgi_output_buffer.begin(),
+							ctx.req.cgi_output_buffer.end())
 			<< std::endl;
 	}
 
-	if (req.associated_conf)
+	if (ctx.req.associated_conf)
 	{
 		std::cout << "Associated ServerBlock:" << std::endl;
-		printServerBlock(*req.associated_conf);
+		printServerBlock(*ctx.req.associated_conf);
 	}
 	else
 	{
 		std::cout << "Associated ServerBlock: NULL" << std::endl;
 	}
-	std::cout << "Requested Path: " << req.requested_path << std::endl;
+	std::cout << "Requested Path: " << ctx.req.requested_path << std::endl;
 
 	std::cout << "----------------------------------" << std::endl;
 }

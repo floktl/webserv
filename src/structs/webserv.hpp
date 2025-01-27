@@ -8,13 +8,17 @@
 #include <chrono>
 #include <vector>
 
-struct ChunkedState {
+#define BUFFER_SIZE 17000
+
+struct ChunkedState
+{
 	bool processing;
 	std::string buffer;
 
 	ChunkedState() : processing(false) {}
 };
 
+// struct to save the location from each serverblock
 struct Location
 {
 	int			port;
@@ -28,7 +32,7 @@ struct Location
 	std::string	cgi;
 	std::string	cgi_filetype;
 	std::string	return_code;
-	std::string	return_url;
+	std::string	return_url;\
 	bool		doAutoindex{true};
 	bool		allowGet{true};
 	bool		allowPost{false};
@@ -36,6 +40,7 @@ struct Location
 	bool		allowCookie{false};
 };
 
+// struct to save the nginx serverblocks
 struct ServerBlock
 {
 	int port;
@@ -53,17 +58,33 @@ struct ServerBlock
 	ServerBlock() : timeout(30) {}
 };
 
-struct RequestState
+// status from the Request header
+enum RequestType
 {
-	enum ParsingPhase {
+	INITIAL,
+	STATIC,
+	CGI,
+	ERROR
+};
+
+enum ERRORFLAG {
+    FILE_EXISTS  = F_OK,  // Check if file exists
+    FILE_READ    = R_OK,  // Check if file is readable
+    FILE_WRITE   = W_OK,  // Check if file is writable
+    FILE_EXECUTE = X_OK   // Check if file is executable
+};
+
+// Request body
+struct RequestBody
+{
+	enum ParsingPhase
+	{
 		PARSING_HEADER,
 		PARSING_BODY,
 		PARSING_COMPLETE
 	};
 
-	std::string	method;
 	size_t		content_length = 0;
-	int			client_fd;
 	int			cgi_in_fd;
 	int			cgi_out_fd;
 	pid_t		cgi_pid;
@@ -79,7 +100,8 @@ struct RequestState
 		STATE_SENDING_RESPONSE
 	} state;
 
-	enum Task {
+	enum Task
+	{
 		PENDING,
 		IN_PROGRESS,
 		COMPLETED
@@ -90,11 +112,14 @@ struct RequestState
 	std::string request_body;
 	std::string cookie_header;
 
-	std::deque<char> request_buffer;
+
 	std::deque<char> response_buffer;
+	std::deque<char> request_buffer;
 	std::deque<char> cgi_output_buffer;
 
-	std::chrono::steady_clock::time_point last_activity;
+	std::chrono::steady_clock::time_point last_activity = std::chrono::steady_clock::now();
+
+;
 	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
 
 	const ServerBlock* associated_conf;
@@ -116,8 +141,47 @@ struct RequestState
 	ParsingPhase parsing_phase { PARSING_HEADER };
 };
 
+// Request header
+struct Context
+{
+    int epoll_fd = -1;
+    int client_fd = -1;
+    int server_fd = -1;
+    RequestType type = RequestType();
 
-struct CgiTunnel {
+    std::string method = "";
+    std::string path = "";
+    std::string version = "";
+    std::map<std::string, std::string> headers;
+
+    std::string body = "";
+    std::chrono::steady_clock::time_point last_activity = std::chrono::steady_clock::time_point();
+
+    static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
+
+    std::string location_path = "";
+    std::string requested_path = "";
+
+    const Location* location = nullptr;
+    RequestBody req;
+
+	int error_code = 0;
+	std::string error_message = "";
+	ERRORFLAG access_flag = FILE_EXISTS;
+	int port;
+	std::string name;
+	std::string root;
+	std::string index;
+
+	std::map<int, std::string>	errorPages;
+	long						client_max_body_size;
+	int							timeout;
+    std::string doAutoIndex = "";
+
+};
+
+struct CgiTunnel
+{
 	pid_t pid = -1;
 	int in_fd = -1;
 	int out_fd = -1;
@@ -132,34 +196,7 @@ struct CgiTunnel {
 	std::string script_path;
 	std::vector<char> buffer;
 	std::vector<char*> envp;
-	RequestState request;
-};
-
-
-enum RequestType {
-	INITIAL,
-	STATIC,
-	CGI,
-	ERROR
-};
-
-struct Context
-{
-	int epoll_fd = -1;
-	int client_fd = -1;
-	int server_fd = -1;
-	RequestType type;
-	std::string method;
-	std::string path;
-	std::string version;
-	std::map<std::string, std::string> headers;
-	std::string body;
-	std::chrono::steady_clock::time_point last_activity;
-	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
-
-	std::string location_path;
-	std::string requested_path;
-	const Location* location;
+	RequestBody request;
 };
 
 struct GlobalFDS
@@ -167,6 +204,13 @@ struct GlobalFDS
 	int epoll_fd = -1;
 	std::map<int, Context> request_state_map;
 	std::map<int, int> svFD_to_clFD_map;
+};
+
+struct DirEntry {
+    std::string name;
+    bool isDir;
+    time_t mtime;
+    off_t size;
 };
 
 #endif

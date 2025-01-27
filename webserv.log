@@ -1,0 +1,955 @@
+[2025-01-27 19:36:57] Server socket 4 listening on port 8080
+[2025-01-27 19:36:57] Server socket 5 listening on port 9090
+[2025-01-27 19:36:57] Server socket 6 listening on port 8003
+[2025-01-27 19:36:57] Server socket 7 listening on port 8004
+[2025-01-27 19:36:57] Server socket 8 listening on port 8005
+[2025-01-27 19:36:57] Server socket 9 listening on port 8006
+[2025-01-27 19:36:57] Server socket 10 listening on port 8001
+[2025-01-27 19:36:57] Server socket 11 listening on port 8010
+[2025-01-27 19:36:57] Server socket 12 listening on port 8002
+[2025-01-27 19:36:57] Server socket 13 listening on port 8050
+[2025-01-27 19:36:57] 
+
+[2025-01-27 19:36:58] New Event:
+fd=4 events=1
+
+[2025-01-27 19:36:58] dispatchEvent:
+[2025-01-27 19:36:58] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:58] Logging all FDs in request_state_map:
+[2025-01-27 19:36:58] [empty]
+[2025-01-27 19:36:58] Finding ServerBlock for fd: 4
+[2025-01-27 19:36:58] Found matching ServerBlock with fd: 4 on Port: 8080
+[2025-01-27 19:36:58] New connection on server_fd: 4 epoll_fd: 3
+[2025-01-27 19:36:58] epoll_fd before modEpoll: 3
+[2025-01-27 19:36:58] epoll_fd after modEpoll: 3 to: EPOLLIN | EPOLLET
+[2025-01-27 19:36:58] Logging all FDs in request_state_map:
+[2025-01-27 19:36:58] Active FDs: 14 
+[2025-01-27 19:36:58] Context [New Connection]:
+FDs: epoll=3 server=4 client=14
+Type: INITIAL
+Method: [empty]
+Path: [empty]
+Version: [empty]
+Headers:
+[empty]
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: [empty]
+Last Activity: 6705 seconds since epoch
+[2025-01-27 19:36:58] Leaving handle new connection sucessfully...
+
+[2025-01-27 19:36:58] New Event:
+fd=4 events=1
+
+[2025-01-27 19:36:58] dispatchEvent:
+[2025-01-27 19:36:58] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:58] Logging all FDs in request_state_map:
+[2025-01-27 19:36:58] Active FDs: 14 
+[2025-01-27 19:36:58] Finding ServerBlock for fd: 4
+[2025-01-27 19:36:58] Found matching ServerBlock with fd: 4 on Port: 8080
+[2025-01-27 19:36:58] New connection on server_fd: 4 epoll_fd: 3
+[2025-01-27 19:36:58] epoll_fd before modEpoll: 3
+[2025-01-27 19:36:58] epoll_fd after modEpoll: 3 to: EPOLLIN | EPOLLET
+[2025-01-27 19:36:58] Logging all FDs in request_state_map:
+[2025-01-27 19:36:58] Active FDs: 14 15 
+[2025-01-27 19:36:58] Context [New Connection]:
+FDs: epoll=3 server=4 client=15
+Type: INITIAL
+Method: [empty]
+Path: [empty]
+Version: [empty]
+Headers:
+[empty]
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: [empty]
+Last Activity: 6705 seconds since epoch
+[2025-01-27 19:36:58] Leaving handle new connection sucessfully...
+
+[2025-01-27 19:36:58] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:58] dispatchEvent:
+[2025-01-27 19:36:58] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:58] Logging all FDs in request_state_map:
+[2025-01-27 19:36:58] Active FDs: 14 15 
+[2025-01-27 19:36:58] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:58] Handling INITIAL request for client_fd: 14
+[2025-01-27 19:36:58] Context [Parsed]:
+FDs: epoll=3 server=4 client=14
+Type: INITIAL
+Method: GET
+Path: /
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Host: localhost:8080
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: [empty]
+Last Activity: 6705 seconds since epoch
+[2025-01-27 19:36:58] parseAcessRights
+[2025-01-27 19:36:58] [INFO] Checking access rights for: /app/var/www/html
+[2025-01-27 19:36:58] [INFO] Access granted for: /app/var/www/html
+[2025-01-27 19:36:58] [INFO] Checking access rights for: /app/var/www/html/
+[2025-01-27 19:36:58] [INFO] Access granted for: /app/var/www/html/
+[2025-01-27 19:36:58] [INFO] Checking access rights for: /app/var/www/html/
+[2025-01-27 19:36:58] [INFO] Access granted for: /app/var/www/html/
+[2025-01-27 19:36:58] [INFO] Checking access rights for: /app/var/www/html/
+[2025-01-27 19:36:58] [INFO] Access granted for: /app/var/www/html/
+[2025-01-27 19:36:58] Type after Parse: ERROR
+
+[2025-01-27 19:36:58] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:58] Generating error response for error code: 500
+[2025-01-27 19:36:58] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:58] No custom error page found for status code 500
+[2025-01-27 19:36:58] Using default error page content.
+[2025-01-27 19:36:58] Preparing HTTP response headers...
+[2025-01-27 19:36:58] Response successfully generated with length: 41
+[2025-01-27 19:36:58] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:58] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:58] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:58] dispatchEvent:
+[2025-01-27 19:36:58] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:58] Logging all FDs in request_state_map:
+[2025-01-27 19:36:58] Active FDs: 14 15 
+[2025-01-27 19:36:58] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:58] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:58] Generating error response for error code: 500
+[2025-01-27 19:36:58] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:58] No custom error page found for status code 500
+[2025-01-27 19:36:58] Using default error page content.
+[2025-01-27 19:36:58] Preparing HTTP response headers...
+[2025-01-27 19:36:58] Response successfully generated with length: 41
+[2025-01-27 19:36:58] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:58] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:58] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:58] dispatchEvent:
+[2025-01-27 19:36:58] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:58] Logging all FDs in request_state_map:
+[2025-01-27 19:36:58] Active FDs: 14 15 
+[2025-01-27 19:36:58] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:58] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:58] Generating error response for error code: 500
+[2025-01-27 19:36:58] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:58] No custom error page found for status code 500
+[2025-01-27 19:36:58] Using default error page content.
+[2025-01-27 19:36:58] Preparing HTTP response headers...
+[2025-01-27 19:36:58] Response successfully generated with length: 41
+[2025-01-27 19:36:58] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:58] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:58] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:58] dispatchEvent:
+[2025-01-27 19:36:58] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:58] Logging all FDs in request_state_map:
+[2025-01-27 19:36:58] Active FDs: 14 15 
+[2025-01-27 19:36:58] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:58] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:58] Generating error response for error code: 500
+[2025-01-27 19:36:58] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:58] No custom error page found for status code 500
+[2025-01-27 19:36:58] Using default error page content.
+[2025-01-27 19:36:58] Preparing HTTP response headers...
+[2025-01-27 19:36:58] Response successfully generated with length: 41
+[2025-01-27 19:36:58] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:58] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:36:59] No custom error page found for status code 500
+[2025-01-27 19:36:59] Using default error page content.
+[2025-01-27 19:36:59] Preparing HTTP response headers...
+[2025-01-27 19:36:59] Response successfully generated with length: 41
+[2025-01-27 19:36:59] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:36:59] Successfully sent full response to client_fd: 14
+[2025-01-27 19:36:59] New Event:
+fd=14 events=1
+
+[2025-01-27 19:36:59] dispatchEvent:
+[2025-01-27 19:36:59] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:36:59] Logging all FDs in request_state_map:
+[2025-01-27 19:36:59] Active FDs: 14 15 
+[2025-01-27 19:36:59] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:36:59] Handling ERROR request for client_fd: 14
+[2025-01-27 19:36:59] Generating error response for error code: 500
+[2025-01-27 19:36:59] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:00] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:00] dispatchEvent:
+[2025-01-27 19:37:00] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:00] Logging all FDs in request_state_map:
+[2025-01-27 19:37:00] Active FDs: 14 15 
+[2025-01-27 19:37:00] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:00] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:00] Generating error response for error code: 500
+[2025-01-27 19:37:00] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:00] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:00] dispatchEvent:
+[2025-01-27 19:37:00] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:00] Logging all FDs in request_state_map:
+[2025-01-27 19:37:00] Active FDs: 14 15 
+[2025-01-27 19:37:00] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:00] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:00] Generating error response for error code: 500
+[2025-01-27 19:37:00] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:00] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:00] dispatchEvent:
+[2025-01-27 19:37:00] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:00] Logging all FDs in request_state_map:
+[2025-01-27 19:37:00] Active FDs: 14 15 
+[2025-01-27 19:37:00] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:00] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:00] Generating error response for error code: 500
+[2025-01-27 19:37:00] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:00] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:00] dispatchEvent:
+[2025-01-27 19:37:00] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:00] Logging all FDs in request_state_map:
+[2025-01-27 19:37:00] Active FDs: 14 15 
+[2025-01-27 19:37:00] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:00] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:00] Generating error response for error code: 500
+[2025-01-27 19:37:00] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:00] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:00] dispatchEvent:
+[2025-01-27 19:37:00] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:00] Logging all FDs in request_state_map:
+[2025-01-27 19:37:00] Active FDs: 14 15 
+[2025-01-27 19:37:00] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:00] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:00] Generating error response for error code: 500
+[2025-01-27 19:37:00] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:00] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:00] dispatchEvent:
+[2025-01-27 19:37:00] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:00] Logging all FDs in request_state_map:
+[2025-01-27 19:37:00] Active FDs: 14 15 
+[2025-01-27 19:37:00] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:00] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:00] Generating error response for error code: 500
+[2025-01-27 19:37:00] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:00] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:00] dispatchEvent:
+[2025-01-27 19:37:00] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:00] Logging all FDs in request_state_map:
+[2025-01-27 19:37:00] Active FDs: 14 15 
+[2025-01-27 19:37:00] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:00] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:00] Generating error response for error code: 500
+[2025-01-27 19:37:00] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:00] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:00] dispatchEvent:
+[2025-01-27 19:37:00] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:00] Logging all FDs in request_state_map:
+[2025-01-27 19:37:00] Active FDs: 14 15 
+[2025-01-27 19:37:00] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:00] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:00] Generating error response for error code: 500
+[2025-01-27 19:37:00] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:00] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:00] dispatchEvent:
+[2025-01-27 19:37:00] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:00] Logging all FDs in request_state_map:
+[2025-01-27 19:37:00] Active FDs: 14 15 
+[2025-01-27 19:37:00] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:00] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:00] Generating error response for error code: 500
+[2025-01-27 19:37:00] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:00] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:00] dispatchEvent:
+[2025-01-27 19:37:00] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:00] Logging all FDs in request_state_map:
+[2025-01-27 19:37:00] Active FDs: 14 15 
+[2025-01-27 19:37:00] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:00] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:00] Generating error response for error code: 500
+[2025-01-27 19:37:00] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:00] No custom error page found for status code 500
+[2025-01-27 19:37:00] Using default error page content.
+[2025-01-27 19:37:00] Preparing HTTP response headers...
+[2025-01-27 19:37:00] Response successfully generated with length: 41
+[2025-01-27 19:37:00] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:00] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:01] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:01] dispatchEvent:
+[2025-01-27 19:37:01] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:01] Logging all FDs in request_state_map:
+[2025-01-27 19:37:01] Active FDs: 14 15 
+[2025-01-27 19:37:01] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:01] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:01] Generating error response for error code: 500
+[2025-01-27 19:37:01] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:01] No custom error page found for status code 500
+[2025-01-27 19:37:01] Using default error page content.
+[2025-01-27 19:37:01] Preparing HTTP response headers...
+[2025-01-27 19:37:01] Response successfully generated with length: 41
+[2025-01-27 19:37:01] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:01] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:01] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:01] dispatchEvent:
+[2025-01-27 19:37:01] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:01] Logging all FDs in request_state_map:
+[2025-01-27 19:37:01] Active FDs: 14 15 
+[2025-01-27 19:37:01] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:01] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:01] Generating error response for error code: 500
+[2025-01-27 19:37:01] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:01] No custom error page found for status code 500
+[2025-01-27 19:37:01] Using default error page content.
+[2025-01-27 19:37:01] Preparing HTTP response headers...
+[2025-01-27 19:37:01] Response successfully generated with length: 41
+[2025-01-27 19:37:01] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:01] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:01] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:01] dispatchEvent:
+[2025-01-27 19:37:01] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:01] Logging all FDs in request_state_map:
+[2025-01-27 19:37:01] Active FDs: 14 15 
+[2025-01-27 19:37:01] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:01] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:01] Generating error response for error code: 500
+[2025-01-27 19:37:01] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:01] No custom error page found for status code 500
+[2025-01-27 19:37:01] Using default error page content.
+[2025-01-27 19:37:01] Preparing HTTP response headers...
+[2025-01-27 19:37:01] Response successfully generated with length: 41
+[2025-01-27 19:37:01] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:01] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:01] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:01] dispatchEvent:
+[2025-01-27 19:37:01] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:01] Logging all FDs in request_state_map:
+[2025-01-27 19:37:01] Active FDs: 14 15 
+[2025-01-27 19:37:01] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:01] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:01] Generating error response for error code: 500
+[2025-01-27 19:37:01] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:01] No custom error page found for status code 500
+[2025-01-27 19:37:01] Using default error page content.
+[2025-01-27 19:37:01] Preparing HTTP response headers...
+[2025-01-27 19:37:01] Response successfully generated with length: 41
+[2025-01-27 19:37:01] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:01] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:01] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:01] dispatchEvent:
+[2025-01-27 19:37:01] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:01] Logging all FDs in request_state_map:
+[2025-01-27 19:37:01] Active FDs: 14 15 
+[2025-01-27 19:37:01] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:01] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:01] Generating error response for error code: 500
+[2025-01-27 19:37:01] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:01] No custom error page found for status code 500
+[2025-01-27 19:37:01] Using default error page content.
+[2025-01-27 19:37:01] Preparing HTTP response headers...
+[2025-01-27 19:37:01] Response successfully generated with length: 41
+[2025-01-27 19:37:01] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:01] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:01] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:01] dispatchEvent:
+[2025-01-27 19:37:01] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:01] Logging all FDs in request_state_map:
+[2025-01-27 19:37:01] Active FDs: 14 15 
+[2025-01-27 19:37:01] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:01] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:01] Generating error response for error code: 500
+[2025-01-27 19:37:01] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:01] No custom error page found for status code 500
+[2025-01-27 19:37:01] Using default error page content.
+[2025-01-27 19:37:01] Preparing HTTP response headers...
+[2025-01-27 19:37:01] Response successfully generated with length: 41
+[2025-01-27 19:37:01] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:01] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:01] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:01] dispatchEvent:
+[2025-01-27 19:37:01] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:01] Logging all FDs in request_state_map:
+[2025-01-27 19:37:01] Active FDs: 14 15 
+[2025-01-27 19:37:01] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:01] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:01] Generating error response for error code: 500
+[2025-01-27 19:37:01] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:01] No custom error page found for status code 500
+[2025-01-27 19:37:01] Using default error page content.
+[2025-01-27 19:37:01] Preparing HTTP response headers...
+[2025-01-27 19:37:01] Response successfully generated with length: 41
+[2025-01-27 19:37:01] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:01] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:01] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:01] dispatchEvent:
+[2025-01-27 19:37:01] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:01] Logging all FDs in request_state_map:
+[2025-01-27 19:37:01] Active FDs: 14 15 
+[2025-01-27 19:37:01] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:01] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:01] Generating error response for error code: 500
+[2025-01-27 19:37:01] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:01] No custom error page found for status code 500
+[2025-01-27 19:37:01] Using default error page content.
+[2025-01-27 19:37:01] Preparing HTTP response headers...
+[2025-01-27 19:37:01] Response successfully generated with length: 41
+[2025-01-27 19:37:01] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:01] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:01] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:01] dispatchEvent:
+[2025-01-27 19:37:01] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:01] Logging all FDs in request_state_map:
+[2025-01-27 19:37:01] Active FDs: 14 15 
+[2025-01-27 19:37:01] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:01] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:01] Generating error response for error code: 500
+[2025-01-27 19:37:01] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:01] No custom error page found for status code 500
+[2025-01-27 19:37:01] Using default error page content.
+[2025-01-27 19:37:01] Preparing HTTP response headers...
+[2025-01-27 19:37:01] Response successfully generated with length: 41
+[2025-01-27 19:37:01] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:01] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:01] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:01] dispatchEvent:
+[2025-01-27 19:37:01] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:01] Logging all FDs in request_state_map:
+[2025-01-27 19:37:01] Active FDs: 14 15 
+[2025-01-27 19:37:01] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:01] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:01] Generating error response for error code: 500
+[2025-01-27 19:37:01] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:01] No custom error page found for status code 500
+[2025-01-27 19:37:01] Using default error page content.
+[2025-01-27 19:37:01] Preparing HTTP response headers...
+[2025-01-27 19:37:01] Response successfully generated with length: 41
+[2025-01-27 19:37:01] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:01] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:02] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:02] dispatchEvent:
+[2025-01-27 19:37:02] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:02] Logging all FDs in request_state_map:
+[2025-01-27 19:37:02] Active FDs: 14 15 
+[2025-01-27 19:37:02] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:02] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:02] Generating error response for error code: 500
+[2025-01-27 19:37:02] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:02] No custom error page found for status code 500
+[2025-01-27 19:37:02] Using default error page content.
+[2025-01-27 19:37:02] Preparing HTTP response headers...
+[2025-01-27 19:37:02] Response successfully generated with length: 41
+[2025-01-27 19:37:02] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:02] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:02] New Event:
+fd=14 events=1
+
+[2025-01-27 19:37:02] dispatchEvent:
+[2025-01-27 19:37:02] EPOLLIN event: 1 triggered (data available to read)
+[2025-01-27 19:37:02] Logging all FDs in request_state_map:
+[2025-01-27 19:37:02] Active FDs: 14 15 
+[2025-01-27 19:37:02] Found Client_fd: 14 in globalFDS.request_state_map
+[2025-01-27 19:37:02] Handling ERROR request for client_fd: 14
+[2025-01-27 19:37:02] Generating error response for error code: 500
+[2025-01-27 19:37:02] Searching for custom error page in errorPages map...
+[2025-01-27 19:37:02] No custom error page found for status code 500
+[2025-01-27 19:37:02] Using default error page content.
+[2025-01-27 19:37:02] Preparing HTTP response headers...
+[2025-01-27 19:37:02] Response successfully generated with length: 41
+[2025-01-27 19:37:02] Final response string: 
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/html
+Content-Length: 41
+
+Default error page content for status 500
+[2025-01-27 19:37:02] Successfully sent full response to client_fd: 14
+[2025-01-27 19:37:04] New Event:
+fd=15 events=4
+
+[2025-01-27 19:37:04] dispatchEvent:
+[2025-01-27 19:37:04] EPOLLOUT event: 4 triggered (ready for writing)
+[2025-01-27 19:37:04] Logging all FDs in request_state_map:
+[2025-01-27 19:37:04] Active FDs: 14 
+[2025-01-27 19:37:04] Finding ServerBlock for fd: 15
+[2025-01-27 19:37:04] No matching ServerBlock found
+[2025-01-27 19:37:04] ERROR: Unknown fd: 15

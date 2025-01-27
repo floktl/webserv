@@ -11,7 +11,7 @@ public:
 	ErrorHandler(Server& server);
 	~ErrorHandler();
 
-	std::string generateErrorResponse(int statusCode, const std::string& message, RequestState &req) const;
+	std::string generateErrorResponse(Context& ctx) const;
 
 private:
 	Server& server;

@@ -24,49 +24,53 @@ std::string ErrorHandler::loadErrorPage(const std::string& filePath) const
 	return "";
 }
 
-std::string ErrorHandler::generateErrorResponse(int statusCode, const std::string& message, RequestState &req) const
+std::string ErrorHandler::generateErrorResponse(Context& ctx) const
 {
-		Logger::red("code:");
-			// Ensure associated_conf is not null
-		if (req.associated_conf == nullptr) {
-			return "";
-		}
+    std::ostringstream response;
+    std::string content;
 
-		// Look for the error page for the given status code
-		auto it = req.associated_conf->errorPages.find(statusCode);
-		std::string content;
+    Logger::file("Generating error response for error code: " + std::to_string(ctx.error_code));
 
-		if (it != req.associated_conf->errorPages.end())
-		{
-			content = loadErrorPage(it->second);
-			if (content.empty())
-			{
-				std::cerr << "Failed to load custom error page: " << it->second << std::endl;
-			}
-		} else {
-			std::cerr << "Error: Status code " << statusCode << " not found in errorPages" << std::endl;
-			content = "Default error page content for status " + std::to_string(statusCode);
-		}
+    // Find the custom error page if it exists
+    Logger::file("Searching for custom error page in errorPages map...");
+    std::map<int, std::string>::iterator it = ctx.errorPages.find(ctx.error_code);
 
-	if (it != req.associated_conf->errorPages.end())
-	{
-		content = loadErrorPage(it->second);
-		if (content.empty())
-		{
-			std::cerr << "Failed to load custom error page: " << it->second << std::endl;
-		}
-	}
+    if (it != ctx.errorPages.end())
+    {
+        Logger::file("Custom error page found for error code " + std::to_string(ctx.error_code) + ": " + it->second);
+        content = loadErrorPage(it->second);
+        if (content.empty())
+        {
+            Logger::file("Failed to load custom error page file: " + it->second);
+        }
+        else
+        {
+            Logger::file("Successfully loaded custom error page.");
+        }
+    }
+    else
+    {
+        Logger::file("No custom error page found for status code " + std::to_string(ctx.error_code));
+        content = "Default error page content for status " + std::to_string(ctx.error_code);
+        Logger::file("Using default error page content.");
+    }
 
-	if (content.empty())
-	{
-		content = "<html><body><h1>" + std::to_string(statusCode) + " " + message + "</h1></body></html>";
-	}
+    // Fallback to default error page if content is still empty
+    if (content.empty())
+    {
+        Logger::file("Content is still empty after attempting to load custom page. Falling back to generic HTML error response.");
+        content = "<html><body><h1>" + std::to_string(ctx.error_code) + " " + ctx.error_message + "</h1></body></html>";
+    }
 
-	std::ostringstream response;
-	response << "HTTP/1.1 " << statusCode << " " << message << "\r\n"
-		<< "Content-Type: text/html\r\n"
-		<< "Content-Length: " << content.size() << "\r\n\r\n"
-		<< content;
+    Logger::file("Preparing HTTP response headers...");
+    response << "HTTP/1.1 " << ctx.error_code << " " << ctx.error_message << "\r\n"
+             << "Content-Type: text/html\r\n"
+             << "Content-Length: " << content.size() << "\r\n\r\n"
+             << content;
 
-	return response.str();
+    Logger::file("Response successfully generated with length: " + std::to_string(content.size()));
+    Logger::file("Final response string: \n" + response.str());
+
+    return response.str();
 }
+

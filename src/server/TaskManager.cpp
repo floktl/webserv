@@ -25,7 +25,7 @@
 // std::string TaskManager::createTask() {
 // 	std::lock_guard<std::mutex> lock(taskMutex);
 // 	std::string taskId = "task_" + std::to_string(tasks.size() + 1);
-// 	tasks[taskId] = Task{taskId, RequestState::PENDING, 0};  // Verwende RequestState::PENDING
+// 	tasks[taskId] = Task{taskId, RequestBody::PENDING, 0};  // Verwende RequestBody::PENDING
 // 	return taskId;
 // }
 
@@ -34,10 +34,10 @@
 // 	if (tasks.find(taskId) != tasks.end()) {
 // 		return tasks[taskId];
 // 	}
-// 	return Task{"", RequestState::COMPLETED, 100};  // Verwende RequestState::COMPLETED
+// 	return Task{"", RequestBody::COMPLETED, 100};  // Verwende RequestBody::COMPLETED
 // }
 
-// void TaskManager::sendTaskStatusUpdate(int client_fd, RequestState::Task status) {
+// void TaskManager::sendTaskStatusUpdate(int client_fd, RequestBody::Task status) {
 // 	TaskUpdate update;
 // 	update.client_fd = client_fd;
 // 	update.status = status;
@@ -59,8 +59,8 @@
 // 			it->second.task = update.status;  // Jetzt kompatibel
 // 			std::cout << "[DEBUG] Task status updated for client_fd "
 // 					<< update.client_fd << " to "
-// 					<< (update.status == RequestState::PENDING ? "PENDING" :
-// 						update.status == RequestState::IN_PROGRESS ? "IN_PROGRESS" : "COMPLETED")
+// 					<< (update.status == RequestBody::PENDING ? "PENDING" :
+// 						update.status == RequestBody::IN_PROGRESS ? "IN_PROGRESS" : "COMPLETED")
 // 					<< std::endl;
 // 		}
 // 	}
@@ -74,15 +74,15 @@
 // 	for (auto it = server.getGlobalFds().request_state_map.begin();
 // 		it != server.getGlobalFds().request_state_map.end(); ) {
 // 		int key = it->first;
-// 		RequestState& req = it->second;
+// 		RequestBody& req = it->second;
 
 // 		if (req.pipe_fd != -1) {
-// 			RequestState::Task status;
+// 			RequestBody::Task status;
 // 			ssize_t bytes_read = read(req.pipe_fd, &status, sizeof(status));
 // 			if (bytes_read > 0) {
 // 				server.setTaskStatus(status, key);
 
-// 				if (status == RequestState::COMPLETED) {
+// 				if (status == RequestBody::COMPLETED) {
 // 					close(req.pipe_fd);
 // 					req.pipe_fd = -1;
 
@@ -94,15 +94,15 @@
 // 		}
 
 // 		switch (req.task) {
-// 			case RequestState::IN_PROGRESS:
+// 			case RequestBody::IN_PROGRESS:
 // 				++it;
 // 				break;
 
-// 			case RequestState::PENDING:
+// 			case RequestBody::PENDING:
 // 				++it;
 // 				break;
 
-// 			case RequestState::COMPLETED:
+// 			case RequestBody::COMPLETED:
 // 				++it;
 // 				break;
 

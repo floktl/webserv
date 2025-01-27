@@ -20,8 +20,8 @@ class ClientHandler {
 		void handleClientRead(int epfd, int fd);
 		void handleClientWrite(int epfd, int fd);
 
-		bool processMethod(RequestState &req, int epoll_fd);
-		bool isMethodAllowed(const RequestState &req, const std::string &method) const;
+		bool processMethod(RequestBody &req, int epoll_fd);
+		bool isMethodAllowed(const RequestBody &req, const std::string &method) const;
 };
 
 #endif

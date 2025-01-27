@@ -22,13 +22,13 @@
 // 	std::string status;
 // 	switch (task.status)
 // 	{
-// 		case RequestState::PENDING:
+// 		case RequestBody::PENDING:
 // 			status = "pending";
 // 			break;
-// 		case RequestState::IN_PROGRESS:
+// 		case RequestBody::IN_PROGRESS:
 // 			status = "in_progress";
 // 			break;
-// 		case RequestState::COMPLETED:
+// 		case RequestBody::COMPLETED:
 // 			status = "completed";
 // 			break;
 // 	}

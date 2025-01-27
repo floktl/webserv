@@ -1,7 +1,7 @@
 // #include "RequestHandler.hpp"
 
 // #include <regex>
-// void RequestHandler::handlePostBodyComplete(RequestState &req, const Location* location)
+// void RequestHandler::handlePostBodyComplete(RequestBody &req, const Location* location)
 // {
 // 	//Logger::file("[handlePostBodyComplete] POST-Body komplett empfangen.");
 
@@ -9,7 +9,7 @@
 // 	if (server.getCgiHandler()->needsCGI(req, req.location_path))
 // 	{
 // 		//Logger::file("[handlePostBodyComplete] CGI wird benötigt -> CGI vorbereiten.");
-// 		req.state = RequestState::STATE_PREPARE_CGI;
+// 		req.state = RequestBody::STATE_PREPARE_CGI;
 // 		server.getCgiHandler()->addCgiTunnel(req, req.method, /* query */ "");
 // 		return;
 // 	}
@@ -21,7 +21,7 @@
 // 	}
 // }
 
-// bool RequestHandler::handleChunkedUpload(RequestState &req, const std::string &request, size_t headerEnd, const Location* loc)
+// bool RequestHandler::handleChunkedUpload(RequestBody &req, const std::string &request, size_t headerEnd, const Location* loc)
 // {
 // 	size_t bodyStart = headerEnd + 4;
 // 	std::string chunkData = request.substr(bodyStart);
@@ -143,7 +143,7 @@
 
 
 
-// void RequestHandler::finalizeUpload(RequestState &req) {
+// void RequestHandler::finalizeUpload(RequestBody &req) {
 // 	//Logger::file("[Upload] Finalizing upload process");
 
 // 	std::string successResponse = "HTTP/1.1 200 OK\r\n"
@@ -157,14 +157,14 @@
 // 							successResponse.begin(),
 // 							successResponse.end());
 
-// 	req.state = RequestState::STATE_SENDING_RESPONSE;
+// 	req.state = RequestBody::STATE_SENDING_RESPONSE;
 
 // 	server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 
 // 	//Logger::file("[Upload] Upload finalized, response ready to send");
 // }
 
-// bool detectMultipartFormData(RequestState &req)
+// bool detectMultipartFormData(RequestBody &req)
 // {
 // 	std::string bufferStr(req.request_buffer.begin(), req.request_buffer.end());
 
@@ -180,13 +180,13 @@
 // 	return false;
 // }
 
-// void RequestHandler::parseRequest(RequestState &req)
+// void RequestHandler::parseRequest(RequestBody &req)
 // {
 
 // 	req.method = getMethod(req.request_buffer);
 // 	//Logger::file("[parseRequest] Starte Parse. Phase = " + std::to_string(req.parsing_phase) + ", request_buffer size: " + std::to_string(req.request_buffer.size()));
 
-// 	if (req.parsing_phase == RequestState::PARSING_HEADER)
+// 	if (req.parsing_phase == RequestBody::PARSING_HEADER)
 // 	{
 // 		std::string bufferContent(req.request_buffer.begin(), req.request_buffer.end());
 // 		size_t headerEndPos = bufferContent.find("\r\n\r\n");
@@ -279,7 +279,7 @@
 // 			std::string err = errorStream.str();
 // 			req.response_buffer.clear();
 // 			req.response_buffer.insert(req.response_buffer.end(), err.begin(), err.end());
-// 			req.state = RequestState::STATE_SENDING_RESPONSE;
+// 			req.state = RequestBody::STATE_SENDING_RESPONSE;
 // 			server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 // 			return;
 // 		}
@@ -293,7 +293,7 @@
 // 		// Header gelesen => wir löschen den Header-Puffer
 // 		req.request_buffer.clear();
 
-// 		// Grundlegende RequestState-Felder belegen
+// 		// Grundlegende RequestBody-Felder belegen
 // 		req.method         = method;
 // 		req.location_path  = path;
 // 		req.requested_path = buildRequestedPath(req, path);
@@ -303,14 +303,14 @@
 // 		detectMultipartFormData(req);
 
 // 		// Optional: Weiterer Code, z.B. Debug-Ausgabe
-// 		printRequestState(req);
+// 		printRequestBody(req);
 
 // 		// Check auf Redirect
 // 		std::stringstream redirectResponse;
 // 		if (checkRedirect(req, &redirectResponse))
 // 		{
 // 			//Logger::file("[parseRequest] Redirect definiert, send Response");
-// 			req.state = RequestState::STATE_SENDING_RESPONSE;
+// 			req.state = RequestBody::STATE_SENDING_RESPONSE;
 // 			server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 // 			return;
 // 		}
@@ -327,7 +327,7 @@
 // 					return;
 // 				}
 // 				// Wenn handleChunkedUpload() true zurückgibt, ist der Upload abgeschlossen.
-// 				req.parsing_phase = RequestState::PARSING_COMPLETE;
+// 				req.parsing_phase = RequestBody::PARSING_COMPLETE;
 // 				return;
 // 			}
 
@@ -340,7 +340,7 @@
 // 				std::string err = errorStream.str();
 // 				req.response_buffer.clear();
 // 				req.response_buffer.insert(req.response_buffer.end(), err.begin(), err.end());
-// 				req.state = RequestState::STATE_SENDING_RESPONSE;
+// 				req.state = RequestBody::STATE_SENDING_RESPONSE;
 // 				server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 // 				return;
 // 			}
@@ -353,13 +353,13 @@
 // 			{
 // 				//Logger::file("[parseRequest] POST-Body vollständig im ersten Paket.");
 // 				handlePostBodyComplete(req, location);
-// 				req.parsing_phase = RequestState::PARSING_COMPLETE;
+// 				req.parsing_phase = RequestBody::PARSING_COMPLETE;
 // 				return;
 // 			}
 // 			else
 // 			{
 // 				//Logger::file("[parseRequest] POST-Body noch unvollständig -> PARSING_BODY");
-// 				req.parsing_phase = RequestState::PARSING_BODY;
+// 				req.parsing_phase = RequestBody::PARSING_BODY;
 // 				return;
 // 			}
 // 		}
@@ -367,7 +367,7 @@
 // 		{
 // 			//Logger::file("[parseRequest] DELETE-Anfrage erkannt");
 // 			handleDeleteRequest(req);
-// 			req.parsing_phase = RequestState::PARSING_COMPLETE;
+// 			req.parsing_phase = RequestBody::PARSING_COMPLETE;
 // 			server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 // 			return;
 // 		}
@@ -377,21 +377,21 @@
 // 			if (server.getCgiHandler()->needsCGI(req, path))
 // 			{
 // 				//Logger::file("[parseRequest] -> CGI");
-// 				req.state = RequestState::STATE_PREPARE_CGI;
+// 				req.state = RequestBody::STATE_PREPARE_CGI;
 // 				server.getCgiHandler()->addCgiTunnel(req, method, query);
 // 			}
 // 			else
 // 			{
 // 				//Logger::file("[parseRequest] -> Statisches buildResponse()");
 // 				buildResponse(req);
-// 				req.state = RequestState::STATE_SENDING_RESPONSE;
+// 				req.state = RequestBody::STATE_SENDING_RESPONSE;
 // 			}
-// 			req.parsing_phase = RequestState::PARSING_COMPLETE;
+// 			req.parsing_phase = RequestBody::PARSING_COMPLETE;
 // 			server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 // 			return;
 // 		}
 // 	}
-// 	else if (req.parsing_phase == RequestState::PARSING_BODY)
+// 	else if (req.parsing_phase == RequestBody::PARSING_BODY)
 // 	{
 // 		//Logger::file("[parseRequest] PARSING_BODY -> empfange Restdaten.");
 
@@ -411,7 +411,7 @@
 // 			std::string err = errorStream.str();
 // 			req.response_buffer.clear();
 // 			req.response_buffer.insert(req.response_buffer.end(), err.begin(), err.end());
-// 			req.state = RequestState::STATE_SENDING_RESPONSE;
+// 			req.state = RequestBody::STATE_SENDING_RESPONSE;
 // 			server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 // 			return;
 // 		}
@@ -425,7 +425,7 @@
 // 			std::string err = errorStream.str();
 // 			req.response_buffer.clear();
 // 			req.response_buffer.insert(req.response_buffer.end(), err.begin(), err.end());
-// 			req.state = RequestState::STATE_SENDING_RESPONSE;
+// 			req.state = RequestBody::STATE_SENDING_RESPONSE;
 // 			server.modEpoll(server.getGlobalFds().epoll_fd, req.client_fd, EPOLLOUT);
 // 			return;
 // 		}
@@ -435,7 +435,7 @@
 // 		{
 // 			//Logger::file("[parseRequest] Body nun komplett -> handlePostBodyComplete.");
 // 			handlePostBodyComplete(req, location);
-// 			req.parsing_phase = RequestState::PARSING_COMPLETE;
+// 			req.parsing_phase = RequestBody::PARSING_COMPLETE;
 // 			return;
 // 		}
 // 		else
@@ -444,7 +444,7 @@
 // 			return;
 // 		}
 // 	}
-// 	else if (req.parsing_phase == RequestState::PARSING_COMPLETE)
+// 	else if (req.parsing_phase == RequestBody::PARSING_COMPLETE)
 // 	{
 // 		//Logger::file("[parseRequest] PARSING_COMPLETE -> Keine weitere Aktion.");
 // 		return;

@@ -6,7 +6,7 @@ const int max_events = 64;
 struct epoll_event events[max_events];
 const int timeout_ms = 500;
 Logger::file("\n");
-int count = 4;
+int count = 4000;
 while (count != 0)
 {
 	int n = epoll_wait(epoll_fd, events, max_events, timeout_ms);
@@ -54,7 +54,7 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vect
 		Logger::file("EPOLLHUP event: " + std::to_string(ev) + " detected (connection closed)");
 
 	// 1. Check if this is an existing client connection
-	logRequestStateMapFDs();
+	logRequestBodyMapFDs();
 	if (globalFDS.request_state_map.find(incoming_fd) != globalFDS.request_state_map.end())
 	{
 		client_fd = incoming_fd;  // Clarify that fd is a client connection
@@ -82,7 +82,6 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vect
 						parseRequest(ctx);
 						determineType(ctx, configs);
 						Logger::file("Type after Parse: " + requestTypeToString(ctx.type) + "\n");
-
 						// Continue to re-evaluate the updated type
 						continue;
 					}
@@ -90,22 +89,23 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vect
 
 				case STATIC:
 					Logger::file("Handling STATIC request for client_fd: " + std::to_string(client_fd));
+					staticHandler(ctx, ev);
 					// TODO: Implement static file handling
-					return true;
+					continue;
 
 				case CGI:
 					Logger::file("Handling CGI request for client_fd: " + std::to_string(client_fd));
 					// TODO: Implement CGI handling
-					return true;
+					continue;
 
 				case ERROR:
 					Logger::file("Handling ERROR request for client_fd: " + std::to_string(client_fd));
-					// TODO: Implement error handling
+					errorsHandler(ctx, ev);
 					return true;
 
 				default:
-					Logger::file("Unknown request type for client_fd: " + std::to_string(client_fd));
-					return false;
+					//Logger::file("Unknown request type for client_fd: " + std::to_string(client_fd));
+					return true;
 			}
 
 			// Break the loop once the request has been handled
@@ -123,8 +123,132 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vect
 
 	// 3. Unknown fd - this shouldn't happen
 	Logger::file("ERROR: Unknown fd: " + std::to_string(incoming_fd));
-	//delFromEpoll(epoll_fd, incoming_fd);
+	delFromEpoll(epoll_fd, incoming_fd);
 	return false;
+}
+
+bool Server::isMethodAllowed(Context& ctx) {
+
+	bool isAllowed = false;
+	std::string reason;
+
+	if (ctx.method == "GET" && ctx.location->allowGet) {
+		isAllowed = true;
+		reason = "GET method allowed for this location";
+	}
+	else if (ctx.method == "POST" && ctx.location->allowPost) {
+		isAllowed = true;
+		reason = "POST method allowed for this location";
+	}
+	else if (ctx.method == "DELETE" && ctx.location->allowDelete) {
+		isAllowed = true;
+		reason = "DELETE method allowed for this location";
+	}
+	else if (ctx.method == "COOKIE" && ctx.location->allowCookie) {
+		isAllowed = true;
+		reason = "COOKIE method allowed for this location";
+	}
+	else {
+		reason = ctx.method + " method not allowed for this location";
+	}
+	return isAllowed;
+}
+
+void Server::parseAcessRights(Context& ctx)
+{
+    Logger::file("parseAcessRights");
+	ctx.access_flag = FILE_EXISTS;
+	checkAccessRights(ctx, ctx.root);
+	std::string rootAndLocation = concatenatePath(ctx.root, ctx.location->path);
+	std::string aprovedIndex;
+    size_t dot_pos = ctx.location->default_file.find_last_of('.');
+    if (dot_pos != std::string::npos)
+    {
+        std::string extension = ctx.location->default_file.substr(dot_pos);
+        if ((extension == ctx.location->cgi_filetype) || (ctx.location->cgi_filetype.empty() && extension == "html"))
+        {
+            aprovedIndex = ctx.location->default_file;
+        }
+        else
+        {
+			ctx.error_code = 500;
+			ctx.type = ERROR;
+			ctx.error_message = "Internal Server Error";
+        }
+    }
+	if (!rootAndLocation.empty() && rootAndLocation.back() != '/')
+    {
+        rootAndLocation += "/";
+    }
+	std::string rootAndLocationIndex = rootAndLocation + aprovedIndex;
+	ctx.access_flag = FILE_EXISTS;
+	checkAccessRights(ctx, rootAndLocationIndex);
+	ctx.access_flag = FILE_READ;
+	checkAccessRights(ctx, rootAndLocationIndex);
+	ctx.access_flag = FILE_EXECUTE;
+	checkAccessRights(ctx, rootAndLocationIndex);
+	// error pages extance read -> std fallbacks
+	// root/location exitance and access for current HTTP Method: flag ob autoindex wird...
+	// root/location->index exitance and access for current HTTP Method and CGI Type: flag ob autoindex wird...
+	// bei static root/location/upload_store access w
+
+}
+
+void Server::checkAccessRights(Context &ctx, std::string path)
+{
+    Logger::file("[INFO] Checking access rights for: " + path);
+    if (access(path.c_str(), ctx.access_flag))
+    {
+        if (ctx.location->autoindex == "on")
+        {
+            std::string dirPath = getDirectory(path);
+            Logger::file("[INFO] Autoindex enabled, checking directory: " + dirPath);
+            if (!access(dirPath.c_str(), R_OK))
+            {
+                ctx.error_code = 403;
+                ctx.type = ERROR;
+                ctx.error_message = "Forbidden";
+                Logger::file("[ERROR] Autoindex forbidden for: " + dirPath);
+                return;
+            }
+            ctx.doAutoIndex = dirPath;
+            ctx.type = STATIC;
+            Logger::file("[INFO] Autoindexing directory: " + dirPath);
+            return;
+        }
+
+        std::string error_message;
+        switch (errno)
+        {
+            case ENOENT:
+                error_message = "File does not exist";
+                ctx.error_code = 404;
+                break;
+            case EACCES:
+                error_message = "Permission denied";
+                ctx.error_code = 403;
+                break;
+            case EROFS:
+                error_message = "Read-only file system";
+                ctx.error_code = 500;
+                break;
+            case ENOTDIR:
+                error_message = "A component of the path is not a directory";
+                ctx.error_code = 500;
+                break;
+            default:
+                error_message = "Unknown error: " + std::to_string(errno);
+                ctx.error_code = 500;
+                break;
+        }
+        ctx.type = ERROR;
+        ctx.error_message = error_message;
+        Logger::file("[ERROR] Access denied for " + path + " Reason: " + error_message);
+    }
+    else
+    {
+        Logger::file("[INFO] Access granted for: " + path);
+    }
 }
 
 
@@ -145,24 +269,46 @@ void Server::determineType(Context& ctx, const std::vector<ServerBlock>& configs
 	if (!conf)
 	{
 		ctx.type = ERROR;
+		ctx.error_code = 500;
+        ctx.error_message = "Internal Server Error";
 		return;
 	}
 
-	// Prüfe Location Blocks
+	// path und index file muss da sein. Pfad aufloesen..
+	// autoindex
+	// uploadstore
+
 	for (const auto& loc : conf->locations)
 	{
 		if (matchLoc(loc, ctx.path))
 		{
+			ctx.port = conf->port;
+			ctx.name = conf->name;
+			ctx.root = conf->root;
+			ctx.index = conf->index;
+			ctx.errorPages = conf->errorPages;
+			ctx.client_max_body_size = conf->client_max_body_size;
+			ctx.timeout = conf->timeout;
 			ctx.location = &loc;
+			if (!isMethodAllowed(ctx))
+			{
+				ctx.type = ERROR;
+				ctx.error_code = 405;
+        		ctx.error_message = "Method not allowed";
+				return;
+			}
 			if (loc.cgi != "")
 				ctx.type = CGI;
 			else
 				ctx.type = STATIC;
+			parseAcessRights(ctx);
 			return;
 		}
 	}
 
 	ctx.type = ERROR;
+	ctx.error_code = 500;
+    ctx.error_message = "Internal Server Error";
 }
 
 // enum RequestType {
@@ -220,7 +366,6 @@ void Server::parseRequest(Context& ctx) {
 		ctx.body = std::string(body_buffer.data(), length);
 	}
 
-	ctx.last_activity = std::chrono::steady_clock::now();
 	logContext(ctx, "Parsed");
 }
 
@@ -249,7 +394,7 @@ for (auto it = globalFDS.request_state_map.begin(); it != globalFDS.request_stat
 }
 }
 
-void Server::killTimeoutedCGI(RequestState &req) {
+void Server::killTimeoutedCGI(RequestBody &req) {
 	if (req.cgi_pid > 0) {
 		kill(req.cgi_pid, SIGTERM);
 		//Logger::file(std::to_string(req.associated_conf->timeout));
@@ -354,7 +499,7 @@ bool Server::matchLoc(const Location& loc, std::string rawPath)
 	return false;
 }
 
-void Server::logRequestStateMapFDs()
+void Server::logRequestBodyMapFDs()
 {
     Logger::file("Logging all FDs in request_state_map:");
 
@@ -371,4 +516,33 @@ void Server::logRequestStateMapFDs()
     }
 
     Logger::file(log);
+}
+
+std::string Server::concatenatePath(const std::string& root, const std::string& path)
+{
+    if (root.empty())
+        return path;
+    if (path.empty())
+        return root;
+
+    if (root.back() == '/' && path.front() == '/')
+    {
+        return root + path.substr(1);  // Entferne das führende '/'
+    }
+    else if (root.back() != '/' && path.front() != '/')
+    {
+        return root + '/' + path;  // Füge einen '/' hinzu
+    }
+    else
+    {
+        return root + path;  // Einfach zusammenfügen
+    }
+}
+
+std::string Server::getDirectory(const std::string& path) {
+    size_t lastSlash = path.find_last_of("/\\");
+    if (lastSlash != std::string::npos) {
+        return path.substr(0, lastSlash);
+    }
+    return "";
 }

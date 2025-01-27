@@ -53,7 +53,7 @@
 # include "structs/webserv.hpp"
 
 void printServerBlock(const ServerBlock& serverBlock);
-void printRequestState(const RequestState& req);
+void printRequestBody(const RequestBody& req);
 
 std::string trim(const std::string& str);
 std::vector<std::string> parseOptionsToVector(const std::string& opts);

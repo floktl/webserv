@@ -5,7 +5,7 @@ Server::Server(GlobalFDS &_globalFDS) :
 	// clientHandler(new ClientHandler(*this)),
 	// cgiHandler(new CgiHandler(*this)),
 	// requestHandler(new RequestHandler(*this)),
-	// errorHandler(new ErrorHandler(*this)),
+	errorHandler(new ErrorHandler(*this)),
 	// taskManager(new TaskManager(*this)),
 	timeout(30)
 {
@@ -17,7 +17,7 @@ Server::~Server()
 	// delete clientHandler;
 	// delete cgiHandler;
 	// delete requestHandler;
-	// delete errorHandler;
+	delete errorHandler;
 	// delete taskManager;
     Logger::yellow() << "\nCleaning up server resources...";
     //removeAddedServerNamesFromHosts();
@@ -39,7 +39,7 @@ void Server::cleanup()
 // ClientHandler* Server::getClientHandler(void) { return clientHandler; }
 // CgiHandler* Server::getCgiHandler(void) { return cgiHandler; }
 // RequestHandler* Server::getRequestHandler(void) { return requestHandler; }
-// ErrorHandler* Server::getErrorHandler(void) { return errorHandler; }
+ErrorHandler* Server::getErrorHandler(void) { return errorHandler; }
 // TaskManager* Server::getTaskManager(void) { return taskManager; }
 GlobalFDS& Server::getGlobalFds(void) { return globalFDS; }
 

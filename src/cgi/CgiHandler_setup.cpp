@@ -8,7 +8,7 @@
 // 	}
 // }
 
-// void CgiHandler::finalizeCgiResponse(RequestState &req, int epoll_fd, int client_fd)
+// void CgiHandler::finalizeCgiResponse(RequestBody &req, int epoll_fd, int client_fd)
 // {
 // 	std::string output(req.cgi_output_buffer.begin(), req.cgi_output_buffer.end());
 // 	size_t header_end = output.find("\r\n\r\n");
@@ -58,7 +58,7 @@
 // 								response.end());
 // 	}
 
-// 	req.state = RequestState::STATE_SENDING_RESPONSE;
+// 	req.state = RequestBody::STATE_SENDING_RESPONSE;
 // 	server.modEpoll(epoll_fd, client_fd, EPOLLOUT);
 // }
 
@@ -77,12 +77,12 @@
 //     bool is_chunked = false;  // Falls wir später herausfinden, dass TE: chunked war
 
 //     // ----------------------------------------------------------------------------
-//     // Request aus dem RequestState holen (falls vorhanden)
+//     // Request aus dem RequestBody holen (falls vorhanden)
 //     // ----------------------------------------------------------------------------
 //     auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
 //     if (req_it != server.getGlobalFds().request_state_map.end())
 //     {
-//         const RequestState &req = req_it->second;
+//         const RequestBody &req = req_it->second;
 //         http_cookie = req.cookie_header;
 
 //         // Lies den rohen Header aus request_buffer (sofern noch vorhanden).
@@ -220,7 +220,7 @@
 
 
 
-// bool CgiHandler::initTunnel(RequestState &req, CgiTunnel &tunnel, int pipe_in[2],
+// bool CgiHandler::initTunnel(RequestBody &req, CgiTunnel &tunnel, int pipe_in[2],
 // 	int pipe_out[2])
 // {
 // 	if (pipe(pipe_in) < 0 || pipe(pipe_out) < 0)
@@ -267,17 +267,17 @@
 // 	int flags = fcntl(status_pipe[1], F_GETFL, 0);
 // 	fcntl(status_pipe[1], F_SETFL, flags | O_NONBLOCK);
 
-// 	RequestState::Task status = RequestState::IN_PROGRESS;
+// 	RequestBody::Task status = RequestBody::IN_PROGRESS;
 // 	write(status_pipe[1], &status, sizeof(status));
 
 // 	if (dup2(pipe_in[0], STDIN_FILENO) < 0 || dup2(pipe_out[1], STDOUT_FILENO) < 0) {
 // 		//Logger::file("[ERROR] Failed to duplicate file descriptors: " + std::string(strerror(errno)));
-// 		status = RequestState::COMPLETED;
+// 		status = RequestBody::COMPLETED;
 // 		write(status_pipe[1], &status, sizeof(status));
 // 		_exit(1);
 // 	}
 
-// 	status = RequestState::COMPLETED;
+// 	status = RequestBody::COMPLETED;
 // 	close(pipe_in[0]);
 // 	close(pipe_out[1]);
 
@@ -319,7 +319,7 @@
 // 	execve(args[0], args.data(), envp.data());
 
 // 	//Logger::file("[ERROR] execve failed: " + std::string(strerror(errno)));
-// 	status = RequestState::COMPLETED;
+// 	status = RequestBody::COMPLETED;
 // 	write(status_pipe[1], &status, sizeof(status));
 
 // 	close(status_pipe[1]);
@@ -328,7 +328,7 @@
 
 
 
-// void CgiHandler::addCgiTunnel(RequestState &req, const std::string &method, const std::string &query) {
+// void CgiHandler::addCgiTunnel(RequestBody &req, const std::string &method, const std::string &query) {
 // 	int pipe_in[2] = {-1, -1};
 // 	int pipe_out[2] = {-1, -1};
 // 	int status_pipe[2] = {-1, -1};
@@ -392,9 +392,9 @@
 // 	req.cgi_in_fd = tunnel.in_fd;
 // 	req.cgi_out_fd = tunnel.out_fd;
 // 	req.cgi_pid = pid;
-// 	req.state = RequestState::STATE_CGI_RUNNING;
+// 	req.state = RequestBody::STATE_CGI_RUNNING;
 // 	req.cgi_done = false;
 
-// 	server.getTaskManager()->sendTaskStatusUpdate(req.client_fd, RequestState::IN_PROGRESS);
+// 	server.getTaskManager()->sendTaskStatusUpdate(req.client_fd, RequestBody::IN_PROGRESS);
 // }
 
