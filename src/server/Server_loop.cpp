@@ -1,4 +1,19 @@
 #include "Server.hpp"
+bool Server::isRequestComplete(const Context& ctx) {
+	// First check if headers are complete
+	if (!ctx.headers_complete) {
+		return false;
+	}
+
+	// If no Content-Length header, request is complete after headers
+	auto it = ctx.headers.find("Content-Length");
+	if (it == ctx.headers.end()) {
+		return true;
+	}
+
+	// Check if we've received the full body
+	return ctx.body_received >= ctx.content_length;
+}
 
 int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 {
@@ -38,98 +53,54 @@ while (count != 0)
 	return EXIT_SUCCESS;
 }
 
-bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vector<ServerBlock> &configs)
-{
-    int client_fd;
-    int server_fd;
+bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev,
+						std::vector<ServerBlock> &configs) {
+	Logger::file("dispatchEvent: fd=" + std::to_string(incoming_fd) +
+				" events=" + std::to_string(ev));
 
-    Logger::file("dispatchEvent:");
-    if (ev & EPOLLIN)
-        Logger::file("EPOLLIN event: " + std::to_string(ev) + " triggered (data available to read)");
-    if (ev & EPOLLOUT)
-        Logger::file("EPOLLOUT event: " + std::to_string(ev) + " triggered (ready for writing)");
-    if (ev & EPOLLERR)
-        Logger::file("EPOLLERR event: " + std::to_string(ev) + " detected (error on fd)");
-    if (ev & EPOLLHUP)
-        Logger::file("EPOLLHUP event: " + std::to_string(ev) + " detected (connection closed)");
+	// Handle new connections on server socket
+	if (findServerBlock(configs, incoming_fd)) {
+		if (ev & EPOLLIN) {
+			return handleNewConnection(epoll_fd, incoming_fd);
+		}
+		return true;
+	}
 
-    logRequestBodyMapFDs();
+	// Handle existing client connection
+	auto it = globalFDS.request_state_map.find(incoming_fd);
+	if (it != globalFDS.request_state_map.end()) {
+		Context& ctx = it->second;
+		ctx.last_activity = std::chrono::steady_clock::now();
 
-    // 1. Handle existing client connection
-    if (globalFDS.request_state_map.find(incoming_fd) != globalFDS.request_state_map.end())
-    {
-        client_fd = incoming_fd;
-        Logger::file("Found Client_fd: " + std::to_string(client_fd) + " in globalFDS.request_state_map");
-        Context& ctx = globalFDS.request_state_map[client_fd];
-        ctx.last_activity = std::chrono::steady_clock::now();
+		// Handle errors/disconnects
+		if (ev & (EPOLLHUP | EPOLLERR)) {
+			Logger::file("Connection error on fd " + std::to_string(incoming_fd));
+			delFromEpoll(epoll_fd, incoming_fd);
+			return false;
+		}
 
-        // Handle connection errors
-        if (ev & (EPOLLHUP | EPOLLERR))
-        {
-            Logger::file("Connection Error on client_fd: " + std::to_string(client_fd));
-            delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-            return true;
-        }
+		// Handle reads
+		if (ev & EPOLLIN) {
+			if (!handleRead(ctx, configs)) {
+				delFromEpoll(epoll_fd, incoming_fd);
+				return false;
+			}
+		}
 
-        // Handle request based on type
-        switch (ctx.type)
-        {
-            case INITIAL:
-                if (ev & EPOLLIN)
-                {
-                    Logger::file("Handling INITIAL request for client_fd: " + std::to_string(client_fd));
-                    parseRequest(ctx);
-                    determineType(ctx, configs);
+		// Handle writes
+		if (ev & EPOLLOUT) {
+			if (!handleWrite(ctx)) {
+				delFromEpoll(epoll_fd, incoming_fd);
+				return false;
+			}
+		}
 
-                    switch (ctx.type)
-                    {
-                        case STATIC:
-                			Logger::file("Handling STATIC request for client_fd: " + std::to_string(client_fd));
-                            return staticHandler(ctx);
-                        case CGI:
-                            Logger::file("CGI request determined for client_fd: " + std::to_string(client_fd));
-                            return true;
-                        case ERROR:
-                			Logger::file("Handling ERROR request for client_fd: " + std::to_string(client_fd));
-                            return errorsHandler(ctx, ev);
-                        default:
-                            return true;
-                    }
-                }
-                break;
+		return true;
+	}
 
-            case STATIC:
-                Logger::file("Handling STATIC request for client_fd: " + std::to_string(client_fd));
-                return staticHandler(ctx);
-
-            case CGI:
-                Logger::file("Handling CGI request for client_fd: " + std::to_string(client_fd));
-                return true;
-
-            case ERROR:
-                Logger::file("Handling ERROR request for client_fd: " + std::to_string(client_fd));
-                return errorsHandler(ctx, ev);
-
-            default:
-                Logger::file("Unknown request type for client_fd: " + std::to_string(client_fd));
-                delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-                return false;
-        }
-        return true;
-    }
-
-    // 2. Handle new connection on server socket
-    if (findServerBlock(configs, incoming_fd))
-    {
-        server_fd = incoming_fd;
-        Logger::file("New connection on server_fd: " + std::to_string(server_fd) + " epoll_fd: " + std::to_string(epoll_fd));
-        return handleNewConnection(epoll_fd, server_fd);
-    }
-
-    // 3. Handle unknown fd
-    Logger::file("ERROR: Unknown fd: " + std::to_string(incoming_fd));
-    delFromEpoll(epoll_fd, incoming_fd);
-    return false;
+	Logger::file("Unknown fd: " + std::to_string(incoming_fd));
+	delFromEpoll(epoll_fd, incoming_fd);
+	return false;
 }
 
 bool Server::isMethodAllowed(Context& ctx) {
@@ -160,126 +131,126 @@ bool Server::isMethodAllowed(Context& ctx) {
 }
 
 void Server::parseAcessRights(Context& ctx) {
-    Logger::file("parseAcessRights: Starting access rights parsing");
+	Logger::file("parseAcessRights: Starting access rights parsing");
 
-    ctx.access_flag = FILE_EXISTS;
-    checkAccessRights(ctx, ctx.root);
-    Logger::file("Root access check completed - Path: " + ctx.root);
+	ctx.access_flag = FILE_EXISTS;
+	checkAccessRights(ctx, ctx.root);
+	Logger::file("Root access check completed - Path: " + ctx.root);
 
-    std::string rootAndLocation = concatenatePath(ctx.root, ctx.location->path);
-    Logger::file("Combined path: " + rootAndLocation);
+	std::string rootAndLocation = concatenatePath(ctx.root, ctx.location->path);
+	Logger::file("Combined path: " + rootAndLocation);
 
-    std::string aprovedIndex;
-    size_t dot_pos = ctx.location->default_file.find_last_of('.');
-    if (dot_pos != std::string::npos) {
-        // Get extension WITHOUT the dot
-        std::string extension = ctx.location->default_file.substr(dot_pos + 1);
-        Logger::file("Checking default file extension (without dot): " + extension);
+	std::string aprovedIndex;
+	size_t dot_pos = ctx.location->default_file.find_last_of('.');
+	if (dot_pos != std::string::npos) {
+		// Get extension WITHOUT the dot
+		std::string extension = ctx.location->default_file.substr(dot_pos + 1);
+		Logger::file("Checking default file extension (without dot): " + extension);
 
-        if ((extension == ctx.location->cgi_filetype) ||
-            (ctx.location->cgi_filetype.empty() && extension == "html")) {
-            aprovedIndex = ctx.location->default_file;
-            Logger::file("Default file approved: " + aprovedIndex);
-        } else {
-            Logger::file("Extension validation failed - CGI type: [" + ctx.location->cgi_filetype +
-                        "], Extension: [" + extension + "]");
-            ctx.error_code = 500;
-            ctx.type = ERROR;
-            ctx.error_message = "Internal Server Error";
-        }
-    } else {
-        Logger::file("WARNING: No extension found in default file");
-    }
+		if ((extension == ctx.location->cgi_filetype) ||
+			(ctx.location->cgi_filetype.empty() && extension == "html")) {
+			aprovedIndex = ctx.location->default_file;
+			Logger::file("Default file approved: " + aprovedIndex);
+		} else {
+			Logger::file("Extension validation failed - CGI type: [" + ctx.location->cgi_filetype +
+						"], Extension: [" + extension + "]");
+			ctx.error_code = 500;
+			ctx.type = ERROR;
+			ctx.error_message = "Internal Server Error";
+		}
+	} else {
+		Logger::file("WARNING: No extension found in default file");
+	}
 
-    // Path normalization
-    if (!rootAndLocation.empty() && rootAndLocation.back() != '/') {
-        rootAndLocation += "/";
-        Logger::file("Path normalized with trailing slash: " + rootAndLocation);
-    }
+	// Path normalization
+	if (!rootAndLocation.empty() && rootAndLocation.back() != '/') {
+		rootAndLocation += "/";
+		Logger::file("Path normalized with trailing slash: " + rootAndLocation);
+	}
 
-    // Construct full index path
-    std::string rootAndLocationIndex = rootAndLocation + aprovedIndex;
-    Logger::file("Full index path: " + rootAndLocationIndex);
+	// Construct full index path
+	std::string rootAndLocationIndex = rootAndLocation + aprovedIndex;
+	Logger::file("Full index path: " + rootAndLocationIndex);
 
-    // File existence check
-    ctx.access_flag = FILE_EXISTS;
-    checkAccessRights(ctx, rootAndLocationIndex);
-    Logger::file("File existence check completed for: " + rootAndLocationIndex);
+	// File existence check
+	ctx.access_flag = FILE_EXISTS;
+	checkAccessRights(ctx, rootAndLocationIndex);
+	Logger::file("File existence check completed for: " + rootAndLocationIndex);
 
-    // Read permission check
-    ctx.access_flag = FILE_READ;
-    checkAccessRights(ctx, rootAndLocationIndex);
-    Logger::file("Read permission check completed for: " + rootAndLocationIndex);
+	// Read permission check
+	ctx.access_flag = FILE_READ;
+	checkAccessRights(ctx, rootAndLocationIndex);
+	Logger::file("Read permission check completed for: " + rootAndLocationIndex);
 
-    // Execute permission check
-    ctx.access_flag = FILE_EXECUTE;
-    checkAccessRights(ctx, rootAndLocationIndex);
-    Logger::file("Execute permission check completed for: " + rootAndLocationIndex);
+	// Execute permission check
+	ctx.access_flag = FILE_EXECUTE;
+	checkAccessRights(ctx, rootAndLocationIndex);
+	Logger::file("Execute permission check completed for: " + rootAndLocationIndex);
 
-    Logger::file("parseAcessRights: Completed all access rights checks");
+	Logger::file("parseAcessRights: Completed all access rights checks");
 
-    // Additional debug information about context state
-    std::string contextState = "Context state - Error code: " +
-                             std::to_string(ctx.error_code) +
-                             ", Type: " + std::to_string(ctx.type);
-    Logger::file(contextState);
+	// Additional debug information about context state
+	std::string contextState = "Context state - Error code: " +
+							std::to_string(ctx.error_code) +
+							", Type: " + std::to_string(ctx.type);
+	Logger::file(contextState);
 }
 
 void Server::checkAccessRights(Context &ctx, std::string path)
 {
-    Logger::file("[INFO] Checking access rights for: " + path);
-    if (access(path.c_str(), ctx.access_flag))
-    {
-        if (ctx.location->autoindex == "on")
-        {
-            std::string dirPath = getDirectory(path);
-            Logger::file("[INFO] Autoindex enabled, checking directory: " + dirPath);
-            if (!access(dirPath.c_str(), R_OK))
-            {
-                ctx.error_code = 403;
-                ctx.type = ERROR;
-                ctx.error_message = "Forbidden";
-                Logger::file("[ERROR] Autoindex forbidden for: " + dirPath);
-                return;
-            }
-            ctx.doAutoIndex = dirPath;
-            ctx.type = STATIC;
-            Logger::file("[INFO] Autoindexing directory: " + dirPath);
-            return;
-        }
+	Logger::file("[INFO] Checking access rights for: " + path);
+	if (access(path.c_str(), ctx.access_flag))
+	{
+		if (ctx.location->autoindex == "on")
+		{
+			std::string dirPath = getDirectory(path);
+			Logger::file("[INFO] Autoindex enabled, checking directory: " + dirPath);
+			if (!access(dirPath.c_str(), R_OK))
+			{
+				ctx.error_code = 403;
+				ctx.type = ERROR;
+				ctx.error_message = "Forbidden";
+				Logger::file("[ERROR] Autoindex forbidden for: " + dirPath);
+				return;
+			}
+			ctx.doAutoIndex = dirPath;
+			ctx.type = STATIC;
+			Logger::file("[INFO] Autoindexing directory: " + dirPath);
+			return;
+		}
 
-        std::string error_message;
-        switch (errno)
-        {
-            case ENOENT:
-                error_message = "File does not exist";
-                ctx.error_code = 404;
-                break;
-            case EACCES:
-                error_message = "Permission denied";
-                ctx.error_code = 403;
-                break;
-            case EROFS:
-                error_message = "Read-only file system";
-                ctx.error_code = 500;
-                break;
-            case ENOTDIR:
-                error_message = "A component of the path is not a directory";
-                ctx.error_code = 500;
-                break;
-            default:
-                error_message = "Unknown error: " + std::to_string(errno);
-                ctx.error_code = 500;
-                break;
-        }
-        ctx.type = ERROR;
-        ctx.error_message = error_message;
-        Logger::file("[ERROR] Access denied for " + path + " Reason: " + error_message);
-    }
-    else
-    {
-        Logger::file("[INFO] Access granted for: " + path);
-    }
+		std::string error_message;
+		switch (errno)
+		{
+			case ENOENT:
+				error_message = "File does not exist";
+				ctx.error_code = 404;
+				break;
+			case EACCES:
+				error_message = "Permission denied";
+				ctx.error_code = 403;
+				break;
+			case EROFS:
+				error_message = "Read-only file system";
+				ctx.error_code = 500;
+				break;
+			case ENOTDIR:
+				error_message = "A component of the path is not a directory";
+				ctx.error_code = 500;
+				break;
+			default:
+				error_message = "Unknown error: " + std::to_string(errno);
+				ctx.error_code = 500;
+				break;
+		}
+		ctx.type = ERROR;
+		ctx.error_message = error_message;
+		Logger::file("[ERROR] Access denied for " + path + " Reason: " + error_message);
+	}
+	else
+	{
+		Logger::file("[INFO] Access granted for: " + path);
+	}
 }
 
 
@@ -301,7 +272,7 @@ void Server::determineType(Context& ctx, const std::vector<ServerBlock>& configs
 	{
 		ctx.type = ERROR;
 		ctx.error_code = 500;
-        ctx.error_message = "Internal Server Error";
+		ctx.error_message = "Internal Server Error";
 		return;
 	}
 
@@ -325,7 +296,7 @@ void Server::determineType(Context& ctx, const std::vector<ServerBlock>& configs
 			{
 				ctx.type = ERROR;
 				ctx.error_code = 405;
-        		ctx.error_message = "Method not allowed";
+				ctx.error_message = "Method not allowed";
 				return;
 			}
 			if (loc.cgi != "")
@@ -339,7 +310,7 @@ void Server::determineType(Context& ctx, const std::vector<ServerBlock>& configs
 
 	ctx.type = ERROR;
 	ctx.error_code = 500;
-    ctx.error_message = "Internal Server Error";
+	ctx.error_message = "Internal Server Error";
 }
 
 // enum RequestType {
@@ -459,46 +430,46 @@ void Server::killTimeoutedCGI(RequestBody &req) {
 
 void Server::logContext(const Context& ctx, const std::string& event)
 {
-    std::string log = "Context [" + event + "]:\n";
+	std::string log = "Context [" + event + "]:\n";
 
-    log += "FDs: epoll=" + (ctx.epoll_fd != -1 ? std::to_string(ctx.epoll_fd) : "[empty]");
-    log += " server=" + (ctx.server_fd != -1 ? std::to_string(ctx.server_fd) : "[empty]");
-    log += " client=" + (ctx.client_fd != -1 ? std::to_string(ctx.client_fd) : "[empty]") + "\n";
+	log += "FDs: epoll=" + (ctx.epoll_fd != -1 ? std::to_string(ctx.epoll_fd) : "[empty]");
+	log += " server=" + (ctx.server_fd != -1 ? std::to_string(ctx.server_fd) : "[empty]");
+	log += " client=" + (ctx.client_fd != -1 ? std::to_string(ctx.client_fd) : "[empty]") + "\n";
 
-    log += "Type: " + requestTypeToString(ctx.type) + "\n";
+	log += "Type: " + requestTypeToString(ctx.type) + "\n";
 
-    log += "Method: " + (!ctx.method.empty() ? ctx.method : "[empty]") + "\n";
-    log += "Path: " + (!ctx.path.empty() ? ctx.path : "[empty]") + "\n";
-    log += "Version: " + (!ctx.version.empty() ? ctx.version : "[empty]") + "\n";
+	log += "Method: " + (!ctx.method.empty() ? ctx.method : "[empty]") + "\n";
+	log += "Path: " + (!ctx.path.empty() ? ctx.path : "[empty]") + "\n";
+	log += "Version: " + (!ctx.version.empty() ? ctx.version : "[empty]") + "\n";
 
-    log += "Headers:\n";
-    if (ctx.headers.empty())
-    {
-        log += "[empty]\n";
-    }
-    else
-    {
-        for (const auto& header : ctx.headers)
-        {
-            log += header.first + ": " + header.second + "\n";
-        }
-    }
+	log += "Headers:\n";
+	if (ctx.headers.empty())
+	{
+		log += "[empty]\n";
+	}
+	else
+	{
+		for (const auto& header : ctx.headers)
+		{
+			log += header.first + ": " + header.second + "\n";
+		}
+	}
 
-    log += "Body: " + (!ctx.body.empty() ? ctx.body : "[empty]") + "\n";
+	log += "Body: " + (!ctx.body.empty() ? ctx.body : "[empty]") + "\n";
 
-    log += "Location Path: " + (!ctx.location_path.empty() ? ctx.location_path : "[empty]") + "\n";
-    log += "Requested Path: " + (!ctx.requested_path.empty() ? ctx.requested_path : "[empty]") + "\n";
+	log += "Location Path: " + (!ctx.location_path.empty() ? ctx.location_path : "[empty]") + "\n";
+	log += "Requested Path: " + (!ctx.requested_path.empty() ? ctx.requested_path : "[empty]") + "\n";
 
-    log += std::string("Location: ") + (ctx.location ? "Defined" : "[empty]") + "\n";
+	log += std::string("Location: ") + (ctx.location ? "Defined" : "[empty]") + "\n";
 
 
-    log += "Last Activity: " +
-           std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
-                              ctx.last_activity.time_since_epoch())
-                              .count()) +
-           " seconds since epoch";
+	log += "Last Activity: " +
+		std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
+							ctx.last_activity.time_since_epoch())
+							.count()) +
+		" seconds since epoch";
 
-    Logger::file(log);
+	Logger::file(log);
 }
 
 
@@ -532,48 +503,48 @@ bool Server::matchLoc(const Location& loc, std::string rawPath)
 
 void Server::logRequestBodyMapFDs()
 {
-    Logger::file("Logging all FDs in request_state_map:");
+	Logger::file("Logging all FDs in request_state_map:");
 
-    if (globalFDS.request_state_map.empty())
-    {
-        Logger::file("[empty]");
-        return;
-    }
+	if (globalFDS.request_state_map.empty())
+	{
+		Logger::file("[empty]");
+		return;
+	}
 
-    std::string log = "Active FDs: ";
-    for (const auto& pair : globalFDS.request_state_map)
-    {
-        log += std::to_string(pair.first) + " ";
-    }
+	std::string log = "Active FDs: ";
+	for (const auto& pair : globalFDS.request_state_map)
+	{
+		log += std::to_string(pair.first) + " ";
+	}
 
-    Logger::file(log);
+	Logger::file(log);
 }
 
 std::string Server::concatenatePath(const std::string& root, const std::string& path)
 {
-    if (root.empty())
-        return path;
-    if (path.empty())
-        return root;
+	if (root.empty())
+		return path;
+	if (path.empty())
+		return root;
 
-    if (root.back() == '/' && path.front() == '/')
-    {
-        return root + path.substr(1);  // Entferne das führende '/'
-    }
-    else if (root.back() != '/' && path.front() != '/')
-    {
-        return root + '/' + path;  // Füge einen '/' hinzu
-    }
-    else
-    {
-        return root + path;  // Einfach zusammenfügen
-    }
+	if (root.back() == '/' && path.front() == '/')
+	{
+		return root + path.substr(1);  // Entferne das führende '/'
+	}
+	else if (root.back() != '/' && path.front() != '/')
+	{
+		return root + '/' + path;  // Füge einen '/' hinzu
+	}
+	else
+	{
+		return root + path;  // Einfach zusammenfügen
+	}
 }
 
 std::string Server::getDirectory(const std::string& path) {
-    size_t lastSlash = path.find_last_of("/\\");
-    if (lastSlash != std::string::npos) {
-        return path.substr(0, lastSlash);
-    }
-    return "";
+	size_t lastSlash = path.find_last_of("/\\");
+	if (lastSlash != std::string::npos) {
+		return path.substr(0, lastSlash);
+	}
+	return "";
 }

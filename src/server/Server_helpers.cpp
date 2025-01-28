@@ -1,19 +1,19 @@
 #include "Server.hpp"
 
 void Server::modEpoll(int epoll_fd, int fd, uint32_t events) {
-    struct epoll_event ev;
-    ev.events = events;
-    ev.data.fd = fd;
+	struct epoll_event ev;
+	ev.events = events;
+	ev.data.fd = fd;
 
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0) {
-        if (errno != EEXIST) {
-            Logger::file("Epoll add failed: " + std::string(strerror(errno)));
-            return;
-        }
-        if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0) {
-            Logger::file("Epoll mod failed: " + std::string(strerror(errno)));
-        }
-    }
+	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0) {
+		if (errno != EEXIST) {
+			Logger::file("Epoll add failed: " + std::string(strerror(errno)));
+			return;
+		}
+		if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0) {
+			Logger::file("Epoll mod failed: " + std::string(strerror(errno)));
+		}
+	}
 }
 
 void Server::setTimeout(int t) {
