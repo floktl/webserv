@@ -41,10 +41,11 @@ class Server
 		int runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs);
 		void logRequestBodyMapFDs();
 		void parseAcessRights(Context& ctx);
-		void checkAccessRights(Context &ctx, std::string errorString);
+		bool checkAccessRights(Context &ctx, std::string errorString);
 		bool sendWrapper(Context& ctx, std::string http_response);
 	private:
 		GlobalFDS& globalFDS;
+		std::vector<ServerBlock> configData;
 		// ClientHandler* clientHandler;
 		// CgiHandler* cgiHandler;
 		// RequestHandler* requestHandler;
@@ -88,8 +89,8 @@ class Server
 		bool parseHeaders(Context& ctx);
 		bool handleWrite(Context& ctx);
 		bool queueResponse(Context& ctx, const std::string& response);
-		bool processRequest(Context& ctx, std::vector<ServerBlock> &configs);
 		bool isRequestComplete(const Context& ctx);
+		std::string approveExtention(Context& ctx, std::string path_to_check);
 };
 
 #endif

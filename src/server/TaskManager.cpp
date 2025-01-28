@@ -87,7 +87,7 @@
 // 					req.pipe_fd = -1;
 
 // 					if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, req.pipe_fd, nullptr) < 0) {
-// 						//Logger::file("[ERROR] Failed to remove pipe_fd from epoll");
+// 						////Logger::file("[ERROR] Failed to remove pipe_fd from epoll");
 // 					}
 // 				}
 // 			}

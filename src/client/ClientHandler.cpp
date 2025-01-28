@@ -9,7 +9,7 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 
 //	if (it == fds.request_state_map.end())
 //	{
-//		//Logger::file("[handleClientRead] Invalid fd: " + std::to_string(fd) + " not found in request_state_map.");
+//		////Logger::file("[handleClientRead] Invalid fd: " + std::to_string(fd) + " not found in request_state_map.");
 //		server.delFromEpoll(epfd, fd);
 //		return;
 //	}
@@ -23,7 +23,7 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 
 //		if (n == 0)
 //		{
-//			//Logger::file("[handleClientRead] Client disconnected on fd: " + std::to_string(fd));
+//			////Logger::file("[handleClientRead] Client disconnected on fd: " + std::to_string(fd));
 //			server.delFromEpoll(epfd, fd);
 //			return;
 //		}
@@ -34,7 +34,7 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 //				break;
 //			else
 //			{
-//				//Logger::file("[handleClientRead] read error: "  + std::string(strerror(errno)));
+//				////Logger::file("[handleClientRead] read error: "  + std::string(strerror(errno)));
 //				server.delFromEpoll(epfd, fd);
 //				return;
 //			}
@@ -48,7 +48,7 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 //		}
 //		catch (const std::exception &e)
 //		{
-//			//Logger::file("[handleClientRead] Error parsing request on fd: " + std::to_string(fd) + " - " + e.what());
+//			////Logger::file("[handleClientRead] Error parsing request on fd: " + std::to_string(fd) + " - " + e.what());
 //			server.delFromEpoll(epfd, fd);
 //			return;
 //		}
@@ -62,7 +62,7 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 //	}
 //		if (req.method == "POST" && req.received_body.size() < req.content_length)
 //		{
-//			//Logger::file("[handleClientRead] POST body incomplete. Waiting for more data. " + "Received: " + std::to_string(req.received_body.size()) + ", Expected: " + std::to_string(req.content_length));
+//			////Logger::file("[handleClientRead] POST body incomplete. Waiting for more data. " + "Received: " + std::to_string(req.received_body.size()) + ", Expected: " + std::to_string(req.content_length));
 //			server.modEpoll(epfd, fd, EPOLLIN);
 //			break;
 //		}
@@ -76,7 +76,7 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 //	auto now = std::chrono::steady_clock::now();
 //	if (now - req.last_activity > RequestBody::TIMEOUT_DURATION)
 //	{
-//		//Logger::file("[handleClientWrite] Timeout reached for fd: "  + std::to_string(fd));
+//		////Logger::file("[handleClientWrite] Timeout reached for fd: "  + std::to_string(fd));
 //		server.delFromEpoll(epfd, fd);
 //		return;
 //	}
@@ -87,7 +87,7 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 //		socklen_t len = sizeof(error);
 //		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0)
 //		{
-//			//Logger::file("[handleClientWrite] getsockopt error on fd: " + std::to_string(fd));
+//			////Logger::file("[handleClientWrite] getsockopt error on fd: " + std::to_string(fd));
 //			server.delFromEpoll(epfd, fd);
 //			return;
 //		}
@@ -115,12 +115,12 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 
 //				if (req.response_buffer.empty())
 //				{
-//					//Logger::file("[handleClientWrite] Response fully sent. Removing fd: " + std::to_string(fd) + " from epoll.");
+//					////Logger::file("[handleClientWrite] Response fully sent. Removing fd: " + std::to_string(fd) + " from epoll.");
 //					server.delFromEpoll(epfd, fd);
 //				}
 //				else
 //				{
-//					////Logger::file("[handleClientWrite] Partially sent response. " + "Still have " + std::to_string(req.response_buffer.size())+ " bytes left to send on fd: " + std::to_string(fd));
+//					//////Logger::file("[handleClientWrite] Partially sent response. " + "Still have " + std::to_string(req.response_buffer.size())+ " bytes left to send on fd: " + std::to_string(fd));
 //					server.modEpoll(epfd, fd, EPOLLOUT);
 //				}
 //			}
@@ -128,7 +128,7 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 //			{
 //				if (errno != EAGAIN && errno != EWOULDBLOCK)
 //				{
-//					//Logger::file("[handleClientWrite] send() error on fd: " + std::to_string(fd) + ": " + std::string(strerror(errno)));
+//					////Logger::file("[handleClientWrite] send() error on fd: " + std::to_string(fd) + ": " + std::string(strerror(errno)));
 //					server.delFromEpoll(epfd, fd);
 //				}
 //				else
@@ -145,7 +145,7 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 //bool ClientHandler::processMethod(RequestBody &req, int epoll_fd)
 //{
 
-//	//Logger::file("[processMethod] Extracted method: " + req.method);
+//	////Logger::file("[processMethod] Extracted method: " + req.method);
 
 //	if (!isMethodAllowed(req, req.method))
 //	{

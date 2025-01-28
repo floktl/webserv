@@ -147,7 +147,7 @@ struct Context
 	int epoll_fd = -1;
 	int client_fd = -1;
 	int server_fd = -1;
-	RequestType type = RequestType();
+	RequestType type = INITIAL;
 
 	std::string method = "";
 	std::string path = "";
@@ -184,6 +184,7 @@ struct Context
 	bool headers_complete = false;
 	size_t content_length = 0;
 	size_t body_received = 0;
+	bool keepAlive = false;
 };
 
 struct CgiTunnel
@@ -209,7 +210,7 @@ struct GlobalFDS
 {
 	int epoll_fd = -1;
 	std::map<int, Context> request_state_map;
-	std::map<int, int> svFD_to_clFD_map;
+	std::map<int, int> clFD_to_svFD_map;
 };
 
 struct DirEntry {

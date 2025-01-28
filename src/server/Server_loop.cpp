@@ -22,84 +22,112 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 	const int max_events = 64;
 	struct epoll_event events[max_events];
 	const int timeout_ms = 500;
-	Logger::file("\n");
-	int count = 4000;
-	while (count != 0)
+	//Logger::file("\n");
+	while (true)
 	{
 		int n = epoll_wait(epoll_fd, events, max_events, timeout_ms);
-		//Logger::file("Events count: " + std::to_string(n));
+		////Logger::file("Events count: " + std::to_string(n));
 
 		if (n < 0)
 		{
-			Logger::file("Epoll error: " + std::string(strerror(errno)));
+			//Logger::file("Epoll error: " + std::string(strerror(errno)));
 			if (errno == EINTR) continue;
 			break;
 		}
 		else if (n == 0)
 		{
-			checkAndCleanupTimeouts();
+			//checkAndCleanupTimeouts();
 			continue;
 		}
 
 		for (int i = 0; i < n; i++)
 		{
-			int incoming_fd = events[i].data.fd; // could be server_fd when new connection, client_fd when existing
+			int incoming_fd = events[i].data.fd;
+			    if (incoming_fd <= 0) {
+   				    //Logger::file("WARNING: Invalid fd " + std::to_string(incoming_fd) + " in epoll event");
+   				    continue;
+   				}
 			uint32_t ev = events[i].events;
-			Logger::file("New Event:\nfd=" + std::to_string(incoming_fd) + " events=" + std::to_string(ev) + "\n");
+			//Logger::file("New Event:\nfd=" + std::to_string(incoming_fd) + " events=" + std::to_string(ev) + "\n");
+			//if (!dispatchEvent(epoll_fd, incoming_fd, ev, configs)) {
+			//	if (epoll_fd == 0)
+			//		close(epoll_fd);
+			//	if (incoming_fd == 0)
+			//		close(incoming_fd);
+
+			//	delFromEpoll(epoll_fd, incoming_fd);
+			//}
 			dispatchEvent(epoll_fd, incoming_fd, ev, configs);
 		}
 		//checkAndCleanupTimeouts();
-		count--;
 	}
 	close(epoll_fd);
 	return EXIT_SUCCESS;
 }
 
 bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev,
-							std::vector<ServerBlock> &configs)
+                          std::vector<ServerBlock> &configs)
 {
-	Logger::file("dispatchEvent: fd=" + std::to_string(incoming_fd) + " events=" + std::to_string(ev));
+    // Determine if incoming_fd is a server or client fd
+    int server_fd = -1;
+    int client_fd = -1;
 
-	// Only check ServerBlock for new connections (server socket events)
-	if (ev & EPOLLIN && findServerBlock(configs, incoming_fd)) {
-		return handleNewConnection(epoll_fd, incoming_fd);
-	}
+    if (findServerBlock(configs, incoming_fd)) {
+        server_fd = incoming_fd;
+    	//Logger::file("dispatchEvent: Server fd identified: " + std::to_string(server_fd) + " events=" + std::to_string(ev));
+    } else {
+        client_fd = incoming_fd;
+       //Logger::file("dispatchEvent: client fd identified: " + std::to_string(client_fd) + " events=" + std::to_string(ev));
+    }
+	log_global_fds(globalFDS);
 
-	// For all other cases, look up the context
-	auto it = globalFDS.request_state_map.find(incoming_fd);
-	if (it != globalFDS.request_state_map.end())
-	{
-		Context& ctx = it->second;
-		ctx.last_activity = std::chrono::steady_clock::now();
+    // Only check ServerBlock for new connections (server socket events)
+    if (server_fd != -1) {
+        bool result = handleNewConnection(epoll_fd, server_fd);
+        // Never remove server sockets from epoll
+        return result;
+    }
 
-		// Handle errors/disconnects
-		if (ev & (EPOLLHUP | EPOLLERR))
-		{
-			Logger::file("Connection error on fd " + std::to_string(incoming_fd));
-			delFromEpoll(epoll_fd, incoming_fd);
-			return false;
-		}
+    // For all other cases, look up the context
+    auto it = globalFDS.request_state_map.find(client_fd);
+    if (it != globalFDS.request_state_map.end())
+    {
+        Context& ctx = it->second;
+        ctx.last_activity = std::chrono::steady_clock::now();
 
-		// Handle reads
-		if ((ev & EPOLLIN) && !handleRead(ctx, configs))
-		{
-			delFromEpoll(epoll_fd, incoming_fd);
-			return false;
-		}
+        // Handle reads
+        if (ev & EPOLLIN)
+        {
+            if (!handleRead(ctx, configs))
+            {
+                //Logger::file("delete after read");
+                return false;
+            }
+            //Logger::file("success read");
+        }
 
-		// Handle writes
-		if ((ev & EPOLLOUT) && !handleWrite(ctx))
-		{
-			delFromEpoll(epoll_fd, incoming_fd);
-			return false;
-		}
+        // Handle errors/disconnects
+        if (ev & (EPOLLHUP | EPOLLERR))
+        {
+            //Logger::file("Connection error on fd " + std::to_string(client_fd));
+            delFromEpoll(epoll_fd, client_fd);
+            return false;
+        }
 
-		return true;
-	}
+        // Handle writes
+        if ((ev & EPOLLOUT) && !handleWrite(ctx))
+        {
+            delFromEpoll(epoll_fd, client_fd);
+            //Logger::file("delete after write");
+            return false;
+        }
+        //Logger::file("no epollin/out/err/hub");
+        return true;
+    }
 
-	Logger::file("Unknown fd: " + std::to_string(incoming_fd));
-	delFromEpoll(epoll_fd, incoming_fd);
-	return false;
+    //Logger::file("Unknown fd: " + std::to_string(client_fd));
+    delFromEpoll(epoll_fd, client_fd);
+    return false;
 }
 
 bool Server::isMethodAllowed(Context& ctx)
@@ -130,97 +158,110 @@ bool Server::isMethodAllowed(Context& ctx)
 	return isAllowed;
 }
 
+std::string Server::approveExtention(Context& ctx, std::string path_to_check)
+{
+    std::string approvedIndex;
+
+    size_t dot_pos = path_to_check.find_last_of('.');
+
+    if (dot_pos != std::string::npos)
+    {
+        std::string extension = path_to_check.substr(dot_pos + 1);
+        //Logger::file("Checking default file extension (without dot): " + extension);
+
+        if (ctx.type != CGI || (extension == ctx.location->cgi_filetype && ctx.type == CGI))
+        {
+            approvedIndex = path_to_check;
+            //Logger::file("Default file approved: " + approvedIndex);
+        }
+        else
+        {
+            //Logger::file("Extension validation failed - CGI type: [" + ctx.location->cgi_filetype + "], Extension: [" + extension + "]");
+            ctx.error_code = 500;
+            ctx.type = ERROR;
+            ctx.error_message = "Internal Server Error";
+            return "";
+        }
+    }
+    else
+    {
+        //Logger::file("ERROR: Bad Request -> file extention not valid");
+        ctx.error_code = 400;
+        ctx.type = ERROR;
+        ctx.error_message = "Bad Request: No file extension found";
+        return "";
+    }
+
+    return approvedIndex;
+}
+
+
 void Server::parseAcessRights(Context& ctx)
 {
-	Logger::file("parseAcessRights: Starting access rights parsing");
+	//Logger::file("parseAcessRights: Starting access rights parsing");
 
+	//Logger::file("Before Requested Path: " + ctx.path);
+	std::string requestedPath = concatenatePath(ctx.root, ctx.path);
+	//Logger::file("After Requested Path: " + requestedPath);
 	ctx.access_flag = FILE_EXISTS;
-	//checkAccessRights(ctx, ctx.root);
-	Logger::file("Root access check completed - Path: " + ctx.root);
-
-	std::string rootAndLocation = concatenatePath(ctx.root, ctx.location->path);
-	Logger::file("Combined path: " + rootAndLocation);
-
-	std::string aprovedIndex;
-	size_t dot_pos = ctx.location->default_file.find_last_of('.');
-
-	if (dot_pos != std::string::npos)
-	{
-		// Get extension WITHOUT the dot
-		std::string extension = ctx.location->default_file.substr(dot_pos + 1);
-		Logger::file("Checking default file extension (without dot): " + extension);
-
-		if ((extension == ctx.location->cgi_filetype) ||
-			(ctx.location->cgi_filetype.empty() && extension == "html")) {
-			aprovedIndex = ctx.location->default_file;
-			Logger::file("Default file approved: " + aprovedIndex);
-		} else {
-			Logger::file("Extension validation failed - CGI type: [" + ctx.location->cgi_filetype +
-						"], Extension: [" + extension + "]");
-			ctx.error_code = 500;
-			ctx.type = ERROR;
-			ctx.error_message = "Internal Server Error";
-		}
-	} else {
-		Logger::file("WARNING: No extension found in default file");
+	if (!requestedPath.empty() && requestedPath.back() == '/') {
+		//Logger::file("apply default file config");
+		requestedPath = concatenatePath(requestedPath, ctx.location->default_file);
 	}
-
-	// Path normalization
-	if (!rootAndLocation.empty() && rootAndLocation.back() != '/')
-	{
-		rootAndLocation += "/";
-		Logger::file("Path normalized with trailing slash: " + rootAndLocation);
-	}
-
-	// Construct full index path
-	std::string rootAndLocationIndex = rootAndLocation + aprovedIndex;
-	Logger::file("Full index path: " + rootAndLocationIndex);
+	requestedPath = approveExtention(ctx, requestedPath);
+	//Logger::file("After Requested Path: " + requestedPath);
+	if (ctx.type == ERROR)
+		return;
 	// File existence check
 	ctx.access_flag = FILE_EXISTS;
 	//checkAccessRights(ctx, rootAndLocationIndex);
-	Logger::file("File existence check completed for: " + rootAndLocationIndex);
+	//Logger::file("File existence check completed for: " + requestedPath);
 
 	// Read permission check
 	ctx.access_flag = FILE_READ;
 	//checkAccessRights(ctx, rootAndLocationIndex);
-	Logger::file("Read permission check completed for: " + rootAndLocationIndex);
+	//Logger::file("Read permission check completed for: " + requestedPath);
 
 	// Execute permission check
 	ctx.access_flag = FILE_EXISTS;
-	checkAccessRights(ctx, rootAndLocationIndex);
-	Logger::file("Execute permission check completed for: " + rootAndLocationIndex);
-
-	ctx.approved_req_path = rootAndLocationIndex;
-	Logger::file("parseAcessRights: Completed all access rights checks");
+	checkAccessRights(ctx, requestedPath);
+	//Logger::file("Execute permission check completed for: " + requestedPath);
+	if (ctx.type == ERROR)
+		return;
+	ctx.approved_req_path = requestedPath;
+	//Logger::file("parseAcessRights: Completed all access rights checks");
 
 	// Additional debug information about context state
-	std::string contextState = "Context state - Error code: " +
-							std::to_string(ctx.error_code) +
-							", Type: " + std::to_string(ctx.type);
-	Logger::file(contextState);
+	if (ctx.error_code != 0)
+	{
+		std::string contextState = "Context state - Error code: " +
+								std::to_string(ctx.error_code) +
+								", Type: " + std::to_string(ctx.type);
+		//Logger::file(contextState);
+	}
 }
 
-void Server::checkAccessRights(Context &ctx, std::string path)
+bool Server::checkAccessRights(Context &ctx, std::string path)
 {
-	Logger::file("[INFO] Checking access rights for: " + path);
+	//Logger::file("[INFO] Checking access rights for: " + path);
 	if (access(path.c_str(), ctx.access_flag))
 	{
 		if (ctx.location->autoindex == "on")
 		{
 			std::string dirPath = getDirectory(path) + '/';
-			Logger::file("[INFO] Autoindex enabled, checking directory: " + dirPath);
+			//Logger::file("[INFO] Autoindex enabled, checking directory: " + dirPath);
 			if (access(dirPath.c_str(), F_OK))
 			{
 				ctx.error_code = 403;
 				ctx.type = ERROR;
 				ctx.error_message = "Forbidden";
-				Logger::file("[ERROR] Autoindex forbidden for: " + dirPath);
-				return;
+				//Logger::file("[ERROR] Autoindex forbidden for: " + dirPath);
+				return false;
 			}
 			ctx.doAutoIndex = dirPath;
 			ctx.type = STATIC;
-			Logger::file("[INFO] Autoindexing directory: " + dirPath);
-			return;
+			//Logger::file("[INFO] Autoindexing directory: " + dirPath);
+			return false;
 		}
 
 		switch (errno)
@@ -247,10 +288,14 @@ void Server::checkAccessRights(Context &ctx, std::string path)
 				break;
 		}
 		ctx.type = ERROR;
-		Logger::file("[ERROR] Access denied for " + path + " Reason: " + ctx.error_message);
+		//Logger::file("[ERROR] Access denied for " + path + " Reason: " + ctx.error_message);
+		return false;
 	}
 	else
-		Logger::file("[INFO] Access granted for: " + path);
+	{
+		//Logger::file("[INFO] Access granted for: " + path);
+		return true;
+	}
 }
 
 
@@ -335,6 +380,8 @@ void Server::determineType(Context& ctx, const std::vector<ServerBlock>& configs
 
 
 void Server::parseRequest(Context& ctx) {
+		//Logger::file("parseRequest");
+
 	char buffer[8192];
 	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
 
@@ -360,13 +407,8 @@ void Server::parseRequest(Context& ctx) {
 		}
 	}
 
-	// Parse body if present
-	if (ctx.headers.count("Content-Length")) {
-		size_t length = std::stoi(ctx.headers["Content-Length"]);
-		std::vector<char> body_buffer(length);
-		stream.read(body_buffer.data(), length);
-		ctx.body = std::string(body_buffer.data(), length);
-	}
+
+
 
 	logContext(ctx, "Parsed");
 }
@@ -399,7 +441,7 @@ for (auto it = globalFDS.request_state_map.begin(); it != globalFDS.request_stat
 void Server::killTimeoutedCGI(RequestBody &req) {
 	if (req.cgi_pid > 0) {
 		kill(req.cgi_pid, SIGTERM);
-		//Logger::file(std::to_string(req.associated_conf->timeout));
+		////Logger::file(std::to_string(req.associated_conf->timeout));
 		std::this_thread::sleep_for(std::chrono::microseconds(req.associated_conf->timeout));
 		int status;
 		pid_t result = waitpid(req.cgi_pid, &status, WNOHANG);
@@ -412,13 +454,13 @@ void Server::killTimeoutedCGI(RequestBody &req) {
 	if (req.cgi_in_fd != -1) {
 		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
 		close(req.cgi_in_fd);
-		globalFDS.svFD_to_clFD_map.erase(req.cgi_in_fd);
+		globalFDS.clFD_to_svFD_map.erase(req.cgi_in_fd);
 		req.cgi_in_fd = -1;
 	}
 	if (req.cgi_out_fd != -1) {
 		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
 		close(req.cgi_out_fd);
-		globalFDS.svFD_to_clFD_map.erase(req.cgi_out_fd);
+		globalFDS.clFD_to_svFD_map.erase(req.cgi_out_fd);
 		req.cgi_out_fd = -1;
 	}
 	if (req.pipe_fd != -1) {
@@ -451,7 +493,7 @@ void Server::logContext(const Context& ctx, const std::string& event)
 	{
 		for (const auto& header : ctx.headers)
 		{
-			log += header.first + ": " + header.second + "\n";
+			log += header.first + " BDFLNDKSFJN: " + header.second + "\n";
 		}
 	}
 
@@ -469,7 +511,7 @@ void Server::logContext(const Context& ctx, const std::string& event)
 							.count()) +
 		" seconds since epoch";
 
-	Logger::file(log);
+	//Logger::file(log);
 }
 
 
@@ -493,21 +535,52 @@ std::string Server::normalizePath(const std::string& raw)
 	return path;
 }
 
-bool Server::matchLoc(const Location& loc, std::string rawPath)
-{
-	std::string path = normalizePath(rawPath);
-	if (path == loc.path)
-		return true;
-	return false;
+bool Server::matchLoc(const Location& loc, std::string rawPath) {
+    if (rawPath.empty()) {
+        rawPath = "/";
+    }
+
+    if (rawPath[0] != '/') {
+        rawPath = "/" + rawPath;
+    }
+
+    std::string normalizedPath;
+    bool lastWasSlash = false;
+
+    for (size_t i = 0; i < rawPath.length(); ++i) {
+        if (rawPath[i] == '/') {
+            if (!lastWasSlash) {
+                normalizedPath += '/';
+            }
+            lastWasSlash = true;
+        } else {
+            normalizedPath += rawPath[i];
+            lastWasSlash = false;
+        }
+    }
+
+    if (normalizedPath == loc.path) {
+        return true;
+    }
+
+    if (loc.path.length() <= normalizedPath.length() &&
+        normalizedPath.substr(0, loc.path.length()) == loc.path) {
+        if (loc.path[loc.path.length()-1] != '/') {
+            return normalizedPath[loc.path.length()] == '/';
+        }
+        return true;
+    }
+
+    return false;
 }
 
 void Server::logRequestBodyMapFDs()
 {
-	Logger::file("Logging all FDs in request_state_map:");
+	//Logger::file("Logging all FDs in request_state_map:");
 
 	if (globalFDS.request_state_map.empty())
 	{
-		Logger::file("[empty]");
+		//Logger::file("[empty]");
 		return;
 	}
 
@@ -517,7 +590,7 @@ void Server::logRequestBodyMapFDs()
 		log += std::to_string(pair.first) + " ";
 	}
 
-	Logger::file(log);
+	//Logger::file(log);
 }
 
 std::string Server::concatenatePath(const std::string& root, const std::string& path)

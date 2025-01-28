@@ -4,7 +4,14 @@
 #include <memory>
 
 std::unique_ptr<Server> serverInstance;
+void log_global_fds(const GlobalFDS& fds) {
+    Logger::file("GlobalFDS epoll_fd: " + std::to_string(fds.epoll_fd));
 
+    Logger::file("GlobalFDS clFD_to_svFD_map:");
+    for (const auto& pair : fds.clFD_to_svFD_map) {
+        Logger::file("GlobalFDS=  client_fd: " + std::to_string(pair.first) + " -> server_fd: " + std::to_string(pair.second));
+    }
+}
 void handle_sigint(int sig)
 {
 	(void)sig;
