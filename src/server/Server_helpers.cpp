@@ -2,7 +2,7 @@
 
 void Server::modEpoll(int epoll_fd, int fd, uint32_t events) {
 	if (fd <= 0) {
-        //Logger::file("WARNING: Attempt to modify epoll for invalid fd: " + std::to_string(fd));
+        Logger::file("WARNING: Attempt to modify epoll for invalid fd: " + std::to_string(fd));
         return;
     }
 	struct epoll_event ev;
@@ -11,11 +11,11 @@ void Server::modEpoll(int epoll_fd, int fd, uint32_t events) {
 
 	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0) {
 		if (errno != EEXIST) {
-			//Logger::file("Epoll add failed: " + std::string(strerror(errno)));
+			Logger::file("Epoll add failed: " + std::string(strerror(errno)));
 			return;
 		}
 		if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0) {
-			//Logger::file("Epoll mod failed: " + std::string(strerror(errno)));
+			Logger::file("Epoll mod failed: " + std::string(strerror(errno)));
 		}
 	}
 }
@@ -32,40 +32,41 @@ int Server::getTimeout() const {
 void Server::delFromEpoll(int epfd, int fd)
 {
 	 if (epfd <= 0 || fd <= 0) {
-        //Logger::file("WARNING: Attempt to delete invalid fd: " + std::to_string(fd));
+        Logger::file("WARNING: Attempt to delete invalid fd: " + std::to_string(fd));
         return;
     }
 	if (findServerBlock(configData, fd)) {
-		//Logger::file("Prevented removal of server socket: " + std::to_string(fd));
+		Logger::file("Prevented removal of server socket: " + std::to_string(fd));
 		return;
 	}
 	//Logger::file("Removing fd " + std::to_string(fd) + " from epoll");
 
 	if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL) < 0)
-		//Logger::file("Error removing from epoll: " + std::string(strerror(errno)));
+		Logger::file("Error removing from epoll: " + std::string(strerror(errno)));
 
-	//auto ctx_it = globalFDS.request_state_map.find(fd);
-	//if (ctx_it != globalFDS.request_state_map.end()) {
-	//	RequestBody &req = ctx_it->second.req;
-	//	if (req.cgi_in_fd != -1) {
-	//		close(req.cgi_in_fd);
-	//		globalFDS.clFD_to_svFD_map.erase(req.cgi_in_fd);
-	//	}
-	//	if (req.cgi_out_fd != -1) {
-	//		close(req.cgi_out_fd);
-	//		globalFDS.clFD_to_svFD_map.erase(req.cgi_out_fd);
-	//	}
+	auto ctx_it = globalFDS.request_state_map.find(fd);
+	if (ctx_it != globalFDS.request_state_map.end()) {
+		RequestBody &req = ctx_it->second.req;
+		if (req.cgi_in_fd != -1) {
+			close(req.cgi_in_fd);
+			globalFDS.clFD_to_svFD_map.erase(req.cgi_in_fd);
+		}
+		if (req.cgi_out_fd != -1) {
+			close(req.cgi_out_fd);
+			globalFDS.clFD_to_svFD_map.erase(req.cgi_out_fd);
+		}
 
-	//	globalFDS.request_state_map.erase(fd);
-	//}
-//Logger::file("removed from clFD_to_svFD_map[clFD:" + std::to_string(fd) + "] = svFD(" + std::to_string(globalFDS.clFD_to_svFD_map[fd]) + ")");
+		globalFDS.request_state_map.erase(fd);
+	}
+	Logger::file("removed from clFD_to_svFD_map[clFD:" + std::to_string(fd) + "] = svFD(" + std::to_string(globalFDS.clFD_to_svFD_map[fd]) + ")");
+	close(fd);
 	globalFDS.clFD_to_svFD_map.erase(fd);
 
-	close(fd);
 	//Logger::file("Successfully removed fd " + std::to_string(fd));
 }
 
-bool Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd) {
+bool Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd)
+{
 	//Logger::file("Finding ServerBlock for fd: " + std::to_string(fd));
 	for (const auto &conf : configs) {
 		////Logger::file("Checking config with fd: " + std::to_string(conf.server_fd));
@@ -91,7 +92,7 @@ int Server::setNonBlocking(int fd)
 // {
 // 	if (client_fd < 0)
 // 	{
-// 		////Logger::file("Error: Invalid client_fd " + std::to_string(client_fd));
+// 		//Logger::file("Error: Invalid client_fd " + std::to_string(client_fd));
 // 		return;
 // 	}
 
@@ -109,7 +110,7 @@ int Server::setNonBlocking(int fd)
 // 	}
 // 	else
 // 	{
-// 		////Logger::file("Error: client_fd " + std::to_string(client_fd) + " not found in request_state_map");
+// 		//Logger::file("Error: client_fd " + std::to_string(client_fd) + " not found in request_state_map");
 // 	}
 // }
 
@@ -124,7 +125,7 @@ int Server::setNonBlocking(int fd)
 // 	}
 // 	else
 // 	{
-// 		////Logger::file("Error: client_fd " + std::to_string(client_fd) + " not found in request_state_map");
+// 		//Logger::file("Error: client_fd " + std::to_string(client_fd) + " not found in request_state_map");
 // 		return RequestBody::Task::PENDING;
 // 	}
 // }

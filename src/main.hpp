@@ -54,7 +54,7 @@
 
 void printServerBlock(const ServerBlock& serverBlock);
 void printRequestBody(const RequestBody& req);
-
+std::string getEventDescription(uint32_t ev);
 std::string trim(const std::string& str);
 std::vector<std::string> parseOptionsToVector(const std::string& opts);
 std::string expandEnvironmentVariables(const std::string& value, char** env);
