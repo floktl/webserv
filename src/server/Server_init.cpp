@@ -24,13 +24,13 @@ Server::~Server()
 	//removeAddedServerNamesFromHosts();
 }
 
-//void Server::handle_sigint(int sig)
-//{
-//	(void)sig;
-//	Logger::yellow() << "\nCaught SIGINT (CTRL+C). Shutting down gracefully...";
-//	removeAddedServerNamesFromHosts();
-//	exit(EXIT_SUCCESS);
-//}
+void Server::setTimeout(int t) {
+	timeout = t;
+}
+
+int Server::getTimeout() const {
+	return timeout;
+}
 
 void Server::cleanup()
 {
@@ -44,7 +44,8 @@ ErrorHandler* Server::getErrorHandler(void) { return errorHandler; }
 // TaskManager* Server::getTaskManager(void) { return taskManager; }
 GlobalFDS& Server::getGlobalFds(void) { return globalFDS; }
 
-int Server::server_init(std::vector<ServerBlock> configs) {
+int Server::server_init(std::vector<ServerBlock> configs)
+{
 	int epoll_fd = initEpoll();
 	if (epoll_fd < 0)
 		return EXIT_FAILURE;
@@ -131,3 +132,4 @@ for (auto &conf : configs) {
 }
 return true;
 }
+
