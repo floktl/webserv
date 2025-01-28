@@ -134,7 +134,7 @@ void Server::parseAcessRights(Context& ctx) {
 	Logger::file("parseAcessRights: Starting access rights parsing");
 
 	ctx.access_flag = FILE_EXISTS;
-	checkAccessRights(ctx, ctx.root);
+	//checkAccessRights(ctx, ctx.root);
 	Logger::file("Root access check completed - Path: " + ctx.root);
 
 	std::string rootAndLocation = concatenatePath(ctx.root, ctx.location->path);
@@ -174,16 +174,16 @@ void Server::parseAcessRights(Context& ctx) {
 
 	// File existence check
 	ctx.access_flag = FILE_EXISTS;
-	checkAccessRights(ctx, rootAndLocationIndex);
+	//checkAccessRights(ctx, rootAndLocationIndex);
 	Logger::file("File existence check completed for: " + rootAndLocationIndex);
 
 	// Read permission check
 	ctx.access_flag = FILE_READ;
-	checkAccessRights(ctx, rootAndLocationIndex);
+	//checkAccessRights(ctx, rootAndLocationIndex);
 	Logger::file("Read permission check completed for: " + rootAndLocationIndex);
 
 	// Execute permission check
-	ctx.access_flag = FILE_EXECUTE;
+	ctx.access_flag = FILE_EXISTS;
 	checkAccessRights(ctx, rootAndLocationIndex);
 	Logger::file("Execute permission check completed for: " + rootAndLocationIndex);
 
