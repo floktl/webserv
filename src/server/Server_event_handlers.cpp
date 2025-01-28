@@ -147,7 +147,8 @@ bool Server::handleWrite(Context& ctx)
         if (ctx.keepAlive) {
 		 	//Logger::file("modEpoll because keep alive ");
             modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
-        } else {
+        } else
+		{
 			//Logger::file("delFromEpoll because not keep alive ");
             delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 		}
@@ -166,48 +167,51 @@ bool Server::queueResponse(Context& ctx, const std::string& response)
 
 bool Server::handleNewConnection(int epoll_fd, int server_fd)
 {
-	struct sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
-	if (server_fd <= 0) {
-        //Logger::file("Invalid server: " + std::to_string(server_fd));
-        if (server_fd == 0)
-        return false;
-    }
-	int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
-    if (client_fd <= 0) {
-        //Logger::file("Failed to accept connection: " + std::string(strerror(errno)));
-        return true;
-    }
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
 
-    //Logger::file("Added to clFD_to_svFD_map[clFD:" + std::to_string(client_fd) + "] = svFD(" + std::to_string(server_fd) + ")");
-	globalFDS.clFD_to_svFD_map[client_fd] = server_fd;
-
-	if (setNonBlocking(client_fd) < 0) {
-            //Logger::file("Failed to set non-blocking mode: " + std::string(strerror(errno)));
-            close(client_fd);
-            return true;
-    }
-	//Logger::file("epoll_fd before modEpoll: " + std::to_string(epoll_fd));
-	modEpoll(epoll_fd, client_fd, EPOLLIN | EPOLLET);
-	//Logger::file("epoll_fd after modEpoll: " + std::to_string(epoll_fd) + " to: EPOLLIN | EPOLLET");
-	if (client_fd < 0) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            //Logger::file("Accept error: " + std::string(strerror(errno)));
+    while (true)
+	{
+        int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+        if (client_fd <= 0)
+		{
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+			{
+                // No more connections to accept (normal behavior in non-blocking mode)
+                break;
+            } else {
+                Logger::file("Failed to accept connection: " + std::string(strerror(errno)) + "Server_fd: " +  std::to_string(server_fd));
+                return false;
+            }
         }
+
+        Logger::file("New client_fd: " + std::to_string(client_fd) + " accepted on server_fd: " + std::to_string(server_fd));
+
+        if (setNonBlocking(client_fd) < 0) {
+            Logger::file("Failed to set non-blocking mode for client_fd: " + std::to_string(client_fd));
+            close(client_fd);
+            continue; // Skip this client but continue accepting others
+        }
+
+        modEpoll(epoll_fd, client_fd, EPOLLIN | EPOLLET);
+        // Add to GlobalFDS maps
+        globalFDS.clFD_to_svFD_map[client_fd] = server_fd;
+
+        Context ctx;
+        ctx.server_fd = server_fd;
+        ctx.client_fd = client_fd;
+        ctx.epoll_fd = epoll_fd;
+        ctx.type = RequestType::INITIAL;
+        ctx.last_activity = std::chrono::steady_clock::now();
+        ctx.doAutoIndex = "";
+        ctx.keepAlive = true;
+
+        globalFDS.request_state_map[client_fd] = ctx;
+        logRequestBodyMapFDs();
+        logContext(ctx, "New Connection");
     }
-	Context ctx;
-	ctx.server_fd = server_fd;
-	ctx.client_fd = client_fd;
-	ctx.epoll_fd = epoll_fd;
-	ctx.type = RequestType::INITIAL;
-	ctx.last_activity = std::chrono::steady_clock::now();
-	ctx.doAutoIndex = "";
-	ctx.keepAlive = true;
-	globalFDS.request_state_map[client_fd] = ctx;
-	logRequestBodyMapFDs();
-	logContext(ctx, "New Connection");
-	//Logger::file("Leaving handle new connection sucessfully...\n");
-	return true;
+
+    return true;
 }
 
 bool Server::sendWrapper(Context& ctx, std::string http_response)
@@ -215,7 +219,7 @@ bool Server::sendWrapper(Context& ctx, std::string http_response)
     // Attempt to send the response
     ssize_t bytes_sent = send(ctx.client_fd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
     if (bytes_sent < 0) {
-        //Logger::file("Error sending response to client_fd: " + std::to_string(ctx.client_fd) + " - " + std::string(strerror(errno)));
+        Logger::file("Error sending response to client_fd: " + std::to_string(ctx.client_fd) + " - " + std::string(strerror(errno)));
         delFromEpoll(ctx.epoll_fd, ctx.client_fd);
         return false;
     }

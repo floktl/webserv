@@ -68,23 +68,27 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev,
                           std::vector<ServerBlock> &configs)
 {
+	Logger::file("");
+	Logger::file(getEventDescription(ev));
     // Determine if incoming_fd is a server or client fd
     int server_fd = -1;
     int client_fd = -1;
 
     if (findServerBlock(configs, incoming_fd)) {
         server_fd = incoming_fd;
-    	//Logger::file("dispatchEvent: Server fd identified: " + std::to_string(server_fd) + " events=" + std::to_string(ev));
+    	Logger::file("dispatchEvent: Server fd identified: " + std::to_string(server_fd) + " events=" + std::to_string(ev));
     } else {
         client_fd = incoming_fd;
-       //Logger::file("dispatchEvent: client fd identified: " + std::to_string(client_fd) + " events=" + std::to_string(ev));
+       Logger::file("dispatchEvent: client fd identified: " + std::to_string(client_fd) + " events=" + std::to_string(ev));
     }
 	log_global_fds(globalFDS);
 
     // Only check ServerBlock for new connections (server socket events)
-    if (server_fd != -1) {
+    if (server_fd >= 0) {
+		Logger::file("goes to handleNewConnection()");
         bool result = handleNewConnection(epoll_fd, server_fd);
         // Never remove server sockets from epoll
+		log_global_fds(globalFDS);
         return result;
     }
 
@@ -98,9 +102,11 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev,
         // Handle reads
         if (ev & EPOLLIN)
         {
+			Logger::file("goes to handleread()");
             if (!handleRead(ctx, configs))
             {
                 //Logger::file("delete after read");
+				log_global_fds(globalFDS);
                 return false;
             }
             //Logger::file("success read");
@@ -109,24 +115,34 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev,
         // Handle errors/disconnects
         if (ev & (EPOLLHUP | EPOLLERR))
         {
+			Logger::file("goes to delFromEpoll()");
             //Logger::file("Connection error on fd " + std::to_string(client_fd));
             delFromEpoll(epoll_fd, client_fd);
+			log_global_fds(globalFDS);
             return false;
         }
 
         // Handle writes
-        if ((ev & EPOLLOUT) && !handleWrite(ctx))
+        if ((ev & EPOLLOUT))
         {
-            delFromEpoll(epoll_fd, client_fd);
-            //Logger::file("delete after write");
-            return false;
+			Logger::file("goes to handleWrite()");
+			if (!handleWrite(ctx))
+			{
+				delFromEpoll(epoll_fd, client_fd);
+				//Logger::file("delete after write");
+				log_global_fds(globalFDS);
+				return false;
+			}
+			delFromEpoll(epoll_fd, client_fd);
         }
         //Logger::file("no epollin/out/err/hub");
+		log_global_fds(globalFDS);
         return true;
     }
 
     //Logger::file("Unknown fd: " + std::to_string(client_fd));
     delFromEpoll(epoll_fd, client_fd);
+	log_global_fds(globalFDS);
     return false;
 }
 
@@ -185,7 +201,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
     }
     else
     {
-        //Logger::file("ERROR: Bad Request -> file extention not valid");
+        Logger::file("Error: Bad Request -> file extention not valid");
         ctx.error_code = 400;
         ctx.type = ERROR;
         ctx.error_message = "Bad Request: No file extension found";

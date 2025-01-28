@@ -3,6 +3,43 @@
 #include <iostream>
 #include <memory>
 
+std::string getEventDescription(uint32_t ev) {
+    std::ostringstream description;
+
+    if (ev & EPOLLIN) {
+        description << "EPOLLIN ";
+    }
+    if (ev & EPOLLOUT) {
+        description << "EPOLLOUT ";
+    }
+    if (ev & EPOLLHUP) {
+        description << "EPOLLHUP ";
+    }
+    if (ev & EPOLLERR) {
+        description << "EPOLLERR ";
+    }
+    if (ev & EPOLLRDHUP) {
+        description << "EPOLLRDHUP ";
+    }
+    if (ev & EPOLLPRI) {
+        description << "EPOLLPRI ";
+    }
+    if (ev & EPOLLET) {
+        description << "EPOLLET ";
+    }
+    if (ev & EPOLLONESHOT) {
+        description << "EPOLLONESHOT ";
+    }
+
+    // Remove the trailing space if there's any description
+    std::string result = description.str();
+    if (!result.empty() && result.back() == ' ') {
+        result.pop_back();
+    }
+
+    return result.empty() ? "UNKNOWN EVENT" : result;
+}
+
 std::unique_ptr<Server> serverInstance;
 void log_global_fds(const GlobalFDS& fds) {
     Logger::file("GlobalFDS epoll_fd: " + std::to_string(fds.epoll_fd));
