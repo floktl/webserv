@@ -48,7 +48,7 @@ NAME=webserv
 #------------------------------------------------------------------------------#
 
 CC=c++
-CFLAGS=-Wall -Wextra -Werror -Wshadow -std=c++17 -g
+CFLAGS=-Wall -Wextra -Werror -Wshadow -std=c++17 -g -Wno-unused-but-set-variable
 LDFLAGS=
 
 ifeq ($(DEBUG), 1)
