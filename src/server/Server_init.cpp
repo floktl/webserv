@@ -19,8 +19,8 @@ Server::~Server()
 	// delete requestHandler;
 	delete errorHandler;
 	// delete taskManager;
-    Logger::yellow() << "\nCleaning up server resources...";
-    //removeAddedServerNamesFromHosts();
+	Logger::yellow() << "\nCleaning up server resources...";
+	//removeAddedServerNamesFromHosts();
 }
 
 //void Server::handle_sigint(int sig)
@@ -33,7 +33,7 @@ Server::~Server()
 
 void Server::cleanup()
 {
-    removeAddedServerNamesFromHosts();
+	removeAddedServerNamesFromHosts();
 }
 
 // ClientHandler* Server::getClientHandler(void) { return clientHandler; }
@@ -76,59 +76,59 @@ int Server::initEpoll()
 }
 
 bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs) {
-   Logger::green("Server listening on the ports:");
-   for (auto &conf : configs) {
-       conf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
-       if (conf.server_fd < 0) {
-           Logger::file("Socket error: " + std::string(strerror(errno)));
-           return false;
-       }
+Logger::green("Server listening on the ports:");
+for (auto &conf : configs) {
+	conf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (conf.server_fd < 0) {
+		Logger::file("Socket error: " + std::string(strerror(errno)));
+		return false;
+	}
 
-       int opt = 1;
-       if (setsockopt(conf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-           Logger::file("Setsockopt error: " + std::string(strerror(errno)));
-           return false;
-       }
+	int opt = 1;
+	if (setsockopt(conf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+		Logger::file("Setsockopt error: " + std::string(strerror(errno)));
+		return false;
+	}
 
-       struct sockaddr_in addr;
-       std::memset(&addr, 0, sizeof(addr));
-       addr.sin_family = AF_INET;
-       addr.sin_port = htons(conf.port);
-       addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	struct sockaddr_in addr;
+	std::memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(conf.port);
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-       if (bind(conf.server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-           Logger::file("Bind error on port " + std::to_string(conf.port) +
-                       ": " + std::string(strerror(errno)));
-           close(conf.server_fd);
-           return false;
-       }
+	if (bind(conf.server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+		Logger::file("Bind error on port " + std::to_string(conf.port) +
+					": " + std::string(strerror(errno)));
+		close(conf.server_fd);
+		return false;
+	}
 
-       if (listen(conf.server_fd, SOMAXCONN) < 0) {
-           Logger::file("Listen error: " + std::string(strerror(errno)));
-           close(conf.server_fd);
-           return false;
-       }
+	if (listen(conf.server_fd, SOMAXCONN) < 0) {
+		Logger::file("Listen error: " + std::string(strerror(errno)));
+		close(conf.server_fd);
+		return false;
+	}
 
-       if (setNonBlocking(conf.server_fd) < 0) {
-           Logger::file("Failed to set non-blocking for fd " + std::to_string(conf.server_fd));
-           return false;
-       }
+	if (setNonBlocking(conf.server_fd) < 0) {
+		Logger::file("Failed to set non-blocking for fd " + std::to_string(conf.server_fd));
+		return false;
+	}
 
-       modEpoll(epoll_fd, conf.server_fd, EPOLLIN | EPOLLET);
+	modEpoll(epoll_fd, conf.server_fd, EPOLLIN | EPOLLET);
 
-       setTimeout(conf.timeout);
+	setTimeout(conf.timeout);
 
-       try {
-           if (!addServerNameToHosts(conf.name)) {
-               Logger::file("Warning: Failed to add server_name to /etc/hosts\n");
-           }
-       } catch (const std::exception &e) {
-           Logger::file(std::string("Error updating /etc/hosts: ") + e.what());
-       }
+	try {
+		if (!addServerNameToHosts(conf.name)) {
+			Logger::file("Warning: Failed to add server_name to /etc/hosts\n");
+		}
+	} catch (const std::exception &e) {
+		Logger::file(std::string("Error updating /etc/hosts: ") + e.what());
+	}
 
-       Logger::green("Port: " + std::to_string(conf.port) + ", Servername: " + conf.name);
-       Logger::file("Server socket " + std::to_string(conf.server_fd) +
-                   " listening on port " + std::to_string(conf.port));
-   }
-   return true;
+	Logger::green("Port: " + std::to_string(conf.port) + ", Servername: " + conf.name);
+	Logger::file("Server socket " + std::to_string(conf.server_fd) +
+				" listening on port " + std::to_string(conf.port));
+}
+return true;
 }

@@ -84,6 +84,12 @@ class Server
 		std::string concatenatePath(const std::string& root, const std::string& path);
 		std::string getDirectory(const std::string& path);
 		bool buildAutoIndexResponse(Context& ctx, std::stringstream* response);
+		bool handleRead(Context& ctx, std::vector<ServerBlock> &configs);
+		bool parseHeaders(Context& ctx);
+		bool handleWrite(Context& ctx);
+		bool queueResponse(Context& ctx, const std::string& response);
+		bool processRequest(Context& ctx, std::vector<ServerBlock> &configs);
+		bool isRequestComplete(const Context& ctx);
 };
 
 #endif
