@@ -68,10 +68,10 @@ enum RequestType
 };
 
 enum ERRORFLAG {
-    FILE_EXISTS  = F_OK,  // Check if file exists
-    FILE_READ    = R_OK,  // Check if file is readable
-    FILE_WRITE   = W_OK,  // Check if file is writable
-    FILE_EXECUTE = X_OK   // Check if file is executable
+	FILE_EXISTS  = F_OK,  // Check if file exists
+	FILE_READ    = R_OK,  // Check if file is readable
+	FILE_WRITE   = W_OK,  // Check if file is writable
+	FILE_EXECUTE = X_OK   // Check if file is executable
 };
 
 // Request body
@@ -144,26 +144,26 @@ struct RequestBody
 // Request header
 struct Context
 {
-    int epoll_fd = -1;
-    int client_fd = -1;
-    int server_fd = -1;
-    RequestType type = RequestType();
+	int epoll_fd = -1;
+	int client_fd = -1;
+	int server_fd = -1;
+	RequestType type = RequestType();
 
-    std::string method = "";
-    std::string path = "";
-    std::string version = "";
-    std::map<std::string, std::string> headers;
+	std::string method = "";
+	std::string path = "";
+	std::string version = "";
+	std::map<std::string, std::string> headers;
 
-    std::string body = "";
-    std::chrono::steady_clock::time_point last_activity = std::chrono::steady_clock::time_point();
+	std::string body = "";
+	std::chrono::steady_clock::time_point last_activity = std::chrono::steady_clock::time_point();
 
-    static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
+	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
 
-    std::string location_path = "";
-    std::string requested_path = "";
+	std::string location_path = "";
+	std::string requested_path = "";
 
-    const Location* location = nullptr;
-    RequestBody req;
+	const Location* location = nullptr;
+	RequestBody req;
 
 	int error_code = 0;
 	std::string error_message = "";
@@ -176,8 +176,13 @@ struct Context
 	std::map<int, std::string>	errorPages;
 	long						client_max_body_size;
 	int							timeout;
-    std::string doAutoIndex = "";
+	std::string doAutoIndex = "";
 
+	std::string input_buffer = "";
+	std::string output_buffer = "";
+	bool headers_complete = false;
+	size_t content_length = 0;
+	size_t body_received = 0;
 };
 
 struct CgiTunnel
@@ -207,10 +212,10 @@ struct GlobalFDS
 };
 
 struct DirEntry {
-    std::string name;
-    bool isDir;
-    time_t mtime;
-    off_t size;
+	std::string name;
+	bool isDir;
+	time_t mtime;
+	off_t size;
 };
 
 #endif
