@@ -172,6 +172,7 @@ struct Context
 	std::string name;
 	std::string root;
 	std::string index;
+	std::string approved_req_path;
 
 	std::map<int, std::string>	errorPages;
 	long						client_max_body_size;
