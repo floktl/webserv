@@ -1,5 +1,7 @@
 #include "Server.hpp"
-bool Server::isRequestComplete(const Context& ctx) {
+
+bool Server::isRequestComplete(const Context& ctx)
+{
 	// First check if headers are complete
 	if (!ctx.headers_complete) {
 		return false;
@@ -17,24 +19,24 @@ bool Server::isRequestComplete(const Context& ctx) {
 
 int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 {
-const int max_events = 64;
-struct epoll_event events[max_events];
-const int timeout_ms = 500;
-Logger::file("\n");
-int count = 4000;
-while (count != 0)
-{
-	int n = epoll_wait(epoll_fd, events, max_events, timeout_ms);
-	//Logger::file("Events count: " + std::to_string(n));
+	const int max_events = 64;
+	struct epoll_event events[max_events];
+	const int timeout_ms = 500;
+	Logger::file("\n");
+	int count = 4000;
+	while (count != 0)
+	{
+		int n = epoll_wait(epoll_fd, events, max_events, timeout_ms);
+		//Logger::file("Events count: " + std::to_string(n));
 
-	if (n < 0)
-	{
-		Logger::file("Epoll error: " + std::string(strerror(errno)));
-		if (errno == EINTR) continue;
-		break;
-	}
-	else if (n == 0)
-	{
+		if (n < 0)
+		{
+			Logger::file("Epoll error: " + std::string(strerror(errno)));
+			if (errno == EINTR) continue;
+			break;
+		}
+		else if (n == 0)
+		{
 			checkAndCleanupTimeouts();
 			continue;
 		}
@@ -54,12 +56,13 @@ while (count != 0)
 }
 
 bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev,
-						std::vector<ServerBlock> &configs) {
-	Logger::file("dispatchEvent: fd=" + std::to_string(incoming_fd) +
-				" events=" + std::to_string(ev));
+							std::vector<ServerBlock> &configs)
+{
+	Logger::file("dispatchEvent: fd=" + std::to_string(incoming_fd) + " events=" + std::to_string(ev));
 
 	// Handle new connections on server socket
-	if (findServerBlock(configs, incoming_fd)) {
+	if (findServerBlock(configs, incoming_fd))
+	{
 		if (ev & EPOLLIN) {
 			return handleNewConnection(epoll_fd, incoming_fd);
 		}
@@ -68,31 +71,31 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev,
 
 	// Handle existing client connection
 	auto it = globalFDS.request_state_map.find(incoming_fd);
-	if (it != globalFDS.request_state_map.end()) {
+	if (it != globalFDS.request_state_map.end())
+	{
 		Context& ctx = it->second;
 		ctx.last_activity = std::chrono::steady_clock::now();
 
 		// Handle errors/disconnects
-		if (ev & (EPOLLHUP | EPOLLERR)) {
+		if (ev & (EPOLLHUP | EPOLLERR))
+		{
 			Logger::file("Connection error on fd " + std::to_string(incoming_fd));
 			delFromEpoll(epoll_fd, incoming_fd);
 			return false;
 		}
 
 		// Handle reads
-		if (ev & EPOLLIN) {
-			if (!handleRead(ctx, configs)) {
-				delFromEpoll(epoll_fd, incoming_fd);
-				return false;
-			}
+		if ((ev & EPOLLIN) && !handleRead(ctx, configs))
+		{
+			delFromEpoll(epoll_fd, incoming_fd);
+			return false;
 		}
 
 		// Handle writes
-		if (ev & EPOLLOUT) {
-			if (!handleWrite(ctx)) {
-				delFromEpoll(epoll_fd, incoming_fd);
-				return false;
-			}
+		if ((ev & EPOLLOUT) && !handleWrite(ctx))
+		{
+			delFromEpoll(epoll_fd, incoming_fd);
+			return false;
 		}
 
 		return true;
@@ -103,7 +106,8 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev,
 	return false;
 }
 
-bool Server::isMethodAllowed(Context& ctx) {
+bool Server::isMethodAllowed(Context& ctx)
+{
 
 	bool isAllowed = false;
 	std::string reason;
@@ -130,7 +134,8 @@ bool Server::isMethodAllowed(Context& ctx) {
 	return isAllowed;
 }
 
-void Server::parseAcessRights(Context& ctx) {
+void Server::parseAcessRights(Context& ctx)
+{
 	Logger::file("parseAcessRights: Starting access rights parsing");
 
 	ctx.access_flag = FILE_EXISTS;
@@ -142,7 +147,9 @@ void Server::parseAcessRights(Context& ctx) {
 
 	std::string aprovedIndex;
 	size_t dot_pos = ctx.location->default_file.find_last_of('.');
-	if (dot_pos != std::string::npos) {
+
+	if (dot_pos != std::string::npos)
+	{
 		// Get extension WITHOUT the dot
 		std::string extension = ctx.location->default_file.substr(dot_pos + 1);
 		Logger::file("Checking default file extension (without dot): " + extension);
@@ -163,7 +170,8 @@ void Server::parseAcessRights(Context& ctx) {
 	}
 
 	// Path normalization
-	if (!rootAndLocation.empty() && rootAndLocation.back() != '/') {
+	if (!rootAndLocation.empty() && rootAndLocation.back() != '/')
+	{
 		rootAndLocation += "/";
 		Logger::file("Path normalized with trailing slash: " + rootAndLocation);
 	}
@@ -219,38 +227,34 @@ void Server::checkAccessRights(Context &ctx, std::string path)
 			return;
 		}
 
-		std::string error_message;
 		switch (errno)
 		{
 			case ENOENT:
-				error_message = "File does not exist";
+				ctx.error_message = "File does not exist";
 				ctx.error_code = 404;
 				break;
 			case EACCES:
-				error_message = "Permission denied";
+				ctx.error_message = "Permission denied";
 				ctx.error_code = 403;
 				break;
 			case EROFS:
-				error_message = "Read-only file system";
+				ctx.error_message = "Read-only file system";
 				ctx.error_code = 500;
 				break;
 			case ENOTDIR:
-				error_message = "A component of the path is not a directory";
+				ctx.error_message = "A component of the path is not a directory";
 				ctx.error_code = 500;
 				break;
 			default:
-				error_message = "Unknown error: " + std::to_string(errno);
+				ctx.error_message = "Unknown error: " + std::to_string(errno);
 				ctx.error_code = 500;
 				break;
 		}
 		ctx.type = ERROR;
-		ctx.error_message = error_message;
-		Logger::file("[ERROR] Access denied for " + path + " Reason: " + error_message);
+		Logger::file("[ERROR] Access denied for " + path + " Reason: " + ctx.error_message);
 	}
 	else
-	{
 		Logger::file("[INFO] Access granted for: " + path);
-	}
 }
 
 

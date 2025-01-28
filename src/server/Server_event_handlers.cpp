@@ -1,16 +1,21 @@
 #include "Server.hpp"
-bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
+
+bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
+{
 	char buffer[8192];
 	ssize_t bytes;
 
-	while ((bytes = read(ctx.client_fd, buffer, sizeof(buffer))) > 0) {
+	while ((bytes = read(ctx.client_fd, buffer, sizeof(buffer))) > 0)
+	{
 		ctx.input_buffer.append(buffer, bytes);
 
-		if (!ctx.headers_complete) {
+		if (!ctx.headers_complete)
+		{
 			parseHeaders(ctx);
 		}
 
-		if (ctx.headers_complete && ctx.content_length > 0) {
+		if (ctx.headers_complete && ctx.content_length > 0)
+		{
 			size_t new_body_bytes = ctx.input_buffer.length();
 			ctx.body_received += new_body_bytes;
 
@@ -18,25 +23,31 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 			ctx.input_buffer.clear();
 		}
 
-		if (isRequestComplete(ctx)) {
+		if (isRequestComplete(ctx))
+		{
 			return processRequest(ctx, configs);
 		}
 	}
 
-	if (bytes < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
+	if (bytes < 0)
+	{
+		if (errno != EAGAIN && errno != EWOULDBLOCK)
+		{
 			Logger::file("Read error on fd " + std::to_string(ctx.client_fd) +
 						": " + std::string(strerror(errno)));
 			return false;
 		}
-	} else if (bytes == 0) {
+	}
+	else if (bytes == 0)
+	{
 		return false;
 	}
 
 	return true;
 }
 
-bool Server::parseHeaders(Context& ctx) {
+bool Server::parseHeaders(Context& ctx)
+{
 	size_t header_end = ctx.input_buffer.find("\r\n\r\n");
 	if (header_end == std::string::npos) {
 		return false;
@@ -74,17 +85,20 @@ bool Server::parseHeaders(Context& ctx) {
 	return true;
 }
 
-bool Server::handleWrite(Context& ctx) {
-	while (!ctx.output_buffer.empty()) {
+bool Server::handleWrite(Context& ctx)
+{
+	while (!ctx.output_buffer.empty())
+	{
 		ssize_t sent = send(ctx.client_fd,
 						ctx.output_buffer.c_str(),
 						ctx.output_buffer.size(),
 						MSG_NOSIGNAL);
 
-		if (sent < 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		if (sent < 0)
+		{
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				return true;
-			}
+
 			Logger::file("Write error on fd " + std::to_string(ctx.client_fd));
 			return false;
 		}
@@ -96,34 +110,30 @@ bool Server::handleWrite(Context& ctx) {
 	return true;
 }
 
-bool Server::queueResponse(Context& ctx, const std::string& response) {
+bool Server::queueResponse(Context& ctx, const std::string& response)
+{
 	ctx.output_buffer += response;
 	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
 	return true;
 }
 
-bool Server::processRequest(Context& ctx, std::vector<ServerBlock> &configs) {
-	switch (ctx.type) {
+bool Server::processRequest(Context& ctx, std::vector<ServerBlock> &configs)
+{
+	switch (ctx.type)
+	{
 		case INITIAL:
 			determineType(ctx, configs);
-			switch (ctx.type) {
-				case STATIC:
-					return staticHandler(ctx);
-				case CGI:
-					return true;
-				case ERROR:
-					return errorsHandler(ctx, 0);
-				default:
-					break;
-			}
-			break;
+			[[fallthrough]];
 		case STATIC:
 			return staticHandler(ctx);
 		case CGI:
 			return true;
 		case ERROR:
 			return errorsHandler(ctx, 0);
+		default:
+			break;
 	}
+
 
 	ctx.input_buffer.clear();
 	ctx.body.clear();
@@ -220,7 +230,8 @@ bool Server::staticHandler(Context& ctx) {
 }
 
 
-void Server::buildStaticResponse(Context &ctx) {
+void Server::buildStaticResponse(Context &ctx)
+{
 	bool keepAlive = false;
 	auto it = ctx.headers.find("Connection");
 	if (it != ctx.headers.end()) {
