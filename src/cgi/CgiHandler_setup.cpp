@@ -151,7 +151,7 @@
 //             content_length = std::to_string(req.request_body.size());
 //         }
 
-//         //Logger::file("CGI Request Body:\n" + req.request_body);
+//         ////Logger::file("CGI Request Body:\n" + req.request_body);
 //     }
 
 //     // ----------------------------------------------------------------------------
@@ -248,7 +248,7 @@
 // 	tunnel.is_busy = true;
 // 	tunnel.last_used = std::chrono::steady_clock::now();
 // 	tunnel.pid = -1;
-// 	//Logger::file("req.upload_store: " + tunnel.location->upload_store);
+// 	////Logger::file("req.upload_store: " + tunnel.location->upload_store);
 // 	tunnel.script_path = req.requested_path;
 // 	tunnel.request = req;
 // 	return true;
@@ -260,7 +260,7 @@
 
 // 	int status_pipe[2];
 // 	if (pipe(status_pipe) < 0) {
-// 		//Logger::file("[ERROR] Failed to create status pipe: " + std::string(strerror(errno)));
+// 		////Logger::file("[ERROR] Failed to create status pipe: " + std::string(strerror(errno)));
 // 		_exit(1);
 // 	}
 
@@ -271,7 +271,7 @@
 // 	write(status_pipe[1], &status, sizeof(status));
 
 // 	if (dup2(pipe_in[0], STDIN_FILENO) < 0 || dup2(pipe_out[1], STDOUT_FILENO) < 0) {
-// 		//Logger::file("[ERROR] Failed to duplicate file descriptors: " + std::string(strerror(errno)));
+// 		////Logger::file("[ERROR] Failed to duplicate file descriptors: " + std::string(strerror(errno)));
 // 		status = RequestBody::COMPLETED;
 // 		write(status_pipe[1], &status, sizeof(status));
 // 		_exit(1);
@@ -281,13 +281,13 @@
 // 	close(pipe_in[0]);
 // 	close(pipe_out[1]);
 
-// 	//Logger::file("[INFO] Executing CGI script: " + tunnel.script_path);
-// 	//Logger::file("[INFO] Request body content: " + tunnel.request.request_body);
+// 	////Logger::file("[INFO] Executing CGI script: " + tunnel.script_path);
+// 	////Logger::file("[INFO] Request body content: " + tunnel.request.request_body);
 
 // 	if (access(tunnel.location->cgi.c_str(), X_OK) != 0 ||
 // 		!tunnel.location ||
 // 		access(tunnel.script_path.c_str(), R_OK) != 0) {
-// 		//Logger::file("[ERROR] Cannot execute CGI script at: " + tunnel.script_path + ", Error: " + std::string(strerror(errno)));
+// 		////Logger::file("[ERROR] Cannot execute CGI script at: " + tunnel.script_path + ", Error: " + std::string(strerror(errno)));
 // 		_exit(1);
 // 	}
 
@@ -297,28 +297,28 @@
 // 	args.push_back(strdup(tunnel.script_path.c_str()));    // Script path
 // 	args.push_back(nullptr);
 
-// 	//Logger::file("[INFO] Preparing environment for CGI script execution.");
+// 	////Logger::file("[INFO] Preparing environment for CGI script execution.");
 // 	// Set up the environment
 
 // 	std::vector<char*> envp = setup_cgi_environment(tunnel, method, query);
-// 	//Logger::file("Request body: " + tunnel.request.request_body);
-// 	//Logger::file("[INFO] Sending request body to CGI script.");
+// 	////Logger::file("Request body: " + tunnel.request.request_body);
+// 	////Logger::file("[INFO] Sending request body to CGI script.");
 // 	// Send request body to stdin of CGI process
 // 	if (!tunnel.request.request_body.empty()) {
 // 		ssize_t written = write(STDOUT_FILENO,
 // 								tunnel.request.request_body.c_str(),
 // 								tunnel.request.request_body.size());
 // 		if (written < 0) {
-// 			//Logger::file("[ERROR] Failed to write request body to CGI script: " + std::string(strerror(errno)));
+// 			////Logger::file("[ERROR] Failed to write request body to CGI script: " + std::string(strerror(errno)));
 // 			_exit(1);
 // 		}
 // 	}
 // 	else
-// 		//Logger::file("[Info] request body to CGI script is EMPTY");
+// 		////Logger::file("[Info] request body to CGI script is EMPTY");
 
 // 	execve(args[0], args.data(), envp.data());
 
-// 	//Logger::file("[ERROR] execve failed: " + std::string(strerror(errno)));
+// 	////Logger::file("[ERROR] execve failed: " + std::string(strerror(errno)));
 // 	status = RequestBody::COMPLETED;
 // 	write(status_pipe[1], &status, sizeof(status));
 
@@ -371,15 +371,15 @@
 // 	ev.events = EPOLLIN;
 // 	ev.data.fd = status_pipe[0];
 // 	if (epoll_ctl(server.getGlobalFds().epoll_fd, EPOLL_CTL_ADD, status_pipe[0], &ev) < 0) {
-// 		//Logger::file("[ERROR] Failed to add status pipe to epoll");
+// 		////Logger::file("[ERROR] Failed to add status pipe to epoll");
 // 	}
 
 // 	server.modEpoll(server.getGlobalFds().epoll_fd, tunnel.in_fd, EPOLLOUT);
 // 	server.modEpoll(server.getGlobalFds().epoll_fd, tunnel.out_fd, EPOLLIN);
 
-// 	server.getGlobalFds().svFD_to_clFD_map[tunnel.in_fd] = req.client_fd;
-// 	server.getGlobalFds().svFD_to_clFD_map[tunnel.out_fd] = req.client_fd;
-// 	server.getGlobalFds().svFD_to_clFD_map[status_pipe[0]] = req.client_fd;
+// 	server.getGlobalFds().clFD_to_svFD_map[tunnel.in_fd] = req.client_fd;
+// 	server.getGlobalFds().clFD_to_svFD_map[tunnel.out_fd] = req.client_fd;
+// 	server.getGlobalFds().clFD_to_svFD_map[status_pipe[0]] = req.client_fd;
 
 // 	tunnels[tunnel.in_fd] = tunnel;
 // 	tunnels[tunnel.out_fd] = tunnel;
