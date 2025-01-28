@@ -203,9 +203,9 @@ void Server::checkAccessRights(Context &ctx, std::string path)
 	{
 		if (ctx.location->autoindex == "on")
 		{
-			std::string dirPath = getDirectory(path);
+			std::string dirPath = getDirectory(path) + '/';
 			Logger::file("[INFO] Autoindex enabled, checking directory: " + dirPath);
-			if (!access(dirPath.c_str(), R_OK))
+			if (access(dirPath.c_str(), F_OK))
 			{
 				ctx.error_code = 403;
 				ctx.type = ERROR;
