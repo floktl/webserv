@@ -58,15 +58,12 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev,
 	Logger::file("dispatchEvent: fd=" + std::to_string(incoming_fd) +
 				" events=" + std::to_string(ev));
 
-	// Handle new connections on server socket
-	if (findServerBlock(configs, incoming_fd)) {
-		if (ev & EPOLLIN) {
-			return handleNewConnection(epoll_fd, incoming_fd);
-		}
-		return true;
+	// Only check ServerBlock for new connections (server socket events)
+	if (ev & EPOLLIN && findServerBlock(configs, incoming_fd)) {
+		return handleNewConnection(epoll_fd, incoming_fd);
 	}
 
-	// Handle existing client connection
+	// For all other cases, look up the context
 	auto it = globalFDS.request_state_map.find(incoming_fd);
 	if (it != globalFDS.request_state_map.end()) {
 		Context& ctx = it->second;
@@ -171,7 +168,6 @@ void Server::parseAcessRights(Context& ctx) {
 	// Construct full index path
 	std::string rootAndLocationIndex = rootAndLocation + aprovedIndex;
 	Logger::file("Full index path: " + rootAndLocationIndex);
-
 	// File existence check
 	ctx.access_flag = FILE_EXISTS;
 	//checkAccessRights(ctx, rootAndLocationIndex);
@@ -187,6 +183,7 @@ void Server::parseAcessRights(Context& ctx) {
 	checkAccessRights(ctx, rootAndLocationIndex);
 	Logger::file("Execute permission check completed for: " + rootAndLocationIndex);
 
+	ctx.approved_req_path = rootAndLocationIndex;
 	Logger::file("parseAcessRights: Completed all access rights checks");
 
 	// Additional debug information about context state

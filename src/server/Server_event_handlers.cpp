@@ -83,15 +83,19 @@ bool Server::handleWrite(Context& ctx) {
 
 		if (sent < 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				// Keep EPOLLOUT active and return to try again later
+				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
 				return true;
 			}
 			Logger::file("Write error on fd " + std::to_string(ctx.client_fd));
 			return false;
 		}
 
+		// Remove sent data from buffer
 		ctx.output_buffer.erase(0, sent);
 	}
 
+	// Only remove EPOLLOUT when buffer is empty
 	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
 	return true;
 }
@@ -166,29 +170,26 @@ bool Server::handleNewConnection(int epoll_fd, int server_fd)
 	return true;
 }
 
-bool Server::sendWrapper(Context& ctx, std::string http_response)
-{
+bool Server::sendWrapper(Context& ctx, std::string http_response) {
 	bool keepAlive = false;
 	auto it = ctx.headers.find("Connection");
-
-	if (it != ctx.headers.end())
+	if (it != ctx.headers.end()) {
 		keepAlive = (it->second.find("keep-alive") != std::string::npos);
-
+	}
 
 	ssize_t bytes_sent = send(ctx.client_fd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
-	if (bytes_sent < 0)
-	{
+	if (bytes_sent < 0) {
 		Logger::file("Error sending response to client_fd: " + std::to_string(ctx.client_fd) + " - " + std::string(strerror(errno)));
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+		return false;
 	}
-	else if (bytes_sent == static_cast<ssize_t>(http_response.size()))
-	{
+	else if (bytes_sent == static_cast<ssize_t>(http_response.size())) {
 		Logger::file("Successfully sent full response to client_fd: " + std::to_string(ctx.client_fd));
-		if (!keepAlive)
+		if (!keepAlive) {
 			delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+		}
 	}
-	else
-	{
+	else {
 		Logger::file("Partial response sent to client_fd: " + std::to_string(ctx.client_fd) + " - Sent: " + std::to_string(bytes_sent) + " of " + std::to_string(http_response.size()) + " bytes");
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 	}
@@ -204,12 +205,25 @@ bool Server::errorsHandler(Context& ctx, uint32_t ev)
 
 bool Server::staticHandler(Context& ctx) {
 	std::string response;
-
 	if (!ctx.doAutoIndex.empty()) {
 		std::stringstream ss;
 		buildAutoIndexResponse(ctx, &ss);
-		ctx.doAutoIndex = "";
 		response = ss.str();
+
+		// Reset context for next request
+		ctx.doAutoIndex = "";
+		ctx.headers_complete = false;
+		ctx.content_length = 0;
+		ctx.body_received = 0;
+		ctx.input_buffer.clear();
+		ctx.body.clear();
+		ctx.method.clear();
+		ctx.path.clear();
+		ctx.version.clear();
+		ctx.headers.clear();
+		ctx.type = INITIAL;
+
+		return sendWrapper(ctx, response);
 	} else {
 		std::stringstream ss;
 		buildStaticResponse(ctx);
@@ -219,55 +233,118 @@ bool Server::staticHandler(Context& ctx) {
 	return queueResponse(ctx, response);
 }
 
-
 void Server::buildStaticResponse(Context &ctx) {
-	bool keepAlive = false;
-	auto it = ctx.headers.find("Connection");
-	if (it != ctx.headers.end()) {
-		keepAlive = (it->second.find("keep-alive") != std::string::npos);
-	}
+    bool keepAlive = false;
+    auto it = ctx.headers.find("Connection");
+    if (it != ctx.headers.end()) {
+        keepAlive = (it->second.find("keep-alive") != std::string::npos);
+    }
 
-	std::stringstream content;
-	content << "epoll_fd: " << ctx.epoll_fd << "\n"
-			<< "client_fd: " << ctx.client_fd << "\n"
-			<< "server_fd: " << ctx.server_fd << "\n"
-			<< "type: " << static_cast<int>(ctx.type) << "\n"
-			<< "method: " << ctx.method << "\n"
-			<< "path: " << ctx.path << "\n"
-			<< "version: " << ctx.version << "\n"
-			<< "body: " << ctx.body << "\n"
-			<< "location_path: " << ctx.location_path << "\n"
-			<< "requested_path: " << ctx.requested_path << "\n"
-			<< "error_code: " << ctx.error_code << "\n"
-			<< "port: " << ctx.port << "\n"
-			<< "name: " << ctx.name << "\n"
-			<< "root: " << ctx.root << "\n"
-			<< "index: " << ctx.index << "\n"
-			<< "client_max_body_size: " << ctx.client_max_body_size << "\n"
-			<< "timeout: " << ctx.timeout << "\n";
+    // Konstruiere den vollständigen Dateipfad
+    std::string fullPath = ctx.approved_req_path;
+	Logger::file("assciated full req path: " + fullPath);
+    // Öffne und lese die Datei
+    std::ifstream file(fullPath, std::ios::binary);
+    if (!file) {
+        ctx.type = ERROR;
+        ctx.error_code = 404;
+        ctx.error_message = "File not found";
+        return;
+    }
 
-	content << "\nHeaders:\n";
-	for (const auto& header : ctx.headers) {
-		content << header.first << ": " << header.second << "\n";
-	}
+    // Bestimme den Content-Type basierend auf der Dateiendung
+    std::string contentType = "text/plain";
+    size_t dot_pos = fullPath.find_last_of('.');
+    if (dot_pos != std::string::npos) {
+        std::string ext = fullPath.substr(dot_pos + 1);
+        if (ext == "html" || ext == "htm") contentType = "text/html";
+        else if (ext == "css") contentType = "text/css";
+        else if (ext == "js") contentType = "application/javascript";
+        else if (ext == "jpg" || ext == "jpeg") contentType = "image/jpeg";
+        else if (ext == "png") contentType = "image/png";
+        else if (ext == "gif") contentType = "image/gif";
+        else if (ext == "pdf") contentType = "application/pdf";
+        else if (ext == "json") contentType = "application/json";
+    }
 
-	content << "\nError Pages:\n";
-	for (const auto& error : ctx.errorPages) {
-		content << error.first << ": " << error.second << "\n";
-	}
+    // Lese den Dateiinhalt
+    std::stringstream content;
+    content << file.rdbuf();
+    std::string content_str = content.str();
 
-	std::string content_str = content.str();
+    // Erstelle die HTTP Response
+    std::stringstream http_response;
+    http_response << "HTTP/1.1 200 OK\r\n"
+                 << "Content-Type: " << contentType << "\r\n"
+                 << "Content-Length: " << content_str.length() << "\r\n"
+                 << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
+                 << "\r\n"
+                 << content_str;
 
-	std::stringstream http_response;
-	http_response << "HTTP/1.1 200 OK\r\n"
-			<< "Content-Type: text/plain\r\n"
-			<< "Content-Length: " << content_str.length() << "\r\n"
-			<< "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
-			<< "\r\n"
-			<< content_str;
+    // Sende die Response
+    sendWrapper(ctx, http_response.str());
 
-	sendWrapper(ctx,  http_response.str());
+    // Reset context für nächste Anfrage
+    ctx.headers_complete = false;
+    ctx.content_length = 0;
+    ctx.body_received = 0;
+    ctx.input_buffer.clear();
+    ctx.body.clear();
+    ctx.method.clear();
+    ctx.path.clear();
+    ctx.version.clear();
+    ctx.headers.clear();
+    ctx.type = INITIAL;
 }
+
+// void Server::buildStaticResponse(Context &ctx) {
+// 	bool keepAlive = false;
+// 	auto it = ctx.headers.find("Connection");
+// 	if (it != ctx.headers.end()) {
+// 		keepAlive = (it->second.find("keep-alive") != std::string::npos);
+// 	}
+
+// 	std::stringstream content;
+// 	content << "epoll_fd: " << ctx.epoll_fd << "\n"
+// 			<< "client_fd: " << ctx.client_fd << "\n"
+// 			<< "server_fd: " << ctx.server_fd << "\n"
+// 			<< "type: " << static_cast<int>(ctx.type) << "\n"
+// 			<< "method: " << ctx.method << "\n"
+// 			<< "path: " << ctx.path << "\n"
+// 			<< "version: " << ctx.version << "\n"
+// 			<< "body: " << ctx.body << "\n"
+// 			<< "location_path: " << ctx.location_path << "\n"
+// 			<< "requested_path: " << ctx.requested_path << "\n"
+// 			<< "error_code: " << ctx.error_code << "\n"
+// 			<< "port: " << ctx.port << "\n"
+// 			<< "name: " << ctx.name << "\n"
+// 			<< "root: " << ctx.root << "\n"
+// 			<< "index: " << ctx.index << "\n"
+// 			<< "client_max_body_size: " << ctx.client_max_body_size << "\n"
+// 			<< "timeout: " << ctx.timeout << "\n";
+
+// 	content << "\nHeaders:\n";
+// 	for (const auto& header : ctx.headers) {
+// 		content << header.first << ": " << header.second << "\n";
+// 	}
+
+// 	content << "\nError Pages:\n";
+// 	for (const auto& error : ctx.errorPages) {
+// 		content << error.first << ": " << error.second << "\n";
+// 	}
+
+// 	std::string content_str = content.str();
+
+// 	std::stringstream http_response;
+// 	http_response << "HTTP/1.1 200 OK\r\n"
+// 			<< "Content-Type: text/plain\r\n"
+// 			<< "Content-Length: " << content_str.length() << "\r\n"
+// 			<< "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
+// 			<< "\r\n"
+// 			<< content_str;
+
+// 	sendWrapper(ctx,  http_response.str());
+// }
 
 
 // bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev) {
@@ -358,6 +435,12 @@ void Server::buildStaticResponse(Context &ctx) {
 
 
 bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response) {
+	bool keepAlive = false;
+	auto it = ctx.headers.find("Connection");
+	if (it != ctx.headers.end()) {
+		keepAlive = (it->second.find("keep-alive") != std::string::npos);
+	}
+
 	Logger::file("buildAutoIndexResponse: " + ctx.doAutoIndex);
 	DIR* dir = opendir(ctx.doAutoIndex.c_str());
 	if (!dir) {
@@ -398,7 +481,7 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response) {
 		});
 	}
 	closedir(dir);
-Logger::file("Before sorting, number of entries: " + std::to_string(entries.size()));
+	Logger::file("Before sorting, number of entries: " + std::to_string(entries.size()));
 
 	std::sort(entries.begin(), entries.end(),
 		[](const DirEntry& a, const DirEntry& b) -> bool {
@@ -407,12 +490,10 @@ Logger::file("Before sorting, number of entries: " + std::to_string(entries.size
 			if (a.isDir != b.isDir) return a.isDir > b.isDir;
 			return strcasecmp(a.name.c_str(), b.name.c_str()) < 0;
 		});
-Logger::file("After sorting, number of entries: " + std::to_string(entries.size()));
+	Logger::file("After sorting, number of entries: " + std::to_string(entries.size()));
 
-	*response << "HTTP/1.1 200 OK\r\n";
-	*response << "Content-Type: text/html; charset=UTF-8\r\n\r\n";
-
-	*response << "<!DOCTYPE html>\n"
+	std::stringstream content;
+	content << "<!DOCTYPE html>\n"
 			<< "<html>\n"
 			<< "<head>\n"
 			<< "    <meta charset=\"UTF-8\">\n"
@@ -496,7 +577,7 @@ Logger::file("After sorting, number of entries: " + std::to_string(entries.size(
 				sizeStr = std::to_string(size / (1024 * 1024 * 1024)) + "G";
 		}
 
-		*response << "        <div class=\"entry\">\n"
+		content << "        <div class=\"entry\">\n"
 				<< "            <div class=\"name\">"
 				<< "<a href=\"" << (entry.name == ".." ? "../" : entry.name + (entry.isDir ? "/" : "")) << "\" "
 				<< "class=\"" << className << "\">"
@@ -506,9 +587,17 @@ Logger::file("After sorting, number of entries: " + std::to_string(entries.size(
 				<< "        </div>\n";
 	}
 
-	*response << "    </div>\n"
+	content << "    </div>\n"
 			<< "</body>\n"
 			<< "</html>\n";
+
+	std::string content_str = content.str();
+
+	*response << "HTTP/1.1 200 OK\r\n"
+			<< "Content-Type: text/html; charset=UTF-8\r\n"
+			<< "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
+			<< "Content-Length: " << content_str.length() << "\r\n\r\n"
+			<< content_str;
 
 	return true;
 }
