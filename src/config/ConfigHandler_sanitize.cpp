@@ -139,11 +139,11 @@ bool ConfigHandler::sanitizeConfData(void)
 			}
 
 
-			if (!loc.cgi.empty() &&
-				!Sanitizer::sanitize_locationCgi(loc.cgi, loc.cgi_filetype, expandEnvironmentVariables("$PWD", env))) {
-				configFileValid = false;
-				return false;
-			}
+			// if (!loc.cgi.empty() &&
+			// 	!Sanitizer::sanitize_locationCgi(loc.cgi, loc.cgi_filetype, expandEnvironmentVariables("$PWD", env))) {
+			// 	configFileValid = false;
+			// 	return false;
+			// }
 
 			if (loc.client_max_body_size == 0) {
 				loc.client_max_body_size = registeredServerConfs[i].client_max_body_size;

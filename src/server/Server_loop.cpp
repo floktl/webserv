@@ -1,27 +1,12 @@
 #include "Server.hpp"
 
-bool Server::isRequestComplete(const Context& ctx)
-{
-	// First check if headers are complete
-	if (!ctx.headers_complete) {
-		return false;
-	}
-
-	// If no Content-Length header, request is complete after headers
-	auto it = ctx.headers.find("Content-Length");
-	if (it == ctx.headers.end()) {
-		return true;
-	}
-
-	// Check if we've received the full body
-	return ctx.body_received >= ctx.content_length;
-}
-
 int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 {
-	const int max_events = 64;
-	struct epoll_event events[max_events];
-	const int timeout_ms = 500;
+	const int			max_events = 64;
+	struct epoll_event	events[max_events];
+	const int			timeout_ms = 500;
+	int					incoming_fd = -1;
+
 	//Logger::file("\n");
 	while (true)
 	{
@@ -30,34 +15,36 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 
 		if (n < 0)
 		{
-			//Logger::file("Epoll error: " + std::string(strerror(errno)));
+			Logger::errorLog("Epoll error: " + std::string(strerror(errno)));
 			if (errno == EINTR) continue;
 			break;
 		}
-		else if (n == 0)
-		{
-			//checkAndCleanupTimeouts();
-			continue;
-		}
+		// else if (n == 0)
+		// {
+		// 	//checkAndCleanupTimeouts();
+		// 	continue;
+		// }
 
 		for (int i = 0; i < n; i++)
 		{
-			int incoming_fd = events[i].data.fd;
-			    if (incoming_fd <= 0) {
-   				    //Logger::file("WARNING: Invalid fd " + std::to_string(incoming_fd) + " in epoll event");
-   				    continue;
-   				}
-			uint32_t ev = events[i].events;
-			//Logger::file("New Event:\nfd=" + std::to_string(incoming_fd) + " events=" + std::to_string(ev) + "\n");
-			//if (!dispatchEvent(epoll_fd, incoming_fd, ev, configs)) {
-			//	if (epoll_fd == 0)
-			//		close(epoll_fd);
-			//	if (incoming_fd == 0)
-			//		close(incoming_fd);
+			incoming_fd = events[i].data.fd;
 
-			//	delFromEpoll(epoll_fd, incoming_fd);
-			//}
-			dispatchEvent(epoll_fd, incoming_fd, ev, configs);
+			if (incoming_fd <= 0)
+			{
+				Logger::errorLog("WARNING: Invalid fd " + std::to_string(incoming_fd) + " in epoll event");
+				continue;
+			}
+			uint32_t ev = events[i].events;
+			if (dispatchEvent(epoll_fd, incoming_fd, ev, configs))
+			{
+				// handle successfull dispatch
+			}
+			else
+			{
+				// handle errors during dispatch
+
+				// differentiate between normal errorhandler and (bug erros)
+			}
 		}
 		//checkAndCleanupTimeouts();
 	}
@@ -65,87 +52,77 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 	return EXIT_SUCCESS;
 }
 
-bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev,
-                          std::vector<ServerBlock> &configs)
+bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vector<ServerBlock> &configs)
 {
+	int server_fd = -1;
+	int client_fd = -1;
+
 	Logger::file("");
 	Logger::file(getEventDescription(ev));
-    // Determine if incoming_fd is a server or client fd
-    int server_fd = -1;
-    int client_fd = -1;
 
-    if (findServerBlock(configs, incoming_fd)) {
-        server_fd = incoming_fd;
-    	Logger::file("dispatchEvent: Server fd identified: " + std::to_string(server_fd) + " events=" + std::to_string(ev));
-    } else {
-        client_fd = incoming_fd;
-       Logger::file("dispatchEvent: client fd identified: " + std::to_string(client_fd) + " events=" + std::to_string(ev));
-    }
+	// Determine if incoming_fd is a server or client fd
+	if (findServerBlock(configs, incoming_fd))
+	{
+		server_fd = incoming_fd;
+		Logger::file("dispatchEvent: Server fd identified: " + std::to_string(server_fd) + " events=" + std::to_string(ev));
+		if (server_fd > 0)
+		{
+			return handleNewConnection(epoll_fd, server_fd);
+		}
+	}
+	else
+	{
+		client_fd = incoming_fd;
+		Logger::file("dispatchEvent: client fd identified: " + std::to_string(client_fd) + " events=" + std::to_string(ev));
+		if (client_fd > 0)
+		{
+			return handleAcceptedConnection(epoll_fd, client_fd, ev, configs);
+		}
+	}
 	log_global_fds(globalFDS);
-
-    // Only check ServerBlock for new connections (server socket events)
-    if (server_fd >= 0) {
-		Logger::file("goes to handleNewConnection()");
-        bool result = handleNewConnection(epoll_fd, server_fd);
-        // Never remove server sockets from epoll
-		log_global_fds(globalFDS);
-        return result;
-    }
-
-    // For all other cases, look up the context
-    auto it = globalFDS.request_state_map.find(client_fd);
-    if (it != globalFDS.request_state_map.end())
-    {
-        Context& ctx = it->second;
-        ctx.last_activity = std::chrono::steady_clock::now();
-
-        // Handle reads
-        if (ev & EPOLLIN)
-        {
-			Logger::file("goes to handleread()");
-            if (!handleRead(ctx, configs))
-            {
-                //Logger::file("delete after read");
-				log_global_fds(globalFDS);
-                return false;
-            }
-            //Logger::file("success read");
-        }
-
-        // Handle errors/disconnects
-        if (ev & (EPOLLHUP | EPOLLERR))
-        {
-			Logger::file("goes to delFromEpoll()");
-            //Logger::file("Connection error on fd " + std::to_string(client_fd));
-            delFromEpoll(epoll_fd, client_fd);
-			log_global_fds(globalFDS);
-            return false;
-        }
-
-        // Handle writes
-        if ((ev & EPOLLOUT))
-        {
-			Logger::file("goes to handleWrite()");
-			if (!handleWrite(ctx))
-			{
-				delFromEpoll(epoll_fd, client_fd);
-				//Logger::file("delete after write");
-				log_global_fds(globalFDS);
-				return false;
-			}
-			delFromEpoll(epoll_fd, client_fd);
-        }
-        //Logger::file("no epollin/out/err/hub");
-		log_global_fds(globalFDS);
-        return true;
-    }
-
-    //Logger::file("Unknown fd: " + std::to_string(client_fd));
-    delFromEpoll(epoll_fd, client_fd);
-	log_global_fds(globalFDS);
-    return false;
+	return false;
 }
 
+bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, std::vector<ServerBlock> &configs)
+{
+	std::map<int, Context>::iterator contextIter = globalFDS.request_state_map.find(client_fd);
+	bool		status = false;
+
+	if (contextIter != globalFDS.request_state_map.end())
+	{
+		Context		&ctx = contextIter->second;
+		ctx.last_activity = std::chrono::steady_clock::now();
+
+		// Handle reads
+		if (ev & EPOLLIN)
+		{
+			status = handleRead(ctx, configs);
+		}
+
+		// Handle writes
+		if ((ev & EPOLLOUT))
+		{
+			if (!handleWrite(ctx))
+				return false;
+			delFromEpoll(epoll_fd, client_fd);
+		}
+
+		// Handle errors/disconnects
+		if (ev & (EPOLLHUP | EPOLLERR))
+		{
+			Logger::errorLog("Connection error on fd " + std::to_string(client_fd));
+			delFromEpoll(epoll_fd, client_fd);
+			log_global_fds(globalFDS);
+			return false;
+		}
+		return status;
+	}
+
+	Logger::errorLog("Unknown fd: " + std::to_string(client_fd));
+	delFromEpoll(epoll_fd, client_fd);
+	log_global_fds(globalFDS);
+	return false;
+}
 bool Server::isMethodAllowed(Context& ctx)
 {
 
@@ -201,7 +178,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
     }
     else
     {
-        Logger::file("Error: Bad Request -> file extention not valid");
+        Logger::errorLog("Error: Bad Request -> file extention not valid");
         ctx.error_code = 400;
         ctx.type = ERROR;
         ctx.error_message = "Bad Request: No file extension found";
@@ -374,266 +351,3 @@ void Server::determineType(Context& ctx, const std::vector<ServerBlock>& configs
 	ctx.error_message = "Internal Server Error";
 }
 
-// enum RequestType {
-// 	STATIC,
-// 	CGI,
-// 	ERROR
-// };
-
-// struct Context
-// {
-// 	RequestType type;
-// 	std::string method;
-// 	std::string path;
-// 	std::map<std::string, std::string> headers;
-// 	std::string body;
-// 	std::chrono::steady_clock::time_point last_activity;
-// 	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
-
-// 	std::string location_path;
-// 	std::string requested_path;
-// };
-
-
-void Server::parseRequest(Context& ctx) {
-		//Logger::file("parseRequest");
-
-	char buffer[8192];
-	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
-
-	if (bytes <= 0) return;
-
-	std::string request(buffer, bytes);
-	std::istringstream stream(request);
-	std::string line;
-
-	// Parse request line
-	if (std::getline(stream, line)) {
-		std::istringstream request_line(line);
-		request_line >> ctx.method >> ctx.path >> ctx.version;
-	}
-
-	// Parse headers
-	while (std::getline(stream, line) && !line.empty() && line != "\r") {
-		size_t colon = line.find(':');
-		if (colon != std::string::npos) {
-			std::string key = line.substr(0, colon);
-			std::string value = line.substr(colon + 2); // Skip ": "
-			ctx.headers[key] = value;
-		}
-	}
-
-
-
-
-	logContext(ctx, "Parsed");
-}
-
-
-void Server::checkAndCleanupTimeouts() {
-auto now = std::chrono::steady_clock::now();
-
-for (auto it = globalFDS.request_state_map.begin(); it != globalFDS.request_state_map.end();) {
-	Context& ctx = it->second;
-
-	auto duration = std::chrono::duration_cast<std::chrono::seconds>(
-		now - ctx.last_activity
-	).count();
-
-	if (duration > Context::TIMEOUT_DURATION.count()) {
-		if (ctx.type == CGI) {
-			//killTimeoutedCGI(ctx);
-		}
-
-		modEpoll(globalFDS.epoll_fd, ctx.client_fd, EPOLLOUT);
-		// Cleanup context
-		it = globalFDS.request_state_map.erase(it);
-	} else {
-		++it;
-	}
-}
-}
-
-void Server::killTimeoutedCGI(RequestBody &req) {
-	if (req.cgi_pid > 0) {
-		kill(req.cgi_pid, SIGTERM);
-		////Logger::file(std::to_string(req.associated_conf->timeout));
-		std::this_thread::sleep_for(std::chrono::microseconds(req.associated_conf->timeout));
-		int status;
-		pid_t result = waitpid(req.cgi_pid, &status, WNOHANG);
-		if (result == 0) {
-			kill(req.cgi_pid, SIGKILL);
-			waitpid(req.cgi_pid, &status, 0);
-		}
-		req.cgi_pid = -1;
-	}
-	if (req.cgi_in_fd != -1) {
-		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
-		close(req.cgi_in_fd);
-		globalFDS.clFD_to_svFD_map.erase(req.cgi_in_fd);
-		req.cgi_in_fd = -1;
-	}
-	if (req.cgi_out_fd != -1) {
-		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
-		close(req.cgi_out_fd);
-		globalFDS.clFD_to_svFD_map.erase(req.cgi_out_fd);
-		req.cgi_out_fd = -1;
-	}
-	if (req.pipe_fd != -1) {
-		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.pipe_fd, NULL);
-		close(req.pipe_fd);
-		req.pipe_fd = -1;
-	}
-}
-
-void Server::logContext(const Context& ctx, const std::string& event)
-{
-	std::string log = "Context [" + event + "]:\n";
-
-	log += "FDs: epoll=" + (ctx.epoll_fd != -1 ? std::to_string(ctx.epoll_fd) : "[empty]");
-	log += " server=" + (ctx.server_fd != -1 ? std::to_string(ctx.server_fd) : "[empty]");
-	log += " client=" + (ctx.client_fd != -1 ? std::to_string(ctx.client_fd) : "[empty]") + "\n";
-
-	log += "Type: " + requestTypeToString(ctx.type) + "\n";
-
-	log += "Method: " + (!ctx.method.empty() ? ctx.method : "[empty]") + "\n";
-	log += "Path: " + (!ctx.path.empty() ? ctx.path : "[empty]") + "\n";
-	log += "Version: " + (!ctx.version.empty() ? ctx.version : "[empty]") + "\n";
-
-	log += "Headers:\n";
-	if (ctx.headers.empty())
-	{
-		log += "[empty]\n";
-	}
-	else
-	{
-		for (const auto& header : ctx.headers)
-		{
-			log += header.first + " BDFLNDKSFJN: " + header.second + "\n";
-		}
-	}
-
-	log += "Body: " + (!ctx.body.empty() ? ctx.body : "[empty]") + "\n";
-
-	log += "Location Path: " + (!ctx.location_path.empty() ? ctx.location_path : "[empty]") + "\n";
-	log += "Requested Path: " + (!ctx.requested_path.empty() ? ctx.requested_path : "[empty]") + "\n";
-
-	log += std::string("Location: ") + (ctx.location ? "Defined" : "[empty]") + "\n";
-
-
-	log += "Last Activity: " +
-		std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
-							ctx.last_activity.time_since_epoch())
-							.count()) +
-		" seconds since epoch";
-
-	//Logger::file(log);
-}
-
-
-std::string Server::requestTypeToString(RequestType type)
-{
-	switch(type) {
-		case RequestType::INITIAL: return "INITIAL";
-		case RequestType::STATIC: return "STATIC";
-		case RequestType::CGI: return "CGI";
-		case RequestType::ERROR: return "ERROR";
-		default: return "UNKNOWN";
-	}
-}
-
-std::string Server::normalizePath(const std::string& raw)
-{
-	if (raw.empty()) return "/";
-	std::string path = (raw[0] == '/') ? raw : "/" + raw;
-	if (path.size() > 1 && path.back() == '/')
-		path.pop_back();
-	return path;
-}
-
-bool Server::matchLoc(const Location& loc, std::string rawPath) {
-    if (rawPath.empty()) {
-        rawPath = "/";
-    }
-
-    if (rawPath[0] != '/') {
-        rawPath = "/" + rawPath;
-    }
-
-    std::string normalizedPath;
-    bool lastWasSlash = false;
-
-    for (size_t i = 0; i < rawPath.length(); ++i) {
-        if (rawPath[i] == '/') {
-            if (!lastWasSlash) {
-                normalizedPath += '/';
-            }
-            lastWasSlash = true;
-        } else {
-            normalizedPath += rawPath[i];
-            lastWasSlash = false;
-        }
-    }
-
-    if (normalizedPath == loc.path) {
-        return true;
-    }
-
-    if (loc.path.length() <= normalizedPath.length() &&
-        normalizedPath.substr(0, loc.path.length()) == loc.path) {
-        if (loc.path[loc.path.length()-1] != '/') {
-            return normalizedPath[loc.path.length()] == '/';
-        }
-        return true;
-    }
-
-    return false;
-}
-
-void Server::logRequestBodyMapFDs()
-{
-	//Logger::file("Logging all FDs in request_state_map:");
-
-	if (globalFDS.request_state_map.empty())
-	{
-		//Logger::file("[empty]");
-		return;
-	}
-
-	std::string log = "Active FDs: ";
-	for (const auto& pair : globalFDS.request_state_map)
-	{
-		log += std::to_string(pair.first) + " ";
-	}
-
-	//Logger::file(log);
-}
-
-std::string Server::concatenatePath(const std::string& root, const std::string& path)
-{
-	if (root.empty())
-		return path;
-	if (path.empty())
-		return root;
-
-	if (root.back() == '/' && path.front() == '/')
-	{
-		return root + path.substr(1);  // Entferne das führende '/'
-	}
-	else if (root.back() != '/' && path.front() != '/')
-	{
-		return root + '/' + path;  // Füge einen '/' hinzu
-	}
-	else
-	{
-		return root + path;  // Einfach zusammenfügen
-	}
-}
-
-std::string Server::getDirectory(const std::string& path) {
-	size_t lastSlash = path.find_last_of("/\\");
-	if (lastSlash != std::string::npos) {
-		return path.substr(0, lastSlash);
-	}
-	return "";
-}

@@ -157,7 +157,6 @@ container:
 	@make container-build
 	@make container-up
 	@docker exec -it webserv bash
-	@make test
 
 prune:
 	@if docker ps -a | grep -q $(NAME); then \
