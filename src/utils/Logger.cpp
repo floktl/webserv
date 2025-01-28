@@ -51,6 +51,35 @@ void Logger::file(const std::string& message) {
 	}
 }
 
+void Logger::errorLog(const std::string& message) {
+	try {
+		// File logging
+		std::string filePath = "./webserv.log";
+		std::ofstream logfile(filePath.c_str(), std::ios::app);
+		if (!logfile.is_open()) {
+			throw std::runtime_error("Could not open log file");
+		}
+
+		// Get the current timestamp
+		auto now = std::chrono::system_clock::now();
+		auto time = std::chrono::system_clock::to_time_t(now);
+		std::stringstream ss;
+		ss << std::put_time(std::localtime(&time), "[%Y-%m-%d %H:%M:%S]");
+
+		// Write plain text "[ERROR]" to the log file
+		logfile << ss.str() << " [ERROR] " << message << std::endl;
+
+		// Terminal logging with red "[ERROR]"
+		std::cerr << ss.str() << " " << RED << "[ERROR]" << RESET << " " << message << std::endl;
+
+	} catch (const std::exception& e) {
+		// Fallback in case of an error
+		std::cerr << RED << "[ERROR]" << RESET << " Logging failed: " << e.what() << std::endl;
+	}
+}
+
+
+
 std::string Logger::formatMessage(const std::string &message, size_t length) {
 	if (message.length() >= length) {
 		return message;

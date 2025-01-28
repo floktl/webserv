@@ -366,10 +366,10 @@ bool Sanitizer::sanitize_locationCgi(std::string& locationCgi, std::string& loca
 	if (!isValidPath(locationCgi, "CGI", pwd))
 		return false;
 
-	if (access(locationCgi.c_str(), F_OK) == -1) {
-		Logger::error("[CGI] File does not exist: " + locationCgi + " (" + strerror(errno) + ")");
-		return false;
-	}
+	// if (access(locationCgi.c_str(), F_OK) == -1) {
+	// 	Logger::error("[CGI] File does not exist: " + locationCgi + " (" + strerror(errno) + ")");
+	// 	return false;
+	// }
 
 	{
 		DIR* dirp = opendir(locationCgi.c_str());

@@ -2,13 +2,14 @@
 
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
 {
+	Logger::file("goes to handleread()");
 	//Logger::file("||||||||  READ READ READ READ READ READ READ READ READ  ||||||||");
 	char buffer[8192];
 	ssize_t bytes;
 	if (ctx.client_fd <= 0) {
-        //Logger::file("Invalid client_fd handeRead: " + std::to_string(ctx.client_fd));
-        return false;
-    }
+		Logger::errorLog("Invalid client_fd handeRead: " + std::to_string(ctx.client_fd));
+		return false;
+	}
 
 	while ((bytes = read(ctx.client_fd, buffer, sizeof(buffer))) > 0)
 	{
@@ -42,7 +43,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
 			//Logger::file("after process Request KEEP ALIVE!!!!: " + std::to_string(ctx.keepAlive));
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
 
-            return true;
+			return true;
 		}
 		return false;
 	}
@@ -51,7 +52,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
 	{
 		if (errno != EAGAIN && errno != EWOULDBLOCK)
 		{
-			//Logger::file("Read error on fd " + std::to_string(ctx.client_fd) + ": " + std::string(strerror(errno)));
+			Logger::errorLog("Read error on fd " + std::to_string(ctx.client_fd) + ": " + std::string(strerror(errno)));
 			logContext(ctx, "read error");
 			return false;
 		}
@@ -63,6 +64,101 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
 		return true;
 	}
 
+	return true;
+}
+
+bool Server::handleWrite(Context& ctx)
+{
+	Logger::file("entering handleWrite()");
+
+	bool result = false;
+	switch (ctx.type)
+	{
+		case INITIAL:
+			break;
+		case STATIC:
+			//Logger::file("WRITE with static");
+			result = staticHandler(ctx);
+			break;
+		case CGI:
+			//Logger::file("WRITE with cgi");
+			result = true;  // Handle CGI response
+			break;
+		case ERROR:
+			//Logger::file("WRITE with error");
+			result = errorsHandler(ctx, 0);
+			break;
+		default:
+			break;
+	}
+
+	// If write was successful, reset for next request
+	if (result)
+	{
+		ctx.input_buffer.clear();
+		ctx.body.clear();
+		ctx.headers_complete = false;
+		ctx.content_length = 0;
+		ctx.body_received = 0;
+		ctx.headers.clear();
+
+		if (ctx.keepAlive)
+			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+		else
+			result = false;
+	}
+	//Logger::file("handleWrite after result");
+	if (result == false)
+		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+	return result;
+}
+
+bool Server::handleNewConnection(int epoll_fd, int server_fd)
+{
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+	Context ctx;
+
+	while (true)
+	{
+		int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+		if (client_fd <= 0)
+		{
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+			{
+				// No more connections to accept (normal behavior in non-blocking mode)
+				break;
+			}
+			else
+			{
+				Logger::errorLog("Failed to accept connection: " + std::string(strerror(errno)) + "Server_fd: " +  std::to_string(server_fd));
+				return false;
+			}
+		}
+
+		Logger::file("New client_fd: " + std::to_string(client_fd) + " accepted on server_fd: " + std::to_string(server_fd));
+
+		if (setNonBlocking(client_fd) < 0) {
+			Logger::errorLog("Failed to set non-blocking mode for client_fd: " + std::to_string(client_fd));
+			close(client_fd);
+			continue;
+		}
+
+		modEpoll(epoll_fd, client_fd, EPOLLIN | EPOLLET);
+		globalFDS.clFD_to_svFD_map[client_fd] = server_fd;
+		ctx.server_fd = server_fd;
+		ctx.client_fd = client_fd;
+		ctx.epoll_fd = epoll_fd;
+		ctx.type = RequestType::INITIAL;
+		ctx.last_activity = std::chrono::steady_clock::now();
+		ctx.doAutoIndex = "";
+		ctx.keepAlive = true;
+		globalFDS.request_state_map[client_fd] = ctx;
+
+		logRequestBodyMapFDs();
+		logContext(ctx, "New Connection");
+	}
+	logContext(ctx, "Exit New Connection");
 	return true;
 }
 
@@ -99,8 +195,8 @@ bool Server::parseHeaders(Context& ctx)
 	}
 	// Determine keepAlive status
 	ctx.keepAlive = (ctx.version == "HTTP/1.1") ?
-    (ctx.headers["Connection"] != "close") :
-    (ctx.headers["Connection"] == "keep-alive");
+	(ctx.headers["Connection"] != "close") :
+	(ctx.headers["Connection"] == "keep-alive");
 	//Logger::file("checked headers keep alive: " + std::to_string(ctx.keepAlive));
 	ctx.input_buffer.erase(0, header_end + 4);
 	ctx.headers_complete = true;
@@ -108,136 +204,29 @@ bool Server::parseHeaders(Context& ctx)
 	return true;
 }
 
-bool Server::handleWrite(Context& ctx)
-{
-    //Logger::file("||||||||  WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE  ||||||||");
-
-    bool result = false;
-    switch (ctx.type)
-    {
-        case INITIAL:
-            break;
-        case STATIC:
-            //Logger::file("WRITE with static");
-            result = staticHandler(ctx);
-            break;
-        case CGI:
-            //Logger::file("WRITE with cgi");
-            result = true;  // Handle CGI response
-            break;
-        case ERROR:
-            //Logger::file("WRITE with error");
-            result = errorsHandler(ctx, 0);
-            break;
-        default:
-            break;
-    }
-
-    // If write was successful, reset for next request
-    if (result) {
-        ctx.input_buffer.clear();
-        ctx.body.clear();
-        ctx.headers_complete = false;
-        ctx.content_length = 0;
-        ctx.body_received = 0;
-        ctx.headers.clear();
-
-        // Reset back to EPOLLIN only if keepAlive is true
-		//Logger::file("handleWrite in result clean: "+ std::to_string(ctx.keepAlive));
-        if (ctx.keepAlive) {
-		 	//Logger::file("modEpoll because keep alive ");
-            modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
-        } else
-		{
-			//Logger::file("delFromEpoll because not keep alive ");
-            delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-		}
-    }
-	//Logger::file("handleWrite after result");
-
-    return result;
-}
-
-bool Server::queueResponse(Context& ctx, const std::string& response)
-{
-	ctx.output_buffer += response;
-	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
-	return true;
-}
-
-bool Server::handleNewConnection(int epoll_fd, int server_fd)
-{
-    struct sockaddr_in client_addr;
-    socklen_t client_len = sizeof(client_addr);
-
-    while (true)
-	{
-        int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
-        if (client_fd <= 0)
-		{
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-			{
-                // No more connections to accept (normal behavior in non-blocking mode)
-                break;
-            } else {
-                Logger::file("Failed to accept connection: " + std::string(strerror(errno)) + "Server_fd: " +  std::to_string(server_fd));
-                return false;
-            }
-        }
-
-        Logger::file("New client_fd: " + std::to_string(client_fd) + " accepted on server_fd: " + std::to_string(server_fd));
-
-        if (setNonBlocking(client_fd) < 0) {
-            Logger::file("Failed to set non-blocking mode for client_fd: " + std::to_string(client_fd));
-            close(client_fd);
-            continue; // Skip this client but continue accepting others
-        }
-
-        modEpoll(epoll_fd, client_fd, EPOLLIN | EPOLLET);
-        // Add to GlobalFDS maps
-        globalFDS.clFD_to_svFD_map[client_fd] = server_fd;
-
-        Context ctx;
-        ctx.server_fd = server_fd;
-        ctx.client_fd = client_fd;
-        ctx.epoll_fd = epoll_fd;
-        ctx.type = RequestType::INITIAL;
-        ctx.last_activity = std::chrono::steady_clock::now();
-        ctx.doAutoIndex = "";
-        ctx.keepAlive = true;
-
-        globalFDS.request_state_map[client_fd] = ctx;
-        logRequestBodyMapFDs();
-        logContext(ctx, "New Connection");
-    }
-
-    return true;
-}
-
 bool Server::sendWrapper(Context& ctx, std::string http_response)
 {
-    // Attempt to send the response
-    ssize_t bytes_sent = send(ctx.client_fd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
-    if (bytes_sent < 0) {
-        Logger::file("Error sending response to client_fd: " + std::to_string(ctx.client_fd) + " - " + std::string(strerror(errno)));
-        delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-        return false;
-    }
+	// Attempt to send the response
+	ssize_t bytes_sent = send(ctx.client_fd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
+	if (bytes_sent < 0) {
+		Logger::errorLog("Error sending response to client_fd: " + std::to_string(ctx.client_fd) + " - " + std::string(strerror(errno)));
+		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+		return false;
+	}
 
-    if (bytes_sent == static_cast<ssize_t>(http_response.size())) {
-        //Logger::file("Successfully sent full response to client_fd: " + std::to_string(ctx.client_fd));
-        if (!ctx.keepAlive) {
-            //Logger::file("Closing connection for client_fd: " + std::to_string(ctx.client_fd));
-            delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-        }
-    } else {
-        //Logger::file("Partial response sent to client_fd: " + std::to_string(ctx.client_fd) + " - Sent: " + std::to_string(bytes_sent) + " of " + std::to_string(http_response.size()) + " bytes");
-        delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-    }
+	if (bytes_sent == static_cast<ssize_t>(http_response.size())) {
+		//Logger::file("Successfully sent full response to client_fd: " + std::to_string(ctx.client_fd));
+		if (!ctx.keepAlive) {
+			//Logger::file("Closing connection for client_fd: " + std::to_string(ctx.client_fd));
+			delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+		}
+	} else {
+		//Logger::file("Partial response sent to client_fd: " + std::to_string(ctx.client_fd) + " - Sent: " + std::to_string(bytes_sent) + " of " + std::to_string(http_response.size()) + " bytes");
+		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+	}
 
-    return true;
+	return true;
 }
-
 
 bool Server::errorsHandler(Context& ctx, uint32_t ev)
 {
@@ -285,206 +274,76 @@ bool Server::staticHandler(Context& ctx)
 		//{
 		////Logger::file("REMOVEING EPOLL");
 		//	delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-        //}
+		//}
 		return true;
 	}
 }
 
 void Server::buildStaticResponse(Context &ctx) {
-    // Konstruiere den vollständigen Dateipfad
-    std::string fullPath = ctx.approved_req_path;
+	// Konstruiere den vollständigen Dateipfad
+	std::string fullPath = ctx.approved_req_path;
 	//Logger::file("assciated full req path: " + fullPath);
-    // Öffne und lese die Datei
-    std::ifstream file(fullPath, std::ios::binary);
-    if (!file) {
-        ctx.type = ERROR;
-        ctx.error_code = 404;
-        ctx.error_message = "File not found";
-        return;
-    }
+	// Öffne und lese die Datei
+	std::ifstream file(fullPath, std::ios::binary);
+	if (!file) {
+		ctx.type = ERROR;
+		ctx.error_code = 404;
+		ctx.error_message = "File not found";
+		return;
+	}
 
-    // Bestimme den Content-Type basierend auf der Dateiendung
-    std::string contentType = "text/plain";
-    size_t dot_pos = fullPath.find_last_of('.');
-    if (dot_pos != std::string::npos) {
-        std::string ext = fullPath.substr(dot_pos + 1);
-        if (ext == "html" || ext == "htm") contentType = "text/html";
-        else if (ext == "css") contentType = "text/css";
-        else if (ext == "js") contentType = "application/javascript";
-        else if (ext == "jpg" || ext == "jpeg") contentType = "image/jpeg";
-        else if (ext == "png") contentType = "image/png";
-        else if (ext == "gif") contentType = "image/gif";
-        else if (ext == "pdf") contentType = "application/pdf";
-        else if (ext == "json") contentType = "application/json";
-    }
+	// Bestimme den Content-Type basierend auf der Dateiendung
+	std::string contentType = "text/plain";
+	size_t dot_pos = fullPath.find_last_of('.');
+	if (dot_pos != std::string::npos) {
+		std::string ext = fullPath.substr(dot_pos + 1);
+		if (ext == "html" || ext == "htm") contentType = "text/html";
+		else if (ext == "css") contentType = "text/css";
+		else if (ext == "js") contentType = "application/javascript";
+		else if (ext == "jpg" || ext == "jpeg") contentType = "image/jpeg";
+		else if (ext == "png") contentType = "image/png";
+		else if (ext == "gif") contentType = "image/gif";
+		else if (ext == "pdf") contentType = "application/pdf";
+		else if (ext == "json") contentType = "application/json";
+	}
 
-    // Lese den Dateiinhalt
-    std::stringstream content;
-    content << file.rdbuf();
-    std::string content_str = content.str();
+	// Lese den Dateiinhalt
+	std::stringstream content;
+	content << file.rdbuf();
+	std::string content_str = content.str();
 
-    // Erstelle die HTTP Response
-    std::stringstream http_response;
-    http_response << "HTTP/1.1 200 OK\r\n"
-                 << "Content-Type: " << contentType << "\r\n"
-                 << "Content-Length: " << content_str.length() << "\r\n"
-                 << "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n"
-                 << "\r\n"
-                 << content_str;
+	// Erstelle die HTTP Response
+	std::stringstream http_response;
+	http_response << "HTTP/1.1 200 OK\r\n"
+				<< "Content-Type: " << contentType << "\r\n"
+				<< "Content-Length: " << content_str.length() << "\r\n"
+				<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n"
+				<< "\r\n"
+				<< content_str;
 
-    // Sende die Response
+	// Send response
 			//Logger::file("sendwrap in buildstatic resp");
-    sendWrapper(ctx, http_response.str());
+	sendWrapper(ctx, http_response.str());
 
-    // Reset context für nächste Anfrage
-    ctx.headers_complete = false;
-    ctx.content_length = 0;
-    ctx.body_received = 0;
-    ctx.input_buffer.clear();
-    ctx.body.clear();
-    ctx.method.clear();
-    ctx.path.clear();
-    ctx.version.clear();
-    ctx.headers.clear();
-    ctx.type = INITIAL;
+	// Reset context für nächste Anfrage
+	ctx.headers_complete = false;
+	ctx.content_length = 0;
+	ctx.body_received = 0;
+	ctx.input_buffer.clear();
+	ctx.body.clear();
+	ctx.method.clear();
+	ctx.path.clear();
+	ctx.version.clear();
+	ctx.headers.clear();
+	ctx.type = INITIAL;
 }
 
-// void Server::buildStaticResponse(Context &ctx) {
-// 	bool keepAlive = false;
-// 	auto it = ctx.headers.find("Connection");
-// 	if (it != ctx.headers.end()) {
-// 		keepAlive = (it->second.find("keep-alive") != std::string::npos);
-// 	}
-
-// 	std::stringstream content;
-// 	content << "epoll_fd: " << ctx.epoll_fd << "\n"
-// 			<< "client_fd: " << ctx.client_fd << "\n"
-// 			<< "server_fd: " << ctx.server_fd << "\n"
-// 			<< "type: " << static_cast<int>(ctx.type) << "\n"
-// 			<< "method: " << ctx.method << "\n"
-// 			<< "path: " << ctx.path << "\n"
-// 			<< "version: " << ctx.version << "\n"
-// 			<< "body: " << ctx.body << "\n"
-// 			<< "location_path: " << ctx.location_path << "\n"
-// 			<< "requested_path: " << ctx.requested_path << "\n"
-// 			<< "error_code: " << ctx.error_code << "\n"
-// 			<< "port: " << ctx.port << "\n"
-// 			<< "name: " << ctx.name << "\n"
-// 			<< "root: " << ctx.root << "\n"
-// 			<< "index: " << ctx.index << "\n"
-// 			<< "client_max_body_size: " << ctx.client_max_body_size << "\n"
-// 			<< "timeout: " << ctx.timeout << "\n";
-
-// 	content << "\nHeaders:\n";
-// 	for (const auto& header : ctx.headers) {
-// 		content << header.first << ": " << header.second << "\n";
-// 	}
-
-// 	content << "\nError Pages:\n";
-// 	for (const auto& error : ctx.errorPages) {
-// 		content << error.first << ": " << error.second << "\n";
-// 	}
-
-// 	std::string content_str = content.str();
-
-// 	std::stringstream http_response;
-// 	http_response << "HTTP/1.1 200 OK\r\n"
-// 			<< "Content-Type: text/plain\r\n"
-// 			<< "Content-Length: " << content_str.length() << "\r\n"
-// 			<< "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
-// 			<< "\r\n"
-// 			<< content_str;
-
-// 	sendWrapper(ctx,  http_response.str());
-// }
-
-
-// bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev) {
-//     int client_fd = globalFDS.clFD_to_svFD_map[fd];
-//     RequestBody &req = globalFDS.request_state_map[client_fd];
-// 	// Only process method check once at start
-//     if (!req.cgiMethodChecked) {
-// 		req.cgiMethodChecked = true;
-//         if (!clientHandler->processMethod(req, epoll_fd))
-// 		{
-//             return true;
-// 		}
-//     }
-//     if (ev & EPOLLIN)
-//         cgiHandler->handleCGIRead(epoll_fd, fd);
-//     if (fd == req.cgi_out_fd && (ev & EPOLLHUP)) {
-//         if (!req.cgi_output_buffer.empty())
-//             cgiHandler->finalizeCgiResponse(req, epoll_fd, client_fd);
-//         cgiHandler->cleanupCGI(req);
-//     }
-//     if (fd == req.cgi_in_fd) {
-//         if (ev & EPOLLOUT)
-//             cgiHandler->handleCGIWrite(epoll_fd, fd, ev);
-//         if (ev & (EPOLLHUP | EPOLLERR)) {
-//             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-//             close(fd);
-//             req.cgi_in_fd = -1;
-//             globalFDS.clFD_to_svFD_map.erase(fd);
-//         }
-//     }
-//     return true;
-// }
-
-
-
-
-//bool Server::staticHandler(Context& ctx, int epoll_fd, int fd, uint32_t ev)
-//{
-//    RequestBody &req = globalFDS.request_state_map[fd];
-
-//    if (ev & EPOLLIN)
-//    {
-//        // clientHandler->handleClientRead(epoll_fd, fd);
-//        // //Logger::file("handleClient");
-//    }
-
-//    if (req.state != RequestBody::STATE_CGI_RUNNING &&
-//        req.state != RequestBody::STATE_PREPARE_CGI &&
-//        (ev & EPOLLOUT))
-//    {
-//        // clientHandler->handleClientWrite(epoll_fd, fd);
-//    }
-
-//    // Handle request body
-//    if ((req.state == RequestBody::STATE_CGI_RUNNING ||
-//        req.state == RequestBody::STATE_PREPARE_CGI) &&
-//        (ev & EPOLLOUT) && !req.response_buffer.empty())
-//    {
-//        char send_buffer[8192];
-//        size_t chunk_size = std::min(req.response_buffer.size(), sizeof(send_buffer));
-
-//        std::copy(req.response_buffer.begin(),
-//				req.response_buffer.begin() + chunk_size,
-//				send_buffer);
-
-//        ssize_t written = write(fd, send_buffer, chunk_size);
-
-//        if (written > 0)
-//        {
-//            req.response_buffer.erase(
-//                req.response_buffer.begin(),
-//                req.response_buffer.begin() + written
-//            );
-
-//            if (req.response_buffer.empty())
-//            {
-//                delFromEpoll(epoll_fd, fd);
-//            }
-//        }
-//        else if (written < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-//        {
-//            delFromEpoll(epoll_fd, fd);
-//        }
-//    }
-
-//    return true;
-//}
-
+bool Server::queueResponse(Context& ctx, const std::string& response)
+{
+	ctx.output_buffer += response;
+	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
+	return true;
+}
 
 bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response) {
 
@@ -517,7 +376,7 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response) {
 
 		struct stat statbuf;
 		if (stat(fullPath.c_str(), &statbuf) != 0) {
-			//Logger::file("stat failed for path: " + fullPath + " with error: " + std::string(strerror(errno)));
+			Logger::errorLog("stat failed for path: " + fullPath + " with error: " + std::string(strerror(errno)));
 			continue;
 		}
 

@@ -1,8 +1,13 @@
 .vscode
 var/www/html/data/*
+var/www/html/upload/*
 var/www/php/data/*
 var/www/php/upload/*
 var/www/python/data/*
+var/www/python/upload/*
+var/www/second/upload/*
+var/www/staticupload/upload/*
+var/www/upload/*
 ./webserv.log
 ./obj
 webserv
