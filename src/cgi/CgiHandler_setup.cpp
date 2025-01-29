@@ -79,8 +79,8 @@
 //     // ----------------------------------------------------------------------------
 //     // Request aus dem RequestBody holen (falls vorhanden)
 //     // ----------------------------------------------------------------------------
-//     auto req_it = server.getGlobalFds().request_state_map.find(tunnel.client_fd);
-//     if (req_it != server.getGlobalFds().request_state_map.end())
+//     auto req_it = server.getGlobalFds().context_map.find(tunnel.client_fd);
+//     if (req_it != server.getGlobalFds().context_map.end())
 //     {
 //         const RequestBody &req = req_it->second;
 //         http_cookie = req.cookie_header;

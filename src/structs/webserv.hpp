@@ -122,7 +122,7 @@ struct RequestBody
 ;
 	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
 
-	const ServerBlock* associated_conf;
+	ServerBlock* associated_conf;
 	std::string location_path;
 	std::string requested_path;
 
@@ -162,7 +162,7 @@ struct Context
 	std::string location_path = "";
 	std::string requested_path = "";
 
-	const Location* location = nullptr;
+	Location* location = nullptr;
 	RequestBody req;
 
 	int error_code = 0;
@@ -196,8 +196,8 @@ struct CgiTunnel
 	int server_fd = -1;
 	int port = 0;
 	std::string server_name;
-	const ServerBlock* config = NULL;
-	const Location* location = NULL;
+	ServerBlock* config = NULL;
+	Location* location = NULL;
 	std::chrono::steady_clock::time_point last_used = std::chrono::steady_clock::now();
 	bool is_busy = false;
 	std::string script_path;
@@ -209,7 +209,7 @@ struct CgiTunnel
 struct GlobalFDS
 {
 	int epoll_fd = -1;
-	std::map<int, Context> request_state_map;
+	std::map<int, Context> context_map;
 	std::map<int, int> clFD_to_svFD_map;
 };
 

@@ -71,7 +71,7 @@ std::string expandEnvironmentVariables(const std::string& value, char** env)
 	return result;
 }
 
-void printServerBlock(const ServerBlock& serverBlock)
+void printServerBlock(ServerBlock& serverBlock)
 {
 	std::cout << "---- ServerBlock Information ----" << std::endl;
 

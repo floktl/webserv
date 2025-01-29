@@ -20,40 +20,42 @@ void Server::modEpoll(int epoll_fd, int fd, uint32_t events) {
 	}
 }
 
-void Server::delFromEpoll(int epfd, int fd)
-{
-	 if (epfd <= 0 || fd <= 0) {
-        Logger::errorLog("WARNING: Attempt to delete invalid fd: " + std::to_string(fd));
+void Server::delFromEpoll(int epfd, int client_fd) {
+    if (epfd <= 0 || client_fd <= 0) {
+        Logger::errorLog("WARNING: Attempt to delete invalid fd: " + std::to_string(client_fd));
         return;
     }
-	if (findServerBlock(configData, fd)) {
-		Logger::errorLog("Prevented removal of server socket: " + std::to_string(fd));
-		return;
-	}
-	//Logger::file("Removing fd " + std::to_string(fd) + " from epoll");
+    if (findServerBlock(configData, client_fd)) {
+        Logger::errorLog("Prevented removal of server socket: " + std::to_string(client_fd));
+        return;
+    }
+    auto ctx_it = globalFDS.context_map.find(client_fd);
+    if (ctx_it != globalFDS.context_map.end())
+    {
+    	if (epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, NULL) < 0)
+    	    Logger::errorLog("Error removing from epoll: " + std::string(strerror(errno)));
 
-	if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL) < 0)
-		Logger::errorLog("Error removing from epoll: " + std::string(strerror(errno)));
+        //RequestBody &req = ctx_it->second.req;
+        //if (req.cgi_in_fd != -1) {
+        //    Logger::file("Closing CGI input fd " + std::to_string(req.cgi_in_fd));
+        //    close(req.cgi_in_fd);
+        //    globalFDS.clFD_to_svFD_map.erase(req.cgi_in_fd);
+        //}
+        //if (req.cgi_out_fd != -1) {
+        //    Logger::file("Closing CGI output fd " + std::to_string(req.cgi_out_fd));
+        //    close(req.cgi_out_fd);
+        //    globalFDS.clFD_to_svFD_map.erase(req.cgi_out_fd);
+        //}
+   		globalFDS.clFD_to_svFD_map.erase(client_fd);
+   		close(client_fd);
+        globalFDS.context_map.erase(client_fd);
+    }
+    else
+    {
+		globalFDS.clFD_to_svFD_map.erase(client_fd);
+		//log_global_fds(globalFDS);
+    }
 
-	auto ctx_it = globalFDS.request_state_map.find(fd);
-	if (ctx_it != globalFDS.request_state_map.end()) {
-		RequestBody &req = ctx_it->second.req;
-		if (req.cgi_in_fd != -1) {
-			close(req.cgi_in_fd);
-			globalFDS.clFD_to_svFD_map.erase(req.cgi_in_fd);
-		}
-		if (req.cgi_out_fd != -1) {
-			close(req.cgi_out_fd);
-			globalFDS.clFD_to_svFD_map.erase(req.cgi_out_fd);
-		}
-
-		globalFDS.request_state_map.erase(fd);
-	}
-	Logger::file("removed from clFD_to_svFD_map[clFD:" + std::to_string(fd) + "] = svFD(" + std::to_string(globalFDS.clFD_to_svFD_map[fd]) + ")");
-	close(fd);
-	globalFDS.clFD_to_svFD_map.erase(fd);
-
-	//Logger::file("Successfully removed fd " + std::to_string(fd));
 }
 
 bool Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd)
@@ -87,9 +89,9 @@ int Server::setNonBlocking(int fd)
 // 		return;
 // 	}
 
-// 	auto it = globalFDS.request_state_map.find(client_fd);
+// 	auto it = globalFDS.context_map.find(client_fd);
 
-// 	if (it != globalFDS.request_state_map.end())
+// 	if (it != globalFDS.context_map.end())
 // 	{
 // 		it->second.task = new_task;
 
@@ -101,22 +103,22 @@ int Server::setNonBlocking(int fd)
 // 	}
 // 	else
 // 	{
-// 		//Logger::file("Error: client_fd " + std::to_string(client_fd) + " not found in request_state_map");
+// 		//Logger::file("Error: client_fd " + std::to_string(client_fd) + " not found in context_map");
 // 	}
 // }
 
 
 // enum RequestBody::Task Server::getTaskStatus(int client_fd)
 // {
-// 	auto it = globalFDS.request_state_map.find(client_fd);
+// 	auto it = globalFDS.context_map.find(client_fd);
 
-// 	if (it != globalFDS.request_state_map.end())
+// 	if (it != globalFDS.context_map.end())
 // 	{
 // 		return it->second.task;
 // 	}
 // 	else
 // 	{
-// 		//Logger::file("Error: client_fd " + std::to_string(client_fd) + " not found in request_state_map");
+// 		//Logger::file("Error: client_fd " + std::to_string(client_fd) + " not found in context_map");
 // 		return RequestBody::Task::PENDING;
 // 	}
 // }
@@ -194,7 +196,7 @@ std::string Server::normalizePath(const std::string& raw)
 	return path;
 }
 
-bool Server::matchLoc(const Location& loc, std::string rawPath) {
+bool Server::matchLoc(Location& loc, std::string rawPath) {
     if (rawPath.empty()) {
         rawPath = "/";
     }
@@ -235,16 +237,16 @@ bool Server::matchLoc(const Location& loc, std::string rawPath) {
 
 void Server::logRequestBodyMapFDs()
 {
-	//Logger::file("Logging all FDs in request_state_map:");
+	//Logger::file("Logging all FDs in context_map:");
 
-	if (globalFDS.request_state_map.empty())
+	if (globalFDS.context_map.empty())
 	{
 		//Logger::file("[empty]");
 		return;
 	}
 
 	std::string log = "Active FDs: ";
-	for (const auto& pair : globalFDS.request_state_map)
+	for (const auto& pair : globalFDS.context_map)
 	{
 		log += std::to_string(pair.first) + " ";
 	}
@@ -312,32 +314,37 @@ void Server::parseRequest(Context& ctx) {
 
 
 
-	logContext(ctx, "Parsed");
+	//logContext(ctx, "Parsed");
 }
 
 
-void Server::checkAndCleanupTimeouts() {
-auto now = std::chrono::steady_clock::now();
+void Server::checkAndCleanupTimeouts()
+{
+    auto now = std::chrono::steady_clock::now();
 
-for (auto it = globalFDS.request_state_map.begin(); it != globalFDS.request_state_map.end();) {
-	Context& ctx = it->second;
+    auto it = globalFDS.context_map.begin();
+    while (it != globalFDS.context_map.end())
+	{
+        Context& ctx = it->second;
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(
+            now - ctx.last_activity).count();
 
-	auto duration = std::chrono::duration_cast<std::chrono::seconds>(
-		now - ctx.last_activity
-	).count();
-
-	if (duration > Context::TIMEOUT_DURATION.count()) {
-		if (ctx.type == CGI) {
-			//killTimeoutedCGI(ctx);
-		}
-
-		modEpoll(globalFDS.epoll_fd, ctx.client_fd, EPOLLOUT);
-		// Cleanup context
-		it = globalFDS.request_state_map.erase(it);
-	} else {
-		++it;
-	}
-}
+        if (duration > Context::TIMEOUT_DURATION.count())
+		{
+            auto next = std::next(it);
+            globalFDS.context_map.erase(it);
+            delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+			if (next == globalFDS.context_map.end())
+			{
+				next = globalFDS.context_map.begin();
+				if  (next == globalFDS.context_map.end())
+					return;
+			}
+            it = next;
+        }
+		else
+            ++it;
+    }
 }
 
 void Server::killTimeoutedCGI(RequestBody &req) {

@@ -40,7 +40,7 @@ class Server
 		void cleanup();
 		int runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs);
 		void logRequestBodyMapFDs();
-		void parseAcessRights(Context& ctx);
+		void parseAccessRights(Context& ctx);
 		bool checkAccessRights(Context &ctx, std::string errorString);
 		bool sendWrapper(Context& ctx, std::string http_response);
 		bool handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, std::vector<ServerBlock> &configs);
@@ -80,8 +80,8 @@ class Server
 		void logContext(const Context& ctx, const std::string& event = "");
 		void parseRequest(Context& ctx);
 		std::string requestTypeToString(RequestType type);
-		void determineType(Context& ctx, const std::vector<ServerBlock>& configs);
-		bool matchLoc(const Location& loc, std::string rawPath);
+		void determineType(Context& ctx, std::vector<ServerBlock>& configs);
+		bool matchLoc(Location& loc, std::string rawPath);
 		std::string normalizePath(const std::string& raw);
 		bool isMethodAllowed(Context& ctx);
 		std::string concatenatePath(const std::string& root, const std::string& path);
@@ -149,7 +149,7 @@ class Server
 
 // bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev) {
 //     int client_fd = globalFDS.clFD_to_svFD_map[fd];
-//     RequestBody &req = globalFDS.request_state_map[client_fd];
+//     RequestBody &req = globalFDS.context_map[client_fd];
 // 	// Only process method check once at start
 //     if (!req.cgiMethodChecked) {
 // 		req.cgiMethodChecked = true;
@@ -183,7 +183,7 @@ class Server
 
 //bool Server::staticHandler(Context& ctx, int epoll_fd, int fd, uint32_t ev)
 //{
-//    RequestBody &req = globalFDS.request_state_map[fd];
+//    RequestBody &req = globalFDS.context_map[fd];
 
 //    if (ev & EPOLLIN)
 //    {
