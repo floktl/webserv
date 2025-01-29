@@ -53,7 +53,7 @@
 // 	ssize_t bytes_read;
 // 	while ((bytes_read = read(pipe_fd[0], &update, sizeof(update))) > 0) {
 // 		std::lock_guard<std::mutex> lock(taskMutex);
-// 		auto& request_map = server.getGlobalFds().request_state_map;
+// 		auto& request_map = server.getGlobalFds().context_map;
 // 		auto it = request_map.find(update.client_fd);
 // 		if (it != request_map.end()) {
 // 			it->second.task = update.status;  // Jetzt kompatibel
@@ -71,8 +71,8 @@
 // }
 
 // void TaskManager::processTask(int epoll_fd) {
-// 	for (auto it = server.getGlobalFds().request_state_map.begin();
-// 		it != server.getGlobalFds().request_state_map.end(); ) {
+// 	for (auto it = server.getGlobalFds().context_map.begin();
+// 		it != server.getGlobalFds().context_map.end(); ) {
 // 		int key = it->first;
 // 		RequestBody& req = it->second;
 

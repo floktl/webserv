@@ -5,11 +5,11 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 //void ClientHandler::handleClientRead(int epfd, int fd)
 //{
 //	auto &fds = server.getGlobalFds();
-//	auto it = fds.request_state_map.find(fd);
+//	auto it = fds.context_map.find(fd);
 
-//	if (it == fds.request_state_map.end())
+//	if (it == fds.context_map.end())
 //	{
-//		////Logger::file("[handleClientRead] Invalid fd: " + std::to_string(fd) + " not found in request_state_map.");
+//		////Logger::file("[handleClientRead] Invalid fd: " + std::to_string(fd) + " not found in context_map.");
 //		server.delFromEpoll(epfd, fd);
 //		return;
 //	}
@@ -71,7 +71,7 @@ ClientHandler::ClientHandler(Server& _server) : server(_server) {}
 
 //void ClientHandler::handleClientWrite(int epfd, int fd)
 //{
-//	RequestBody &req = server.getGlobalFds().request_state_map[fd];
+//	RequestBody &req = server.getGlobalFds().context_map[fd];
 
 //	auto now = std::chrono::steady_clock::now();
 //	if (now - req.last_activity > RequestBody::TIMEOUT_DURATION)

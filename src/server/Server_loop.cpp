@@ -4,7 +4,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 {
 	const int			max_events = 64;
 	struct epoll_event	events[max_events];
-	const int			timeout_ms = 500;
+	const int			timeout_ms = 1000;
 	int					incoming_fd = -1;
 
 	//Logger::file("\n");
@@ -19,11 +19,11 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 			if (errno == EINTR) continue;
 			break;
 		}
-		// else if (n == 0)
-		// {
-		// 	//checkAndCleanupTimeouts();
-		// 	continue;
-		// }
+		else if (n == 0)
+		{
+			checkAndCleanupTimeouts();
+			continue;
+		}
 
 		for (int i = 0; i < n; i++)
 		{
@@ -41,12 +41,13 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 			}
 			else
 			{
+				Logger::errorLog("dispatch event error");
+				log_global_fds(globalFDS);
 				// handle errors during dispatch
 
 				// differentiate between normal errorhandler and (bug erros)
 			}
 		}
-		//checkAndCleanupTimeouts();
 	}
 	close(epoll_fd);
 	return EXIT_SUCCESS;
@@ -59,7 +60,7 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vect
 
 	Logger::file("");
 	Logger::file(getEventDescription(ev));
-
+	//log_server_configs(configs);
 	// Determine if incoming_fd is a server or client fd
 	if (findServerBlock(configs, incoming_fd))
 	{
@@ -69,26 +70,36 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vect
 		{
 			return handleNewConnection(epoll_fd, server_fd);
 		}
+		else
+		{
+			Logger::errorLog("server_fd: " + std::to_string(server_fd) + "invalid in findserverblock");
+			return false; // Error
+		}
 	}
 	else
 	{
 		client_fd = incoming_fd;
-		Logger::file("dispatchEvent: client fd identified: " + std::to_string(client_fd) + " events=" + std::to_string(ev));
 		if (client_fd > 0)
 		{
 			return handleAcceptedConnection(epoll_fd, client_fd, ev, configs);
 		}
+		else
+		{
+			Logger::errorLog("client_fd: " + std::to_string(client_fd));
+			return false; // Error
+		}
 	}
-	log_global_fds(globalFDS);
-	return false;
+	//log_global_fds(globalFDS);
+	Logger::errorLog("dispatch event not sucessful: Client_fd: " + std::to_string(client_fd) + " server_fd: " + std::to_string(server_fd));
+	return false; // Error in Dispatch event
 }
 
 bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, std::vector<ServerBlock> &configs)
 {
-	std::map<int, Context>::iterator contextIter = globalFDS.request_state_map.find(client_fd);
+	std::map<int, Context>::iterator contextIter = globalFDS.context_map.find(client_fd);
 	bool		status = false;
 
-	if (contextIter != globalFDS.request_state_map.end())
+	if (contextIter != globalFDS.context_map.end())
 	{
 		Context		&ctx = contextIter->second;
 		ctx.last_activity = std::chrono::steady_clock::now();
@@ -97,30 +108,45 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 		if (ev & EPOLLIN)
 		{
 			status = handleRead(ctx, configs);
+			//log_global_fds(globalFDS);
+			//logContext(ctx);
 		}
 
 		// Handle writes
 		if ((ev & EPOLLOUT))
 		{
-			if (!handleWrite(ctx))
-				return false;
-			delFromEpoll(epoll_fd, client_fd);
+			//log_global_fds(globalFDS);
+			status = handleWrite(ctx);
+
+			if (status == false)
+			{
+				//Logger::errorLog("Connection error in handle write: client_fd: " + std::to_string(client_fd));
+				//log_global_fds(globalFDS);
+				//Logger::file("after handle write()");
+				delFromEpoll(epoll_fd, client_fd);
+				return status;
+			}
+
+			//logContext(ctx);
+			return status;
 		}
 
 		// Handle errors/disconnects
 		if (ev & (EPOLLHUP | EPOLLERR))
 		{
-			Logger::errorLog("Connection error on fd " + std::to_string(client_fd));
+			status = false;
+			Logger::errorLog("Connection error on client_fd " + std::to_string(client_fd));
 			delFromEpoll(epoll_fd, client_fd);
-			log_global_fds(globalFDS);
-			return false;
+			//log_global_fds(globalFDS);
 		}
+		if (status == false)
+			Logger::errorLog("handleAcceptConnection Error: client_fd " + std::to_string(client_fd));
 		return status;
 	}
 
 	Logger::errorLog("Unknown fd: " + std::to_string(client_fd));
 	delFromEpoll(epoll_fd, client_fd);
-	log_global_fds(globalFDS);
+	//log_global_fds(globalFDS);
 	return false;
 }
 bool Server::isMethodAllowed(Context& ctx)
@@ -178,7 +204,6 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
     }
     else
     {
-        Logger::errorLog("Error: Bad Request -> file extention not valid");
         ctx.error_code = 400;
         ctx.type = ERROR;
         ctx.error_message = "Bad Request: No file extension found";
@@ -189,40 +214,48 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 }
 
 
-void Server::parseAcessRights(Context& ctx)
+void Server::parseAccessRights(Context& ctx)
 {
-	//Logger::file("parseAcessRights: Starting access rights parsing");
+	//Logger::file("parseAccessRights: Starting access rights parsing");
 
-	//Logger::file("Before Requested Path: " + ctx.path);
+	Logger::file("Before Requested Path: " + ctx.path);
 	std::string requestedPath = concatenatePath(ctx.root, ctx.path);
-	//Logger::file("After Requested Path: " + requestedPath);
+	Logger::file("Before catted Requested Path: " + requestedPath);
+	if (ctx.index.empty()) {
+		ctx.index = "index.html";
+	}
+	if (ctx.location->default_file.empty()) {
+		ctx.location->default_file = ctx.index;
+	}
+	Logger::file("ctx.index: " + ctx.index);
+	Logger::file("ctx.location->default_file: " + ctx.location->default_file);
 	ctx.access_flag = FILE_EXISTS;
 	if (!requestedPath.empty() && requestedPath.back() == '/') {
 		//Logger::file("apply default file config");
 		requestedPath = concatenatePath(requestedPath, ctx.location->default_file);
 	}
 	requestedPath = approveExtention(ctx, requestedPath);
-	//Logger::file("After Requested Path: " + requestedPath);
+	Logger::file("After Requested Path: " + requestedPath);
 	if (ctx.type == ERROR)
 		return;
 	// File existence check
 	ctx.access_flag = FILE_EXISTS;
 	//checkAccessRights(ctx, rootAndLocationIndex);
-	//Logger::file("File existence check completed for: " + requestedPath);
+	Logger::file("File existence check completed for: " + requestedPath);
 
 	// Read permission check
 	ctx.access_flag = FILE_READ;
 	//checkAccessRights(ctx, rootAndLocationIndex);
-	//Logger::file("Read permission check completed for: " + requestedPath);
+	Logger::file("Read permission check completed for: " + requestedPath);
 
 	// Execute permission check
 	ctx.access_flag = FILE_EXISTS;
 	checkAccessRights(ctx, requestedPath);
-	//Logger::file("Execute permission check completed for: " + requestedPath);
+	Logger::file("Execute permission check completed for: " + requestedPath);
 	if (ctx.type == ERROR)
 		return;
 	ctx.approved_req_path = requestedPath;
-	//Logger::file("parseAcessRights: Completed all access rights checks");
+	Logger::file("parseAccessRights: Completed all access rights checks");
 
 	// Additional debug information about context state
 	if (ctx.error_code != 0)
@@ -293,12 +326,12 @@ bool Server::checkAccessRights(Context &ctx, std::string path)
 
 
 // Bestimmt Request-Typ aus Konfiguration
-void Server::determineType(Context& ctx, const std::vector<ServerBlock>& configs)
+void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 {
-	const ServerBlock* conf = nullptr;
+	ServerBlock* conf = nullptr;
 
 	// Finde passende Konfiguration
-	for (const auto& config : configs) {
+	for (auto& config : configs) {
 		if (config.server_fd == ctx.server_fd)
 		{
 			conf = &config;
@@ -318,7 +351,7 @@ void Server::determineType(Context& ctx, const std::vector<ServerBlock>& configs
 	// autoindex
 	// uploadstore
 
-	for (const auto& loc : conf->locations)
+	for (auto& loc : conf->locations)
 	{
 		if (matchLoc(loc, ctx.path))
 		{
@@ -341,7 +374,7 @@ void Server::determineType(Context& ctx, const std::vector<ServerBlock>& configs
 				ctx.type = CGI;
 			else
 				ctx.type = STATIC;
-			parseAcessRights(ctx);
+			parseAccessRights(ctx);
 			return;
 		}
 	}

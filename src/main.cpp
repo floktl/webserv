@@ -2,7 +2,60 @@
 #include <csignal>
 #include <iostream>
 #include <memory>
+void log_server_configs(const std::vector<ServerBlock>& configs) {
+    Logger::file("Server Configurations:");
+    Logger::file("[");
 
+    if (configs.empty()) {
+        Logger::file("   empty");
+    }
+
+    for (const auto& server : configs) {
+        Logger::file("   ServerBlock {");
+        Logger::file("      port: " + std::to_string(server.port));
+        Logger::file("      server_fd: " + std::to_string(server.server_fd));
+        Logger::file("      name: " + server.name);
+        Logger::file("      root: " + server.root);
+        Logger::file("      index: " + server.index);
+        Logger::file("      timeout: " + std::to_string(server.timeout));
+        Logger::file("      client_max_body_size: " + std::to_string(server.client_max_body_size));
+
+        // Log error pages
+        Logger::file("      error_pages: {");
+        for (const auto& error : server.errorPages) {
+            Logger::file("         " + std::to_string(error.first) + ": " + error.second);
+        }
+        Logger::file("      }");
+
+        // Log locations
+        //Logger::file("      locations: [");
+        //for (const auto& loc : server.locations) {
+        //    Logger::file("         {");
+        //    Logger::file("            port: " + std::to_string(loc.port));
+        //    Logger::file("            path: " + loc.path);
+        //    Logger::file("            methods: " + loc.methods);
+        //    Logger::file("            autoindex: " + loc.autoindex);
+        //    Logger::file("            default_file: " + loc.default_file);
+        //    Logger::file("            upload_store: " + loc.upload_store);
+        //    Logger::file("            client_max_body_size: " + std::to_string(loc.client_max_body_size));
+        //    Logger::file("            root: " + loc.root);
+        //    Logger::file("            cgi: " + loc.cgi);
+        //    Logger::file("            cgi_filetype: " + loc.cgi_filetype);
+        //    Logger::file("            return_code: " + loc.return_code);
+        //    Logger::file("            return_url: " + loc.return_url);
+        //    Logger::file("            doAutoindex: " + std::string(loc.doAutoindex ? "true" : "false"));
+        //    Logger::file("            allowGet: " + std::string(loc.allowGet ? "true" : "false"));
+        //    Logger::file("            allowPost: " + std::string(loc.allowPost ? "true" : "false"));
+        //    Logger::file("            allowDelete: " + std::string(loc.allowDelete ? "true" : "false"));
+        //    Logger::file("            allowCookie: " + std::string(loc.allowCookie ? "true" : "false"));
+        //    Logger::file("         }");
+        //}
+        Logger::file("      ]");
+        Logger::file("   }");
+    }
+
+    Logger::file("]\n");
+}
 std::string getEventDescription(uint32_t ev) {
     std::ostringstream description;
 
@@ -42,12 +95,17 @@ std::string getEventDescription(uint32_t ev) {
 
 std::unique_ptr<Server> serverInstance;
 void log_global_fds(const GlobalFDS& fds) {
-    Logger::file("GlobalFDS epoll_fd: " + std::to_string(fds.epoll_fd));
-
     Logger::file("GlobalFDS clFD_to_svFD_map:");
-    for (const auto& pair : fds.clFD_to_svFD_map) {
-        Logger::file("GlobalFDS=  client_fd: " + std::to_string(pair.first) + " -> server_fd: " + std::to_string(pair.second));
+    Logger::file("epoll_fd: " + std::to_string(fds.epoll_fd));
+
+	Logger::file("[");
+    if (fds.clFD_to_svFD_map.empty()) {
+        Logger::file("   empty");
     }
+    for (const auto& pair : fds.clFD_to_svFD_map) {
+        Logger::file("   client_fd: " + std::to_string(pair.first) + " -> server_fd: " + std::to_string(pair.second));
+    }
+	Logger::file("]\n");
 }
 void handle_sigint(int sig)
 {
@@ -113,3 +171,4 @@ int main(int argc, char **argv, char **envp)
 
 	return EXIT_SUCCESS;
 }
+
