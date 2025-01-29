@@ -52,11 +52,12 @@
 # include "./server/Server.hpp"
 # include "structs/webserv.hpp"
 
-void printServerBlock(const ServerBlock& serverBlock);
+void printServerBlock(ServerBlock& serverBlock);
 void printRequestBody(const RequestBody& req);
 std::string getEventDescription(uint32_t ev);
 std::string trim(const std::string& str);
 std::vector<std::string> parseOptionsToVector(const std::string& opts);
 std::string expandEnvironmentVariables(const std::string& value, char** env);
 void log_global_fds(const GlobalFDS& fds);
+void log_server_configs(const std::vector<ServerBlock>& configs);
 # endif

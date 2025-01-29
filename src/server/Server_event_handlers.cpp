@@ -1,8 +1,56 @@
 #include "Server.hpp"
 
+bool Server::handleNewConnection(int epoll_fd, int server_fd)
+{
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+	Context ctx;
+
+	while (true)
+	{
+		int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+		if (client_fd <= 0)
+		{
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+			{
+				// No more connections to accept (normal behavior in non-blocking mode)
+				break;
+			}
+			else
+			{
+				Logger::errorLog("Failed to accept connection: " + std::string(strerror(errno)) + " Server_fd: " +  std::to_string(server_fd));
+				return false;
+			}
+		}
+
+		Logger::file("New client_fd: " + std::to_string(client_fd) + " accepted on server_fd: " + std::to_string(server_fd));
+
+		if (setNonBlocking(client_fd) < 0) {
+			Logger::errorLog("Failed to set non-blocking mode for client_fd: " + std::to_string(client_fd));
+			close(client_fd);
+			continue;
+		}
+
+		modEpoll(epoll_fd, client_fd, EPOLLIN | EPOLLET);
+		globalFDS.clFD_to_svFD_map[client_fd] = server_fd;
+		ctx.server_fd = server_fd;
+		ctx.client_fd = client_fd;
+		ctx.epoll_fd = epoll_fd;
+		ctx.type = RequestType::INITIAL;
+		ctx.last_activity = std::chrono::steady_clock::now();
+		ctx.doAutoIndex = "";
+		ctx.keepAlive = true;
+		globalFDS.context_map[client_fd] = ctx;
+
+		logRequestBodyMapFDs();
+		//logContext(ctx, "New Connection");
+	}
+	//logContext(ctx, "Exit New Connection");
+	return true;
+}
+
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
 {
-	Logger::file("goes to handleread()");
 	//Logger::file("||||||||  READ READ READ READ READ READ READ READ READ  ||||||||");
 	char buffer[8192];
 	ssize_t bytes;
@@ -17,9 +65,9 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
 
 		if (!ctx.headers_complete)
 		{
-			logContext(ctx, "before parsing headers");
+			//ext(ctx, "before parsing headers");
 			parseHeaders(ctx);
-			logContext(ctx, "after parsing headers");
+			//logContext(ctx, "after parsing headers");
 		}
 
 		if (ctx.headers_complete && ctx.content_length > 0)
@@ -33,13 +81,13 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
 
 		if (isRequestComplete(ctx))
 		{
-			logContext(ctx, "before processrequest");
+			//logContext(ctx, "before processrequest");
 			determineType(ctx, configs);
 			//bool requestgg = processRequest(ctx, configs);
 			//if (requestgg)
 			//	logContext(ctx, "processrequest success");
 			//else
-			logContext(ctx, "after process Request");
+			//logContext(ctx, "after process Request");
 			//Logger::file("after process Request KEEP ALIVE!!!!: " + std::to_string(ctx.keepAlive));
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
 
@@ -53,7 +101,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
 		if (errno != EAGAIN && errno != EWOULDBLOCK)
 		{
 			Logger::errorLog("Read error on fd " + std::to_string(ctx.client_fd) + ": " + std::string(strerror(errno)));
-			logContext(ctx, "read error");
+			//logContext(ctx, "read error");
 			return false;
 		}
 		return false;
@@ -69,7 +117,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
 
 bool Server::handleWrite(Context& ctx)
 {
-	Logger::file("entering handleWrite()");
+	//Logger::file("entering handleWrite()");
 
 	bool result = false;
 	switch (ctx.type)
@@ -111,55 +159,6 @@ bool Server::handleWrite(Context& ctx)
 	if (result == false)
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 	return result;
-}
-
-bool Server::handleNewConnection(int epoll_fd, int server_fd)
-{
-	struct sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
-	Context ctx;
-
-	while (true)
-	{
-		int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
-		if (client_fd <= 0)
-		{
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-			{
-				// No more connections to accept (normal behavior in non-blocking mode)
-				break;
-			}
-			else
-			{
-				Logger::errorLog("Failed to accept connection: " + std::string(strerror(errno)) + "Server_fd: " +  std::to_string(server_fd));
-				return false;
-			}
-		}
-
-		Logger::file("New client_fd: " + std::to_string(client_fd) + " accepted on server_fd: " + std::to_string(server_fd));
-
-		if (setNonBlocking(client_fd) < 0) {
-			Logger::errorLog("Failed to set non-blocking mode for client_fd: " + std::to_string(client_fd));
-			close(client_fd);
-			continue;
-		}
-
-		modEpoll(epoll_fd, client_fd, EPOLLIN | EPOLLET);
-		globalFDS.clFD_to_svFD_map[client_fd] = server_fd;
-		ctx.server_fd = server_fd;
-		ctx.client_fd = client_fd;
-		ctx.epoll_fd = epoll_fd;
-		ctx.type = RequestType::INITIAL;
-		ctx.last_activity = std::chrono::steady_clock::now();
-		ctx.doAutoIndex = "";
-		ctx.keepAlive = true;
-		globalFDS.request_state_map[client_fd] = ctx;
-
-		logRequestBodyMapFDs();
-		logContext(ctx, "New Connection");
-	}
-	logContext(ctx, "Exit New Connection");
-	return true;
 }
 
 bool Server::parseHeaders(Context& ctx)

@@ -92,8 +92,8 @@
 //         return;
 //     }
 //     CgiTunnel* tunnel = tunnel_it->second;
-//     auto req_it = server.getGlobalFds().request_state_map.find(tunnel->client_fd);
-//     if (req_it == server.getGlobalFds().request_state_map.end()) {
+//     auto req_it = server.getGlobalFds().context_map.find(tunnel->client_fd);
+//     if (req_it == server.getGlobalFds().context_map.end()) {
 //         ////Logger::file("[ERROR] Request state not found for client FD: " + std::to_string(tunnel->client_fd));
 //         cleanup_tunnel(*tunnel);
 //         return;
@@ -181,8 +181,8 @@
 //         return;
 //     }
 //     CgiTunnel* tunnel = tunnel_it->second;
-//     auto req_it = server.getGlobalFds().request_state_map.find(tunnel->client_fd);
-//     if (req_it == server.getGlobalFds().request_state_map.end()) {
+//     auto req_it = server.getGlobalFds().context_map.find(tunnel->client_fd);
+//     if (req_it == server.getGlobalFds().context_map.end()) {
 //         ////Logger::file("[ERROR] Request state not found for client FD: " + std::to_string(tunnel->client_fd));
 //         cleanup_tunnel(*tunnel);
 //         return;
