@@ -88,7 +88,7 @@ class Server
 		std::string getDirectory(const std::string& path);
 		bool buildAutoIndexResponse(Context& ctx, std::stringstream* response);
 		bool handleRead(Context& ctx, std::vector<ServerBlock> &configs);
-		bool parseHeaders(Context& ctx);
+		bool parseHeaders(Context& ctx, ssize_t bytes);
 		bool handleWrite(Context& ctx);
 		bool queueResponse(Context& ctx, const std::string& response);
 		bool isRequestComplete(const Context& ctx);
