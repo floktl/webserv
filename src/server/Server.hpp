@@ -67,7 +67,7 @@ class Server
 
 		// server_event_handlers
 		bool staticHandler(Context& ctx);
-		bool errorsHandler(Context& ctx, uint32_t ev);
+		bool errorsHandler(Context& ctx);
 		bool handleCGIEvent(int epoll_fd, int fd, uint32_t ev);
 		void buildStaticResponse(Context &ctx);
 
@@ -94,144 +94,8 @@ class Server
 		bool isRequestComplete(const Context& ctx);
 		std::string approveExtention(Context& ctx, std::string path_to_check);
 		void parseChunkedBody(Context& ctx);
-
+		bool handleStaticUpload(Context& ctx);
+		bool redirectAction(Context& ctx);
 };
 
 #endif
-
-// void Server::buildStaticResponse(Context &ctx) {
-// 	bool keepAlive = false;
-// 	auto it = ctx.headers.find("Connection");
-// 	if (it != ctx.headers.end()) {
-// 		keepAlive = (it->second.find("keep-alive") != std::string::npos);
-// 	}
-
-// 	std::stringstream content;
-// 	content << "epoll_fd: " << ctx.epoll_fd << "\n"
-// 			<< "client_fd: " << ctx.client_fd << "\n"
-// 			<< "server_fd: " << ctx.server_fd << "\n"
-// 			<< "type: " << static_cast<int>(ctx.type) << "\n"
-// 			<< "method: " << ctx.method << "\n"
-// 			<< "path: " << ctx.path << "\n"
-// 			<< "version: " << ctx.version << "\n"
-// 			<< "body: " << ctx.body << "\n"
-// 			<< "location_path: " << ctx.location_path << "\n"
-// 			<< "requested_path: " << ctx.requested_path << "\n"
-// 			<< "error_code: " << ctx.error_code << "\n"
-// 			<< "port: " << ctx.port << "\n"
-// 			<< "name: " << ctx.name << "\n"
-// 			<< "root: " << ctx.root << "\n"
-// 			<< "index: " << ctx.index << "\n"
-// 			<< "client_max_body_size: " << ctx.client_max_body_size << "\n"
-// 			<< "timeout: " << ctx.timeout << "\n";
-
-// 	content << "\nHeaders:\n";
-// 	for (const auto& header : ctx.headers) {
-// 		content << header.first << ": " << header.second << "\n";
-// 	}
-
-// 	content << "\nError Pages:\n";
-// 	for (const auto& error : ctx.errorPages) {
-// 		content << error.first << ": " << error.second << "\n";
-// 	}
-
-// 	std::string content_str = content.str();
-
-// 	std::stringstream http_response;
-// 	http_response << "HTTP/1.1 200 OK\r\n"
-// 			<< "Content-Type: text/plain\r\n"
-// 			<< "Content-Length: " << content_str.length() << "\r\n"
-// 			<< "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"
-// 			<< "\r\n"
-// 			<< content_str;
-
-// 	sendWrapper(ctx,  http_response.str());
-// }
-
-
-// bool Server::handleCGIEvent(int epoll_fd, int fd, uint32_t ev) {
-//     int client_fd = globalFDS.clFD_to_svFD_map[fd];
-//     RequestBody &req = globalFDS.context_map[client_fd];
-// 	// Only process method check once at start
-//     if (!req.cgiMethodChecked) {
-// 		req.cgiMethodChecked = true;
-//         if (!clientHandler->processMethod(req, epoll_fd))
-// 		{
-//             return true;
-// 		}
-//     }
-//     if (ev & EPOLLIN)
-//         cgiHandler->handleCGIRead(epoll_fd, fd);
-//     if (fd == req.cgi_out_fd && (ev & EPOLLHUP)) {
-//         if (!req.cgi_output_buffer.empty())
-//             cgiHandler->finalizeCgiResponse(req, epoll_fd, client_fd);
-//         cgiHandler->cleanupCGI(req);
-//     }
-//     if (fd == req.cgi_in_fd) {
-//         if (ev & EPOLLOUT)
-//             cgiHandler->handleCGIWrite(epoll_fd, fd, ev);
-//         if (ev & (EPOLLHUP | EPOLLERR)) {
-//             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-//             close(fd);
-//             req.cgi_in_fd = -1;
-//             globalFDS.clFD_to_svFD_map.erase(fd);
-//         }
-//     }
-//     return true;
-// }
-
-
-
-
-//bool Server::staticHandler(Context& ctx, int epoll_fd, int fd, uint32_t ev)
-//{
-//    RequestBody &req = globalFDS.context_map[fd];
-
-//    if (ev & EPOLLIN)
-//    {
-//        // clientHandler->handleClientRead(epoll_fd, fd);
-//        // //Logger::file("handleClient");
-//    }
-
-//    if (req.state != RequestBody::STATE_CGI_RUNNING &&
-//        req.state != RequestBody::STATE_PREPARE_CGI &&
-//        (ev & EPOLLOUT))
-//    {
-//        // clientHandler->handleClientWrite(epoll_fd, fd);
-//    }
-
-//    // Handle request body
-//    if ((req.state == RequestBody::STATE_CGI_RUNNING ||
-//        req.state == RequestBody::STATE_PREPARE_CGI) &&
-//        (ev & EPOLLOUT) && !req.response_buffer.empty())
-//    {
-//        char send_buffer[8192];
-//        size_t chunk_size = std::min(req.response_buffer.size(), sizeof(send_buffer));
-
-//        std::copy(req.response_buffer.begin(),
-//				req.response_buffer.begin() + chunk_size,
-//				send_buffer);
-
-//        ssize_t written = write(fd, send_buffer, chunk_size);
-
-//        if (written > 0)
-//        {
-//            req.response_buffer.erase(
-//                req.response_buffer.begin(),
-//                req.response_buffer.begin() + written
-//            );
-
-//            if (req.response_buffer.empty())
-//            {
-//                delFromEpoll(epoll_fd, fd);
-//            }
-//        }
-//        else if (written < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-//        {
-//            delFromEpoll(epoll_fd, fd);
-//        }
-//    }
-
-//    return true;
-//}
-

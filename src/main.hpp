@@ -39,6 +39,7 @@
 #include <poll.h>
 #include <deque>
 #include <thread>
+#include <regex>
 #include "./structs/webserv.hpp"
 #include "./config/ConfigHandler.hpp"
 #include "./utils/Logger.hpp"
@@ -60,4 +61,6 @@ std::vector<std::string> parseOptionsToVector(const std::string& opts);
 std::string expandEnvironmentVariables(const std::string& value, char** env);
 void log_global_fds(const GlobalFDS& fds);
 void log_server_configs(const std::vector<ServerBlock>& configs);
+bool	updateErrorStatus(Context &ctx, int error_code, std::string error_string);
+
 # endif

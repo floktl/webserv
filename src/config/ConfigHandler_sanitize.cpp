@@ -4,6 +4,7 @@ bool ConfigHandler::sanitizeConfData(void)
 {
 	std::set<int> usedPorts;
 	for (size_t i = 0; i < registeredServerConfs.size(); ++i) {
+		registeredServerConfs[i].client_max_body_size = 1048576;
 		if (registeredServerConfs[i].port == 0) {
 			Logger::error("Port number is mandatory for server block " + std::to_string(i + 1));
 			configFileValid = false;
