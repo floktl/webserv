@@ -9,6 +9,7 @@
 #include <vector>
 
 #define BUFFER_SIZE 17000
+#define DEFAULT_REQUESTBUFFER_SIZE 8192
 
 struct ChunkedState
 {
@@ -136,7 +137,6 @@ struct RequestBody
 	bool		is_upload_complete;
 	std::string	uploaded_file_path;
 	bool	keep_alive;
-	bool is_multipart;
 
 	ParsingPhase parsing_phase { PARSING_HEADER };
 };
@@ -182,9 +182,11 @@ struct Context
 	std::string input_buffer = "";
 	std::string output_buffer = "";
 	bool headers_complete = false;
+	size_t header_length = 0;
 	size_t content_length = 0;
 	size_t body_received = 0;
 	bool keepAlive = false;
+	bool is_multipart;
 };
 
 struct CgiTunnel

@@ -1,35 +1,20 @@
-[2025-01-29 11:37:33] 
-[2025-01-29 11:37:33] EPOLLIN
-[2025-01-29 11:37:33] dispatchEvent: Server fd identified: 4 events=1
-[2025-01-29 11:37:33] New client_fd: 6 accepted on server_fd: 4
-[2025-01-29 11:37:33] New client_fd: 7 accepted on server_fd: 4
-[2025-01-29 11:37:33] 
-[2025-01-29 11:37:33] EPOLLIN
-[2025-01-29 11:37:33] Before Requested Path: /
-[2025-01-29 11:37:33] Before catted Requested Path: /app/var/www/html/
-[2025-01-29 11:37:33] ctx.index: index.html
-[2025-01-29 11:37:33] ctx.location->default_file: index.html
-[2025-01-29 11:37:33] After Requested Path: /app/var/www/html/index.html
-[2025-01-29 11:37:33] File existence check completed for: /app/var/www/html/index.html
-[2025-01-29 11:37:33] Read permission check completed for: /app/var/www/html/index.html
-[2025-01-29 11:37:33] Execute permission check completed for: /app/var/www/html/index.html
-[2025-01-29 11:37:33] parseAccessRights: Completed all access rights checks
-[2025-01-29 11:37:33] 
-[2025-01-29 11:37:33] EPOLLOUT
-[2025-01-29 11:37:33] 
-[2025-01-29 11:37:33] EPOLLIN
-[2025-01-29 11:37:33] Before Requested Path: /favicon.ico
-[2025-01-29 11:37:33] Before catted Requested Path: /app/var/www/html/favicon.ico
-[2025-01-29 11:37:33] ctx.index: index.html
-[2025-01-29 11:37:33] ctx.location->default_file: index.html
-[2025-01-29 11:37:33] After Requested Path: /app/var/www/html/favicon.ico
-[2025-01-29 11:37:33] File existence check completed for: /app/var/www/html/favicon.ico
-[2025-01-29 11:37:33] Read permission check completed for: /app/var/www/html/favicon.ico
-[2025-01-29 11:37:33] Execute permission check completed for: /app/var/www/html/favicon.ico
-[2025-01-29 11:37:33] parseAccessRights: Completed all access rights checks
-[2025-01-29 11:37:33] 
-[2025-01-29 11:37:33] EPOLLOUT
-[2025-01-29 11:37:36] 
-[2025-01-29 11:37:36] EPOLLIN
-[2025-01-29 11:37:36] 
-[2025-01-29 11:37:36] EPOLLIN
+[2025-01-29 14:45:40] 
+[2025-01-29 14:45:40] EPOLLIN
+[2025-01-29 14:45:40] dispatchEvent: Server fd identified: 5 events=1
+[2025-01-29 14:45:40] New client_fd: 6 accepted on server_fd: 5
+[2025-01-29 14:45:40] 
+[2025-01-29 14:45:40] EPOLLIN
+[2025-01-29 14:45:40] handleAcceptedConnection client fd: 6 events=1
+[2025-01-29 14:45:40] Starting handleRead for client_fd: 6
+[2025-01-29 14:45:40] Read 8192 bytes from client 6
+[2025-01-29 14:45:40] Parsed request line: POST /upload/
+[2025-01-29 14:45:40] Content-Length set to: 1048576
+[2025-01-29 14:45:40] Headers parsed successfully, Content-Length: 1048576
+[2025-01-29 14:45:40] Initial body chunk received: 8041/1048576
+[2025-01-29 14:45:40] body received: 0 max length?: 8192 header?: 0
+[2025-01-29 14:45:40] 
+[2025-01-29 14:45:40] EPOLLIN
+[2025-01-29 14:45:40] handleAcceptedConnection client fd: 6 events=1
+[2025-01-29 14:45:40] Starting handleRead for client_fd: 6
+[2025-01-29 14:45:40] Read 8192 bytes from client 6
+[2025-01-29 14:45:40] Body received: 16233/1048576

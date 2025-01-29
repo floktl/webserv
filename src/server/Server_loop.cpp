@@ -21,7 +21,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 		}
 		else if (n == 0)
 		{
-			checkAndCleanupTimeouts();
+			//checkAndCleanupTimeouts();
 			continue;
 		}
 
@@ -81,6 +81,7 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vect
 		client_fd = incoming_fd;
 		if (client_fd > 0)
 		{
+			Logger::file("handleAcceptedConnection client fd: " + std::to_string(client_fd) + " events=" + std::to_string(ev));
 			return handleAcceptedConnection(epoll_fd, client_fd, ev, configs);
 		}
 		else
@@ -103,7 +104,6 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 	{
 		Context		&ctx = contextIter->second;
 		ctx.last_activity = std::chrono::steady_clock::now();
-
 		// Handle reads
 		if (ev & EPOLLIN)
 		{
@@ -218,44 +218,44 @@ void Server::parseAccessRights(Context& ctx)
 {
 	//Logger::file("parseAccessRights: Starting access rights parsing");
 
-	Logger::file("Before Requested Path: " + ctx.path);
+	//Logger::file("Before Requested Path: " + ctx.path);
 	std::string requestedPath = concatenatePath(ctx.root, ctx.path);
-	Logger::file("Before catted Requested Path: " + requestedPath);
+	//Logger::file("Before catted Requested Path: " + requestedPath);
 	if (ctx.index.empty()) {
 		ctx.index = "index.html";
 	}
 	if (ctx.location->default_file.empty()) {
 		ctx.location->default_file = ctx.index;
 	}
-	Logger::file("ctx.index: " + ctx.index);
-	Logger::file("ctx.location->default_file: " + ctx.location->default_file);
+	//Logger::file("ctx.index: " + ctx.index);
+	//Logger::file("ctx.location->default_file: " + ctx.location->default_file);
 	ctx.access_flag = FILE_EXISTS;
 	if (!requestedPath.empty() && requestedPath.back() == '/') {
 		//Logger::file("apply default file config");
 		requestedPath = concatenatePath(requestedPath, ctx.location->default_file);
 	}
 	requestedPath = approveExtention(ctx, requestedPath);
-	Logger::file("After Requested Path: " + requestedPath);
+	//Logger::file("After Requested Path: " + requestedPath);
 	if (ctx.type == ERROR)
 		return;
 	// File existence check
 	ctx.access_flag = FILE_EXISTS;
 	//checkAccessRights(ctx, rootAndLocationIndex);
-	Logger::file("File existence check completed for: " + requestedPath);
+	//Logger::file("File existence check completed for: " + requestedPath);
 
 	// Read permission check
 	ctx.access_flag = FILE_READ;
 	//checkAccessRights(ctx, rootAndLocationIndex);
-	Logger::file("Read permission check completed for: " + requestedPath);
+	//Logger::file("Read permission check completed for: " + requestedPath);
 
 	// Execute permission check
 	ctx.access_flag = FILE_EXISTS;
 	checkAccessRights(ctx, requestedPath);
-	Logger::file("Execute permission check completed for: " + requestedPath);
+	//Logger::file("Execute permission check completed for: " + requestedPath);
 	if (ctx.type == ERROR)
 		return;
 	ctx.approved_req_path = requestedPath;
-	Logger::file("parseAccessRights: Completed all access rights checks");
+	//Logger::file("parseAccessRights: Completed all access rights checks");
 
 	// Additional debug information about context state
 	if (ctx.error_code != 0)

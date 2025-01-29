@@ -157,6 +157,7 @@ container:
 	@make container-build
 	@make container-up
 	@docker exec -it webserv bash
+	@docker exec -it webserv bash ./patrick.sh
 
 prune:
 	@if docker ps -a | grep -q $(NAME); then \

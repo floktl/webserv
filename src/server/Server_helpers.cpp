@@ -420,7 +420,7 @@ void Server::logContext(const Context& ctx, const std::string& event)
 							.count()) +
 		" seconds since epoch";
 
-	//Logger::file(log);
+	Logger::file(log);
 }
 
 
