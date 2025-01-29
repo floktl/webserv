@@ -93,6 +93,8 @@ class Server
 		bool queueResponse(Context& ctx, const std::string& response);
 		bool isRequestComplete(const Context& ctx);
 		std::string approveExtention(Context& ctx, std::string path_to_check);
+		void parseChunkedBody(Context& ctx);
+
 };
 
 #endif

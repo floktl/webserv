@@ -1,20 +1,61 @@
-[2025-01-29 14:45:40] 
-[2025-01-29 14:45:40] EPOLLIN
-[2025-01-29 14:45:40] dispatchEvent: Server fd identified: 5 events=1
-[2025-01-29 14:45:40] New client_fd: 6 accepted on server_fd: 5
-[2025-01-29 14:45:40] 
-[2025-01-29 14:45:40] EPOLLIN
-[2025-01-29 14:45:40] handleAcceptedConnection client fd: 6 events=1
-[2025-01-29 14:45:40] Starting handleRead for client_fd: 6
-[2025-01-29 14:45:40] Read 8192 bytes from client 6
-[2025-01-29 14:45:40] Parsed request line: POST /upload/
-[2025-01-29 14:45:40] Content-Length set to: 1048576
-[2025-01-29 14:45:40] Headers parsed successfully, Content-Length: 1048576
-[2025-01-29 14:45:40] Initial body chunk received: 8041/1048576
-[2025-01-29 14:45:40] body received: 0 max length?: 8192 header?: 0
-[2025-01-29 14:45:40] 
-[2025-01-29 14:45:40] EPOLLIN
-[2025-01-29 14:45:40] handleAcceptedConnection client fd: 6 events=1
-[2025-01-29 14:45:40] Starting handleRead for client_fd: 6
-[2025-01-29 14:45:40] Read 8192 bytes from client 6
-[2025-01-29 14:45:40] Body received: 16233/1048576
+[2025-01-29 15:21:28] 
+[2025-01-29 15:21:28] EPOLLIN
+[2025-01-29 15:21:28] dispatchEvent: Server fd identified: 5 events=1
+[2025-01-29 15:21:28] New client_fd: 6 accepted on server_fd: 5
+[2025-01-29 15:21:28] New client_fd: 7 accepted on server_fd: 5
+[2025-01-29 15:21:28] 
+[2025-01-29 15:21:28] EPOLLIN
+[2025-01-29 15:21:28] handleAcceptedConnection client fd: 7 events=1
+[2025-01-29 15:21:28] Starting handleRead for client_fd: 7
+[2025-01-29 15:21:28] Read 8192 bytes from client 7
+[2025-01-29 15:21:28] Parsed request line: POST /upload
+[2025-01-29 15:21:28] Content-Length set to: 32318
+[2025-01-29 15:21:28] Headers parsed successfully, Content-Length: 32318
+[2025-01-29 15:21:28] Headers FINISHED!!!
+[2025-01-29 15:21:28] Start unchunked Body parsing, Content-Length: 32318
+[2025-01-29 15:21:28] Processed 7313 bytes of body data, total: 7313/32318
+[2025-01-29 15:21:28] 
+[2025-01-29 15:21:28] EPOLLIN
+[2025-01-29 15:21:28] handleAcceptedConnection client fd: 7 events=1
+[2025-01-29 15:21:28] Starting handleRead for client_fd: 7
+[2025-01-29 15:21:28] Read 8192 bytes from client 7
+[2025-01-29 15:21:28] Continue body parsing...
+[2025-01-29 15:21:28] Processed 8192 bytes of body data, total: 15505/32318
+[2025-01-29 15:21:28] 
+[2025-01-29 15:21:28] EPOLLIN
+[2025-01-29 15:21:28] handleAcceptedConnection client fd: 7 events=1
+[2025-01-29 15:21:28] Starting handleRead for client_fd: 7
+[2025-01-29 15:21:28] Read 8192 bytes from client 7
+[2025-01-29 15:21:28] Continue body parsing...
+[2025-01-29 15:21:28] Processed 8192 bytes of body data, total: 23697/32318
+[2025-01-29 15:21:28] 
+[2025-01-29 15:21:28] EPOLLIN
+[2025-01-29 15:21:28] handleAcceptedConnection client fd: 7 events=1
+[2025-01-29 15:21:28] Starting handleRead for client_fd: 7
+[2025-01-29 15:21:28] Read 8192 bytes from client 7
+[2025-01-29 15:21:28] Continue body parsing...
+[2025-01-29 15:21:28] Processed 8192 bytes of body data, total: 31889/32318
+[2025-01-29 15:21:28] 
+[2025-01-29 15:21:28] EPOLLIN
+[2025-01-29 15:21:28] handleAcceptedConnection client fd: 7 events=1
+[2025-01-29 15:21:28] Starting handleRead for client_fd: 7
+[2025-01-29 15:21:28] Read 429 bytes from client 7
+[2025-01-29 15:21:28] Continue body parsing...
+[2025-01-29 15:21:28] Processed 429 bytes of body data, total: 32318/32318
+[2025-01-29 15:21:28] Body parsing complete!
+[2025-01-29 15:21:28] Request complete for client 7, determining type
+[2025-01-29 15:21:28] 
+[2025-01-29 15:21:28] EPOLLOUT
+[2025-01-29 15:21:28] handleAcceptedConnection client fd: 7 events=4
+[2025-01-29 15:21:28] entering handleWrite()
+[2025-01-29 15:21:28] 
+[2025-01-29 15:21:28] EPOLLIN
+[2025-01-29 15:21:28] handleAcceptedConnection client fd: 7 events=1
+[2025-01-29 15:21:28] Starting handleRead for client_fd: 7
+[2025-01-29 15:21:28] Read 600 bytes from client 7
+[2025-01-29 15:21:28] Warning: Received additional data after request was complete
+[2025-01-29 15:21:28] Request complete for client 7, determining type
+[2025-01-29 15:21:28] 
+[2025-01-29 15:21:28] EPOLLOUT
+[2025-01-29 15:21:28] handleAcceptedConnection client fd: 7 events=4
+[2025-01-29 15:21:28] entering handleWrite()
