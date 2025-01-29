@@ -3,25 +3,45 @@
 
 <head>
 	<meta charset="UTF-8" />
-	<title>Test File Upload</title>
+	<title>File Operations</title>
+	<style>
+		.operation-section {
+			margin: 20px 0;
+			padding: 15px;
+			border: 1px solid #ccc;
+		}
+	</style>
 </head>
 
 <body>
-	<h1>File Upload without CGI</h1>
+	<h1>File Operations</h1>
 
-	<form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data">
-		<label for="myFile">Choose a file:</label>
-		<input type="file" id="myFile" name="myFile" />
-		<button type="submit">Upload</button>
-	</form>
+	<div class="operation-section">
+		<h2>File Upload without CGI</h2>
+		<form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data">
+			<label for="myFile">Choose a file:</label>
+			<input type="file" id="myFile" name="myFile" />
+			<button type="submit">Upload</button>
+		</form>
+	</div>
 
-	<hr />
+	<div class="operation-section">
+		<h2>Upload via JavaScript Fetch:</h2>
+		<input type="file" id="jsFile" />
+		<button id="jsUploadBtn">Upload with Fetch</button>
+	</div>
 
-	<h2>Upload via JavaScript Fetch:</h2>
-	<input type="file" id="jsFile" />
-	<button id="jsUploadBtn">Hochladen mit Fetch</button>
+	<div class="operation-section">
+		<h2>Delete File</h2>
+		<div>
+			<label for="deletePath">Path to delete:</label>
+			<input type="text" id="deletePath" placeholder="Enter path to delete" />
+			<button id="deleteBtn">Delete</button>
+		</div>
+	</div>
 
 	<script>
+		// Upload functionality
 		document.getElementById('jsUploadBtn').addEventListener('click', async () => {
 			const fileInput = document.getElementById('jsFile');
 			if (!fileInput.files[0]) {
@@ -38,12 +58,36 @@
 					body: formData,
 				});
 				if (response.ok) {
-					alert('File sucessfully uploaded.');
+					alert('File successfully uploaded.');
 				} else {
 					alert('Upload failed: ' + response.status);
 				}
 			} catch (err) {
 				console.error('Error Fetch-Upload:', err);
+			}
+		});
+
+		// Delete functionality
+		document.getElementById('deleteBtn').addEventListener('click', async () => {
+			const deletePath = document.getElementById('deletePath').value;
+			if (!deletePath) {
+				alert('Please enter a path to delete');
+				return;
+			}
+
+			try {
+				const response = await fetch(`http://localhost:8050${deletePath}`, {
+					method: 'DELETE',
+				});
+
+				if (response.ok) {
+					alert('Successfully deleted');
+				} else {
+					alert('Delete failed: ' + response.status);
+				}
+			} catch (err) {
+				console.error('Error during delete:', err);
+				alert('Error during delete operation: ' + err.message);
 			}
 		});
 	</script>

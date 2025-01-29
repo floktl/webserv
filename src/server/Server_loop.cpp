@@ -202,7 +202,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
             return "";
         }
     }
-    else
+    else if (ctx.type != CGI && ctx.method != "POST")
     {
         ctx.error_code = 400;
         ctx.type = ERROR;
@@ -367,7 +367,7 @@ void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 			{
 				ctx.type = ERROR;
 				ctx.error_code = 405;
-				ctx.error_message = "Method not allowed";
+				ctx.error_message = "Method (" + ctx.method + ") not allowed";
 				return;
 			}
 			if (loc.cgi != "")
