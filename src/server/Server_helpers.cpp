@@ -48,6 +48,7 @@ void Server::delFromEpoll(int epfd, int client_fd) {
         //}
    		globalFDS.clFD_to_svFD_map.erase(client_fd);
    		close(client_fd);
+		client_fd =-1;
         globalFDS.context_map.erase(client_fd);
     }
     else
@@ -313,35 +314,57 @@ void Server::parseRequest(Context& ctx) {
 
 }
 
-
-void Server::checkAndCleanupTimeouts()
-{
+void Server::checkAndCleanupTimeouts() {
     auto now = std::chrono::steady_clock::now();
 
     auto it = globalFDS.context_map.begin();
-    while (it != globalFDS.context_map.end())
-	{
+    while (it != globalFDS.context_map.end()) {
         Context& ctx = it->second;
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(
             now - ctx.last_activity).count();
 
-        if (duration > Context::TIMEOUT_DURATION.count())
-		{
-            auto next = std::next(it);
-            globalFDS.context_map.erase(it);
+        if (duration > Context::TIMEOUT_DURATION.count()) {
             delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-			if (next == globalFDS.context_map.end())
-			{
-				next = globalFDS.context_map.begin();
-				if  (next == globalFDS.context_map.end())
-					return;
-			}
-            it = next;
+            // Speichere den Iterator zum nächsten Element vor dem Löschen
+            it = globalFDS.context_map.erase(it);
+            // erase() gibt bereits den Iterator zum nächsten Element zurück
+            // keine weitere Iteration notwendig
         }
-		else
+        else {
             ++it;
+        }
     }
 }
+
+
+//void Server::checkAndCleanupTimeouts()
+//{
+//    auto now = std::chrono::steady_clock::now();
+
+//    auto it = globalFDS.context_map.begin();
+//    while (it != globalFDS.context_map.end())
+//	{
+//        Context& ctx = it->second;
+//        auto duration = std::chrono::duration_cast<std::chrono::seconds>(
+//            now - ctx.last_activity).count();
+
+//        if (duration > Context::TIMEOUT_DURATION.count())
+//		{
+//            auto next = std::next(it);
+//            globalFDS.context_map.erase(it);
+//            delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+//			if (next == globalFDS.context_map.end())
+//			{
+//				next = globalFDS.context_map.begin();
+//				if  (next == globalFDS.context_map.end())
+//					return;
+//			}
+//            it = next;
+//        }
+//		else
+//            ++it;
+//    }
+//}
 
 void Server::killTimeoutedCGI(RequestBody &req) {
 	if (req.cgi_pid > 0) {

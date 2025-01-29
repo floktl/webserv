@@ -9,6 +9,14 @@ std::string trim(const std::string& str)
 	return str.substr(first, last - first + 1);
 }
 
+bool	updateErrorStatus(Context &ctx, int error_code, std::string error_string)
+{
+	ctx.type = ERROR;
+	ctx.error_code = error_code;
+	ctx.error_message = error_string;
+	return false;
+}
+
 // parsing constants
 std::vector<std::string> parseOptionsToVector(const std::string& opts)
 {

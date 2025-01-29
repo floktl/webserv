@@ -28,6 +28,7 @@ bool Server::handleNewConnection(int epoll_fd, int server_fd)
 		if (setNonBlocking(client_fd) < 0) {
 			Logger::errorLog("Failed to set non-blocking mode for client_fd: " + std::to_string(client_fd));
 			close(client_fd);
+			client_fd =-1;
 			continue;
 		}
 
@@ -40,6 +41,7 @@ bool Server::handleNewConnection(int epoll_fd, int server_fd)
 		ctx.last_activity = std::chrono::steady_clock::now();
 		ctx.doAutoIndex = "";
 		ctx.keepAlive = true;
+		ctx.error_code = 0;
 		globalFDS.context_map[client_fd] = ctx;
 
 		logRequestBodyMapFDs();
@@ -48,73 +50,6 @@ bool Server::handleNewConnection(int epoll_fd, int server_fd)
 	//logContext(ctx, "Exit New Connection");
 	return true;
 }
-
-//bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
-//    char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-//    ssize_t bytes;
-
-//    Logger::file("Starting handleRead for client_fd: " + std::to_string(ctx.client_fd));
-
-//    if ((bytes = read(ctx.client_fd, buffer, sizeof(buffer))) > 0) {
-//        Logger::file("Read " + std::to_string(bytes) + " bytes from client " + std::to_string(ctx.client_fd));
-//        ctx.input_buffer.append(buffer, bytes);
-
-//		// check header complete
-//        if (!ctx.headers_complete) {
-//            Logger::file("Headers incomplete - parsing headers for client " + std::to_string(ctx.client_fd));
-//            parseHeaders(ctx, bytes);
-//        }
-
-//		//	check received body
-//        if (ctx.headers_complete && ctx.content_length > 0) {
-//            ctx.body_received += bytes;
-//			Logger::file("body received: " + std::to_string(ctx.body_received) + " max length?: " + std::to_string(bytes) + " header?: " + std::to_string(bytes - ctx.body_received));
-//			ctx.headers_complete = true;
-//	//ctx.content_length = ctx.input_buffer.size();
-//            Logger::file("Received body data for client " + std::to_string(ctx.client_fd) +
-//                        " - Total received: " + std::to_string(ctx.body_received) +
-//                        "/" + std::to_string(ctx.content_length));
-
-//            ctx.body += ctx.input_buffer;
-//            ctx.input_buffer.clear();
-//        }
-//		Logger::file("haeder complete: " + std::to_string(ctx.headers_complete));
-//		// check request complete
-//        if (isRequestComplete(ctx)) {
-//            Logger::file("Request complete for client " + std::to_string(ctx.client_fd) +
-//                        " - Determining request type");
-//            determineType(ctx, configs);
-//            Logger::file("Modifying epoll events for client " + std::to_string(ctx.client_fd) +
-//                        " to include EPOLLOUT");
-//            modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
-//            return true;
-//        } else if (ctx.headers_complete) // haeaders complete, but wait for more body
-//		{
-//            Logger::file("Headers complete but still waiting for body data from client " +
-//                        std::to_string(ctx.client_fd));
-//            return true;
-//        }
-//    }
-
-//    if (bytes < 0) {
-//        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-//            std::string error_msg = "Read error on fd " + std::to_string(ctx.client_fd) +
-//                                  ": " + std::string(strerror(errno));
-//            Logger::errorLog(error_msg);
-//            Logger::file("Fatal read error for client " + std::to_string(ctx.client_fd) +
-//                        ": " + std::string(strerror(errno)));
-//            return false;
-//        }
-//        Logger::file("Non-blocking read would block for client " + std::to_string(ctx.client_fd));
-//        return false;
-//    } else if (bytes == 0) {
-//        Logger::file("Client " + std::to_string(ctx.client_fd) + " closed connection");
-//        return true;
-//    }
-
-//    Logger::file("Finished handleRead for client " + std::to_string(ctx.client_fd));
-//    return true;
-//}
 
 bool Server::handleWrite(Context& ctx)
 {
@@ -126,15 +61,21 @@ bool Server::handleWrite(Context& ctx)
 			break;
 		case STATIC:
 			//Logger::file("WRITE with static");
+			Logger::file("maeaaeaeaea");
 			result = staticHandler(ctx);
+			Logger::file("maeaaeaeaea" + std::to_string(ctx.error_code));
+			if (ctx.error_code != 0)
+				result = errorsHandler(ctx);
 			break;
 		case CGI:
 			//Logger::file("WRITE with cgi");
 			result = true;  // Handle CGI response
+			if (ctx.error_code != 0)
+				result = errorsHandler(ctx);
 			break;
 		case ERROR:
 			//Logger::file("WRITE with error");
-			result = errorsHandler(ctx, 0);
+			result = errorsHandler(ctx);
 			break;
 		default:
 			break;
@@ -149,15 +90,18 @@ bool Server::handleWrite(Context& ctx)
 		ctx.content_length = 0;
 		ctx.body_received = 0;
 		ctx.headers.clear();
-
+		ctx.error_code = 0;
 		if (ctx.keepAlive)
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
 		else
 			result = false;
 	}
-	//Logger::file("handleWrite after result");
 	if (result == false)
+	{
+
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+		Logger::file("handleWrite after result");
+	}
 
 	return result;
 }
@@ -219,12 +163,11 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
 	ssize_t bytes;
 
-	Logger::file("Starting handleRead for client_fd: " + std::to_string(ctx.client_fd));
 
 	bytes = read(ctx.client_fd, buffer, sizeof(buffer));
 	if (bytes == 0) {
-		Logger::file("Client closed connection: " + std::to_string(ctx.client_fd));
-		return false;
+
+		return true;
 	}
 
 	if (bytes < 0) {
@@ -236,7 +179,6 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 	ctx.last_activity = std::chrono::steady_clock::now();
 
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
-		Logger::file("Starting new request, resetting context");
 		ctx.input_buffer.clear();
 		ctx.headers.clear();
 		ctx.method.clear();
@@ -244,6 +186,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 		ctx.version.clear();
 		ctx.headers_complete = false;
 		ctx.content_length = 0;
+		ctx.error_code = 0;
 		ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
 		ctx.req.current_body_length = 0;
 		ctx.req.expected_body_length = 0;
@@ -255,29 +198,30 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 
 	// Append new data to input buffer
 	ctx.input_buffer.append(buffer, bytes);
-	Logger::file("Read " + std::to_string(bytes) + " bytes from client " + std::to_string(ctx.client_fd));
 
 	// Handle based on current parsing phase
 	switch(ctx.req.parsing_phase) {
 		case RequestBody::PARSING_HEADER:
 			if (!ctx.headers_complete) {
 				if (!parseHeaders(ctx, bytes)) {
-					Logger::file("Headers not finished");
 					return true;
 				}
 
-				Logger::file("Headers FINISHED!!!");
 				auto it = ctx.headers.find("Transfer-Encoding");
 				if (it != ctx.headers.end() && it->second == "chunked") {
-					Logger::file("Start chunked Body parsing");
 					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
 					ctx.req.chunked_state.processing = true;
 					if (!ctx.input_buffer.empty()) {
 						parseChunkedBody(ctx);
 					}
 				} else if (ctx.content_length > 0) {
-					Logger::file("Start unchunked Body parsing, Content-Length: " +
-							std::to_string(ctx.content_length));
+					if ((long int)ctx.content_length > ctx.location->client_max_body_size)
+					{
+						ctx.type = ERROR;
+						ctx.error_code = 413;
+						ctx.error_message = "Payload Too Large";
+						return false;
+					}
 					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
 					ctx.req.expected_body_length = ctx.content_length;
 					ctx.req.current_body_length = 0;
@@ -286,42 +230,30 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 					if (!ctx.input_buffer.empty()) {
 						ctx.req.received_body += ctx.input_buffer;
 						ctx.req.current_body_length += ctx.input_buffer.length();
-						Logger::file("Processed " + std::to_string(ctx.input_buffer.length()) +
-								" bytes of body data, total: " +
-								std::to_string(ctx.req.current_body_length) + "/" +
-								std::to_string(ctx.req.expected_body_length));
 						ctx.input_buffer.clear();
 
 						// Check if we've received the complete body
 						if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
-							Logger::file("Body parsing complete!");
 							ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
 							ctx.req.is_upload_complete = true;
 						}
 					}
 				} else {
-					Logger::file("No body expected, request complete!");
 					ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
 				}
 			}
 			break;
 
 		case RequestBody::PARSING_BODY:
-			Logger::file("Continue body parsing...");
 			if (ctx.req.chunked_state.processing) {
 				parseChunkedBody(ctx);
 			} else {
 				// Standard body processing
 				ctx.req.received_body += ctx.input_buffer;
 				ctx.req.current_body_length += ctx.input_buffer.length();
-				Logger::file("Processed " + std::to_string(ctx.input_buffer.length()) +
-						" bytes of body data, total: " +
-						std::to_string(ctx.req.current_body_length) + "/" +
-						std::to_string(ctx.req.expected_body_length));
 				ctx.input_buffer.clear();
 
 				if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
-					Logger::file("Body parsing complete!");
 					ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
 					ctx.req.is_upload_complete = true;
 
@@ -341,11 +273,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 
 	// Handle request completion
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
-		Logger::file("Request complete for client " + std::to_string(ctx.client_fd) +
-					", determining type");
 		determineType(ctx, configs);
-		logContext(ctx, "Parsed");
-		Logger::file("THE BODY:\n" + ctx.req.received_body);
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
 	} else {
 		// Still need more data, ensure we're watching for it
@@ -359,8 +287,7 @@ bool Server::parseHeaders(Context& ctx, ssize_t bytes) {
 	(void)bytes;
 	size_t header_end = ctx.input_buffer.find("\r\n\r\n");
 	if (header_end == std::string::npos) {
-		Logger::file("Headers not complete yet, waiting for more data");
-		return false;
+		return true;
 	}
 
 	std::string headers = ctx.input_buffer.substr(0, header_end);
@@ -372,7 +299,6 @@ bool Server::parseHeaders(Context& ctx, ssize_t bytes) {
 		if (line.back() == '\r') line.pop_back();
 		std::istringstream request_line(line);
 		request_line >> ctx.method >> ctx.path >> ctx.version;
-		Logger::file("Parsed request line: " + ctx.method + " " + ctx.path);
 	}
 
 	// Parse headers
@@ -388,7 +314,6 @@ bool Server::parseHeaders(Context& ctx, ssize_t bytes) {
 
 			if (key == "Content-Length") {
 				ctx.content_length = std::stoul(value);
-				Logger::file("Content-Length set to: " + value);
 			}
 		}
 	}
@@ -397,73 +322,8 @@ bool Server::parseHeaders(Context& ctx, ssize_t bytes) {
 	ctx.input_buffer.erase(0, header_end + 4);
 	ctx.headers_complete = true;
 
-	Logger::file("Headers parsed successfully, Content-Length: " +
-				std::to_string(ctx.content_length));
-
 	return true;
 }
-
-//bool Server::handleReadError(Context& ctx, ssize_t bytes) {
-//    if (bytes < 0) {
-//        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-//            std::string error_msg = "Read error on fd " + std::to_string(ctx.client_fd) +
-//                                  ": " + std::string(strerror(errno));
-//            Logger::errorLog(error_msg);
-//            return false;
-//        }
-//        Logger::file("Non-blocking read would block for client " +
-//                    std::to_string(ctx.client_fd));
-//        return false;
-//    }
-
-//    Logger::file("Client " + std::to_string(ctx.client_fd) + " closed connection");
-//    return true;
-//}
-
-//bool Server::parseHeaders(Context& ctx, ssize_t bytes)
-//{
-//	(void)bytes;
-//	size_t header_end = ctx.input_buffer.find("\r\n\r\n");
-//	if (header_end == std::string::npos) {
-//		return false;
-//	}
-
-//	std::string headers = ctx.input_buffer.substr(0, header_end);
-//	std::istringstream stream(headers);
-//	std::string line;
-
-//	if (std::getline(stream, line)) {
-//		if (line.back() == '\r') line.pop_back();
-//		std::istringstream request_line(line);
-//		request_line >> ctx.method >> ctx.path >> ctx.version;
-//	}
-//	while (std::getline(stream, line)) {
-//		if (line.empty() || line == "\r") break;
-//		if (line.back() == '\r') line.pop_back();
-
-//		size_t colon = line.find(':');
-//		if (colon != std::string::npos) {
-//			std::string key = line.substr(0, colon);
-//			std::string value = line.substr(colon + 2);
-//			ctx.headers[key] = value;
-
-//				Logger::file("Header key: " + key);
-//			if (key == "Content-Length") {
-//				Logger::file("Content-Length wird gesetzt!");
-//				ctx.content_length = std::stoul(value);
-//			}
-//		}
-//	}
-//	// Determine keepAlive status
-//	ctx.keepAlive = (ctx.version == "HTTP/1.1") ?
-//	(ctx.headers["Connection"] != "close") :
-//	(ctx.headers["Connection"] == "keep-alive");
-//	//Logger::file("checked headers keep alive: " + std::to_string(ctx.keepAlive));
-//	ctx.input_buffer.erase(0, header_end + 4);
-//	ctx.headers_complete = true;
-
-//	return true;
-//}
 
 bool Server::sendWrapper(Context& ctx, std::string http_response)
 {
@@ -501,55 +361,136 @@ bool detectMultipartFormData(Context &ctx)
 	////Logger::file("[detectMultipartFormData] Kein multipart/form-data.");
 	return false;
 }
-bool Server::errorsHandler(Context& ctx, uint32_t ev)
+bool Server::errorsHandler(Context& ctx)
 {
-	(void)ev;
 	std::string errorResponse = getErrorHandler()->generateErrorResponse(ctx);
 		//Logger::file("sendwrap in errorshandler");
 	return (sendWrapper(ctx, errorResponse));
 }
 
+bool Server::redirectAction(Context& ctx)
+{
+	Logger::file("redirectAction " + ctx.location->return_code);
+	Logger::file("redirectAction " + ctx.location->return_url);
+	return true;
+}
+
+bool Server::handleStaticUpload(Context& ctx)
+{
+	// Extract filename
+	std::regex filenameRegex(R"(Content-Dispositionaaa:.*filename=\"([^\"]+)\")");
+	std::smatch matches;
+
+	std::string filename;
+	if (std::regex_search(ctx.req.received_body, matches, filenameRegex) && matches.size() > 1) {
+		filename = matches[1].str();
+	} else {
+		return updateErrorStatus(ctx, 422, "Unprocessable Entity");
+	}
+
+	// Find content boundaries
+	size_t contentStart = ctx.req.received_body.find("\r\n\r\n");
+	if (contentStart == std::string::npos) {
+		Logger::errorLog("[Upload] ERROR: Failed to find content start boundary");
+		ctx.type = ERROR;
+		ctx.error_code = 422;
+		ctx.error_message = "Unprocessable Entity";
+		return false;
+	}
+	contentStart += 4;
+
+	size_t contentEnd = ctx.req.received_body.rfind("\r\n--");
+	if (contentEnd == std::string::npos) {
+		Logger::errorLog("[Upload] ERROR: Failed to find content end boundary");
+		return false;
+	}
+
+	// Extract content
+	std::string fileContent = ctx.req.received_body.substr(contentStart, contentEnd - contentStart);
+	////Logger::file("[Upload] Extracted file content size: " + std::to_string(fileContent.size()));
+
+	// Build full path and save
+	std::string uploadPath = concatenatePath(ctx.location_path, ctx.location->upload_store);
+	std::string filePath = uploadPath + "/" + filename;
+
+	std::ofstream outputFile(filePath, std::ios::binary);
+	if (!outputFile) {
+		Logger::errorLog("[Upload] ERROR: Failed to open output file: " + filePath);
+		return false;
+	}
+
+	outputFile.write(fileContent.c_str(), fileContent.size());
+	outputFile.close();
+
+	if (outputFile) {
+		Logger::file("[Upload] File successfully saved");
+		redirectAction(ctx);
+		return true;
+	} else {
+		Logger::file("[Upload] ERROR: Failed to write file");
+	}
+	// redirect
+	return false;
+}
+
 bool Server::staticHandler(Context& ctx)
 {
-	std::string response;
-	if (!ctx.doAutoIndex.empty())
+	//if (ctx.return == "irgendwas mit re di rect ")
+	//{
+	//	Logger::file("in static POST Response generating");
+	//}
+	//else
+	if (ctx.method == "POST")
 	{
-		std::stringstream ss;
-		buildAutoIndexResponse(ctx, &ss);
-		if (ctx.type == ERROR)
+		if (!handleStaticUpload(ctx))
+		{
 			return false;
-		response = ss.str();
-
-		// Reset context for next request
-		ctx.doAutoIndex = "";
-		ctx.headers_complete = false;
-		ctx.content_length = 0;
-		ctx.body_received = 0;
-		ctx.input_buffer.clear();
-		ctx.body.clear();
-		ctx.method.clear();
-		ctx.path.clear();
-		ctx.version.clear();
-		ctx.headers.clear();
-		ctx.type = INITIAL;
-		//Logger::file(" before sendwrapper autoindex");
-		return sendWrapper(ctx, response);
-	}
-	else
-	{
-		//Logger::file("before static resp");
-		buildStaticResponse(ctx);
-		if (ctx.type == ERROR)
-			return false;
-		//Logger::file("after static resp");
-		//Logger::file("after static resp KEEP ALIVE!!!!: " + std::to_string(ctx.keepAlive));
-		//if (!ctx.keepAlive)
-		//{
-		////Logger::file("REMOVEING EPOLL");
-		//	delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-		//}
+		}
 		return true;
 	}
+	else if (ctx.method == "GET")
+	{
+		std::string response;
+		if (!ctx.doAutoIndex.empty())
+		{
+			std::stringstream ss;
+			buildAutoIndexResponse(ctx, &ss);
+			if (ctx.type == ERROR)
+				return false;
+			response = ss.str();
+
+			// Reset context for next request
+			ctx.doAutoIndex = "";
+			ctx.headers_complete = false;
+			ctx.content_length = 0;
+			ctx.body_received = 0;
+			ctx.input_buffer.clear();
+			ctx.body.clear();
+			ctx.method.clear();
+			ctx.path.clear();
+			ctx.version.clear();
+			ctx.headers.clear();
+			ctx.type = INITIAL;
+			ctx.error_code = 0;
+			return sendWrapper(ctx, response);
+		}
+		else
+		{
+			buildStaticResponse(ctx);
+			if (ctx.type == ERROR)
+				return false;
+			if (!ctx.keepAlive)
+			{
+			//delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+			}
+			return true;
+		}
+	}
+	else if (ctx.method == "DELETE")
+	{
+			return true;
+	}
+	return false;
 }
 
 void Server::buildStaticResponse(Context &ctx) {
@@ -608,6 +549,7 @@ void Server::buildStaticResponse(Context &ctx) {
 	ctx.path.clear();
 	ctx.version.clear();
 	ctx.headers.clear();
+	ctx.error_code= 0;
 	ctx.type = INITIAL;
 }
 

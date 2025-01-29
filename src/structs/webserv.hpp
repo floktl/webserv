@@ -28,7 +28,7 @@ struct Location
 	std::string	autoindex;
 	std::string	default_file;
 	std::string	upload_store{""};
-	long		client_max_body_size;
+	long		client_max_body_size = 0;
 	std::string	root;
 	std::string	cgi;
 	std::string	cgi_filetype;
