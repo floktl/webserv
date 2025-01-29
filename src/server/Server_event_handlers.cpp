@@ -162,138 +162,226 @@ bool Server::handleWrite(Context& ctx)
 	return result;
 }
 
+void Server::parseChunkedBody(Context& ctx) {
+	while (!ctx.input_buffer.empty()) {
+		if (!ctx.req.chunked_state.processing) {
+			// Looking for the chunk size line
+			size_t pos = ctx.input_buffer.find("\r\n");
+			if (pos == std::string::npos) {
+				return; // Need more data
+			}
+
+			// Parse chunk size
+			std::string chunk_size_str = ctx.input_buffer.substr(0, pos);
+			size_t chunk_size;
+			std::stringstream ss;
+			ss << std::hex << chunk_size_str;
+			ss >> chunk_size;
+
+			if (chunk_size == 0) {
+				// Final chunk
+				ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+				ctx.req.is_upload_complete = true;
+				ctx.input_buffer.clear();
+				return;
+			}
+
+			// Remove the chunk size line
+			ctx.input_buffer.erase(0, pos + 2);
+			ctx.req.chunked_state.buffer = "";
+			ctx.req.chunked_state.processing = true;
+			ctx.req.expected_body_length += chunk_size;
+		}
+
+		// Process chunk data
+		size_t remaining = ctx.req.expected_body_length - ctx.req.current_body_length;
+		size_t available = std::min(remaining, ctx.input_buffer.size());
+
+		if (available > 0) {
+			ctx.req.received_body += ctx.input_buffer.substr(0, available);
+			ctx.req.current_body_length += available;
+			ctx.input_buffer.erase(0, available);
+		}
+
+		// Check for chunk end
+		if (ctx.req.current_body_length == ctx.req.expected_body_length) {
+			if (ctx.input_buffer.size() >= 2 && ctx.input_buffer.substr(0, 2) == "\r\n") {
+				ctx.input_buffer.erase(0, 2);
+				ctx.req.chunked_state.processing = false;
+			} else {
+				return; // Need more data
+			}
+		}
+	}
+}
+
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
-    char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-    ssize_t bytes;
+	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+	ssize_t bytes;
 
-    Logger::file("Starting handleRead for client_fd: " + std::to_string(ctx.client_fd));
+	Logger::file("Starting handleRead for client_fd: " + std::to_string(ctx.client_fd));
 
-    bytes = read(ctx.client_fd, buffer, sizeof(buffer));
-	if (bytes <= 0) // haeaders complete, but wait for more body
-	{
-		Logger::file("Headers complete but still waiting for body data from client " +
-					std::to_string(ctx.client_fd));
+	bytes = read(ctx.client_fd, buffer, sizeof(buffer));
+	if (bytes == 0) {
+		Logger::file("Client closed connection: " + std::to_string(ctx.client_fd));
+		return false;
+	}
+
+	if (bytes < 0) {
+		// Would block, wait for next event
 		return true;
 	}
 
-    // Append new data to input buffer
-    ctx.input_buffer.append(buffer, bytes);
-    Logger::file("Read " + std::to_string(bytes) + " bytes from client " + std::to_string(ctx.client_fd));
+	// Update last activity time
+	ctx.last_activity = std::chrono::steady_clock::now();
 
-    // Handle based on current parsing phase
-    switch(ctx.req.parsing_phase) {
-        case RequestBody::PARSING_HEADER:
-            if (!ctx.headers_complete) {
-                if (!parseHeaders(ctx, bytes)) {
-                    return true; // Need more data for headers
-                }
-                // After headers are parsed, prepare for body if needed
-                if (ctx.content_length > 0) {
-                    ctx.req.parsing_phase = RequestBody::PARSING_BODY;
-                    ctx.req.expected_body_length = ctx.content_length;
-                    ctx.req.current_body_length = 0;
+	// Append new data to input buffer
+	ctx.input_buffer.append(buffer, bytes);
+	Logger::file("Read " + std::to_string(bytes) + " bytes from client " + std::to_string(ctx.client_fd));
 
-                    // If we have remaining data after headers, it's part of the body
-                    size_t remaining_data = ctx.input_buffer.length();
-                    if (remaining_data > 0) {
-                        ctx.req.received_body = ctx.input_buffer;
-                        ctx.req.current_body_length = remaining_data;
-                        ctx.input_buffer.clear();
+	// Handle based on current parsing phase
+	switch(ctx.req.parsing_phase) {
+		case RequestBody::PARSING_HEADER:
+			if (!ctx.headers_complete) {
+				if (!parseHeaders(ctx, bytes)) {
+					Logger::file("Headers not finished");
+					return true;
+				}
 
-                        Logger::file("Initial body chunk received: " +
-                                   std::to_string(remaining_data) + "/" +
-                                   std::to_string(ctx.req.expected_body_length));
-                    }
-                } else {
-                    ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
-                }
-            }
-			Logger::file("body received: " + std::to_string(ctx.body_received) + " max length?: " + std::to_string(bytes) + " header?: " + std::to_string(ctx.header_length));
-            break;
+				Logger::file("Headers FINISHED!!!");
+				auto it = ctx.headers.find("Transfer-Encoding");
+				if (it != ctx.headers.end() && it->second == "chunked") {
+					Logger::file("Start chunked Body parsing");
+					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
+					ctx.req.chunked_state.processing = true;
+					if (!ctx.input_buffer.empty()) {
+						parseChunkedBody(ctx);
+					}
+				} else if (ctx.content_length > 0) {
+					Logger::file("Start unchunked Body parsing, Content-Length: " +
+							std::to_string(ctx.content_length));
+					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
+					ctx.req.expected_body_length = ctx.content_length;
+					ctx.req.current_body_length = 0;
 
-        case RequestBody::PARSING_BODY:
-            // Append new data to body
-            ctx.req.received_body += ctx.input_buffer;
-            ctx.req.current_body_length += ctx.input_buffer.length();
-            ctx.input_buffer.clear();
+					// Process any remaining data in input buffer as body
+					if (!ctx.input_buffer.empty()) {
+						ctx.req.received_body += ctx.input_buffer;
+						ctx.req.current_body_length += ctx.input_buffer.length();
+						Logger::file("Processed " + std::to_string(ctx.input_buffer.length()) +
+								" bytes of body data, total: " +
+								std::to_string(ctx.req.current_body_length) + "/" +
+								std::to_string(ctx.req.expected_body_length));
+						ctx.input_buffer.clear();
 
-            Logger::file("Body received: " + std::to_string(ctx.req.current_body_length) +
-                        "/" + std::to_string(ctx.req.expected_body_length));
+						// Check if we've received the complete body
+						if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+							Logger::file("Body parsing complete!");
+							ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+							ctx.req.is_upload_complete = true;
+						}
+					}
+				} else {
+					Logger::file("No body expected, request complete!");
+					ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+				}
+			}
+			break;
 
-            // Check if body is complete
-            if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
-                ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
-                ctx.req.is_upload_complete = true;
+		case RequestBody::PARSING_BODY:
+			Logger::file("Continue body parsing...");
+			if (ctx.req.chunked_state.processing) {
+				parseChunkedBody(ctx);
+			} else {
+				// Standard body processing
+				ctx.req.received_body += ctx.input_buffer;
+				ctx.req.current_body_length += ctx.input_buffer.length();
+				Logger::file("Processed " + std::to_string(ctx.input_buffer.length()) +
+						" bytes of body data, total: " +
+						std::to_string(ctx.req.current_body_length) + "/" +
+						std::to_string(ctx.req.expected_body_length));
+				ctx.input_buffer.clear();
 
-                // Trim excess data if any
-                if (ctx.req.current_body_length > ctx.req.expected_body_length) {
-                    ctx.req.received_body = ctx.req.received_body.substr(0, ctx.req.expected_body_length);
-                    ctx.req.current_body_length = ctx.req.expected_body_length;
-                }
-            }
-            break;
+				if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+					Logger::file("Body parsing complete!");
+					ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+					ctx.req.is_upload_complete = true;
 
-        case RequestBody::PARSING_COMPLETE:
-            Logger::file("Warning: Received additional data after request was complete");
-            break;
-    }
+					// Trim excess data if any
+					if (ctx.req.current_body_length > ctx.req.expected_body_length) {
+						ctx.req.received_body = ctx.req.received_body.substr(
+							0, ctx.req.expected_body_length);
+						ctx.req.current_body_length = ctx.req.expected_body_length;
+					}
+				}
+			}
+			break;
 
-    // Handle request completion
-    if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
-        Logger::file("Request complete for client " + std::to_string(ctx.client_fd));
-        determineType(ctx, configs);
-        modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
-    }
+		case RequestBody::PARSING_COMPLETE:
+			Logger::file("Warning: Received additional data after request was complete");
+			break;
+	}
 
-    return true;
+	// Handle request completion
+	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
+		Logger::file("Request complete for client " + std::to_string(ctx.client_fd) +
+					", determining type");
+		determineType(ctx, configs);
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
+	} else {
+		// Still need more data, ensure we're watching for it
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+	}
+
+	return true;
 }
 
 bool Server::parseHeaders(Context& ctx, ssize_t bytes) {
 	(void)bytes;
-    size_t header_end = ctx.input_buffer.find("\r\n\r\n");
-    if (header_end == std::string::npos) {
-        Logger::file("Headers not complete yet, waiting for more data");
-        return false;
-    }
+	size_t header_end = ctx.input_buffer.find("\r\n\r\n");
+	if (header_end == std::string::npos) {
+		Logger::file("Headers not complete yet, waiting for more data");
+		return false;
+	}
 
-    std::string headers = ctx.input_buffer.substr(0, header_end);
-    std::istringstream stream(headers);
-    std::string line;
+	std::string headers = ctx.input_buffer.substr(0, header_end);
+	std::istringstream stream(headers);
+	std::string line;
 
-    // Parse request line
-    if (std::getline(stream, line)) {
-        if (line.back() == '\r') line.pop_back();
-        std::istringstream request_line(line);
-        request_line >> ctx.method >> ctx.path >> ctx.version;
-        Logger::file("Parsed request line: " + ctx.method + " " + ctx.path);
-    }
+	// Parse request line
+	if (std::getline(stream, line)) {
+		if (line.back() == '\r') line.pop_back();
+		std::istringstream request_line(line);
+		request_line >> ctx.method >> ctx.path >> ctx.version;
+		Logger::file("Parsed request line: " + ctx.method + " " + ctx.path);
+	}
 
-    // Parse headers
-    while (std::getline(stream, line)) {
-        if (line.empty() || line == "\r") break;
-        if (line.back() == '\r') line.pop_back();
+	// Parse headers
+	while (std::getline(stream, line)) {
+		if (line.empty() || line == "\r") break;
+		if (line.back() == '\r') line.pop_back();
 
-        size_t colon = line.find(':');
-        if (colon != std::string::npos) {
-            std::string key = line.substr(0, colon);
-            std::string value = line.substr(colon + 2);
-            ctx.headers[key] = value;
+		size_t colon = line.find(':');
+		if (colon != std::string::npos) {
+			std::string key = line.substr(0, colon);
+			std::string value = line.substr(colon + 2);
+			ctx.headers[key] = value;
 
-            if (key == "Content-Length") {
-                ctx.content_length = std::stoul(value);
-                Logger::file("Content-Length set to: " + value);
-            }
-        }
-    }
+			if (key == "Content-Length") {
+				ctx.content_length = std::stoul(value);
+				Logger::file("Content-Length set to: " + value);
+			}
+		}
+	}
 
-    // Remove headers from input buffer, leaving any body data
-    ctx.input_buffer.erase(0, header_end + 4);
-    ctx.headers_complete = true;
+	// Remove headers from input buffer, leaving any body data
+	ctx.input_buffer.erase(0, header_end + 4);
+	ctx.headers_complete = true;
 
-    Logger::file("Headers parsed successfully, Content-Length: " +
-                std::to_string(ctx.content_length));
+	Logger::file("Headers parsed successfully, Content-Length: " +
+				std::to_string(ctx.content_length));
 
-    return true;
+	return true;
 }
 
 //bool Server::handleReadError(Context& ctx, ssize_t bytes) {
