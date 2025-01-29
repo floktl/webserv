@@ -101,12 +101,14 @@ for (auto &conf : configs) {
 	if (bind(conf.server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		//Logger::file("Bind error on port " + std::to_string(conf.port) + ": " + std::string(strerror(errno)));
 		close(conf.server_fd);
+		conf.server_fd = -1;
 		return false;
 	}
 
 	if (listen(conf.server_fd, SOMAXCONN) < 0) {
 		//Logger::file("Listen error: " + std::string(strerror(errno)));
 		close(conf.server_fd);
+		conf.server_fd = -1;
 		return false;
 	}
 

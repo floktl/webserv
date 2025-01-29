@@ -21,7 +21,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 		}
 		else if (n == 0)
 		{
-			//checkAndCleanupTimeouts();
+			checkAndCleanupTimeouts();
 			continue;
 		}
 
@@ -43,13 +43,13 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 			{
 				Logger::errorLog("dispatch event error");
 				log_global_fds(globalFDS);
-				// handle errors during dispatch
 
 				// differentiate between normal errorhandler and (bug erros)
 			}
 		}
 	}
 	close(epoll_fd);
+	epoll_fd = -1;
 	return EXIT_SUCCESS;
 }
 
@@ -140,14 +140,18 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 			//log_global_fds(globalFDS);
 		}
 		if (status == false)
+		{
 			Logger::errorLog("handleAcceptConnection Error: client_fd " + std::to_string(client_fd));
+			if (ctx.error_code != 0)
+					return (errorsHandler(ctx));
+		}
 		return status;
 	}
 
 	Logger::errorLog("Unknown fd: " + std::to_string(client_fd));
-	delFromEpoll(epoll_fd, client_fd);
+	//delFromEpoll(epoll_fd, client_fd);
 	//log_global_fds(globalFDS);
-	return false;
+	return true;
 }
 bool Server::isMethodAllowed(Context& ctx)
 {
