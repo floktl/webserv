@@ -235,6 +235,24 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 	// Update last activity time
 	ctx.last_activity = std::chrono::steady_clock::now();
 
+	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
+		Logger::file("Starting new request, resetting context");
+		ctx.input_buffer.clear();
+		ctx.headers.clear();
+		ctx.method.clear();
+		ctx.path.clear();
+		ctx.version.clear();
+		ctx.headers_complete = false;
+		ctx.content_length = 0;
+		ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
+		ctx.req.current_body_length = 0;
+		ctx.req.expected_body_length = 0;
+		ctx.req.received_body.clear();
+		ctx.req.chunked_state.processing = false;
+		ctx.req.is_upload_complete = false;
+		ctx.type = RequestType::INITIAL;
+	}
+
 	// Append new data to input buffer
 	ctx.input_buffer.append(buffer, bytes);
 	Logger::file("Read " + std::to_string(bytes) + " bytes from client " + std::to_string(ctx.client_fd));
@@ -318,7 +336,6 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 			break;
 
 		case RequestBody::PARSING_COMPLETE:
-			Logger::file("Warning: Received additional data after request was complete");
 			break;
 	}
 
@@ -327,6 +344,8 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 		Logger::file("Request complete for client " + std::to_string(ctx.client_fd) +
 					", determining type");
 		determineType(ctx, configs);
+		logContext(ctx, "Parsed");
+		Logger::file("THE BODY:\n" + ctx.req.received_body);
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
 	} else {
 		// Still need more data, ensure we're watching for it

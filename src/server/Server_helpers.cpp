@@ -311,10 +311,6 @@ void Server::parseRequest(Context& ctx) {
 		}
 	}
 
-
-
-
-	//logContext(ctx, "Parsed");
 }
 
 
@@ -402,7 +398,7 @@ void Server::logContext(const Context& ctx, const std::string& event)
 	{
 		for (const auto& header : ctx.headers)
 		{
-			log += header.first + " BDFLNDKSFJN: " + header.second + "\n";
+			log += header.first + ": " + header.second + "\n";
 		}
 	}
 
