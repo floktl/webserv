@@ -80,7 +80,9 @@ int Server::initEpoll()
 bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs) {
 Logger::green("Server listening on the ports:");
 for (auto &conf : configs) {
+	Logger::file("conf porrrrrt: " + std::to_string(conf.port));
 	conf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
+	Logger::file("conf.server_fd = socket(: " + std::to_string(conf.server_fd));
 	if (conf.server_fd < 0) {
 		//Logger::file("Socket error: " + std::string(strerror(errno)));
 		return false;
@@ -128,8 +130,8 @@ for (auto &conf : configs) {
 	} catch (const std::exception &e) {
 		//Logger::file(std::string("Error updating /etc/hosts: ") + e.what());
 	}
-
-	Logger::green("Port: " + std::to_string(conf.port) + ", Servername: " + conf.name);
+	if ((conf.port == 80 && serverInstance->has_gate) || conf.port != 80)
+		Logger::green("Port: " + std::to_string(conf.port) + ", Servername: " + conf.name);
 	//Logger::file("Server socket " + std::to_string(conf.server_fd) + " listening on port " + std::to_string(conf.port));
 }
 return true;

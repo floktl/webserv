@@ -454,7 +454,7 @@ std::string Server::requestTypeToString(RequestType type)
 	}
 }
 
-bool Server::isRequestComplete(const Context& ctx)
+bool Server::isRequestComplete(Context& ctx)
 {
 	// First check if headers are complete
 	if (!ctx.headers_complete) {

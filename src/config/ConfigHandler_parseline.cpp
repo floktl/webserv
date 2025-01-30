@@ -174,13 +174,14 @@ void ConfigHandler::parseLine(std::string line)
 				}
 			}
 		} else if (keyword == "client_max_body_size") {
-			long size = Sanitizer::parseSize(value, "M");
-			if (size == -1) {
-				Logger::error("Error: Invalid client_max_body_size at line " + std::to_string(linecount));
-				parsingErr = true;
-				return;
-			}
-			registeredServerConfs.back().client_max_body_size = size;
+		    long size = Sanitizer::parseSize(value, "M");
+		    if (size == -1) {
+		        Logger::error("Error: Invalid client_max_body_size at line " + std::to_string(linecount));
+		        parsingErr = true;
+		        return;
+		    }
+		    Logger::file("Server Parsed size: " + std::to_string(size));
+		    registeredServerConfs.back().client_max_body_size = size;
 		} else if (keyword == "timeout") {
 			try {
 				int timeout = std::stoi(value);
@@ -207,7 +208,6 @@ void ConfigHandler::parseLine(std::string line)
 		}
 
 		Location& currentLocation = registeredServerConfs.back().locations.back();
-
 		if (keyword == "methods") {
 			currentLocation.allowGet = false;
 			currentLocation.allowPost = false;
@@ -221,7 +221,8 @@ void ConfigHandler::parseLine(std::string line)
 			while (iss >> method) {
 				if (method == "GET") currentLocation.allowGet = true;
 				if (method == "POST") currentLocation.allowPost = true;
-				if (method == "DELETE") currentLocation.allowDelete = true;
+				if (method == "DELETE") {currentLocation.allowDelete = true;
+				;}
 				if (method == "COOKIE") currentLocation.allowCookie = true;
 			}
 		}
@@ -233,6 +234,8 @@ void ConfigHandler::parseLine(std::string line)
 			currentLocation.default_file = value;
 		else if (keyword == "root")
 			currentLocation.root = value;
+		else if (keyword == "upload_store")
+			currentLocation.upload_store = value;
 		else if (keyword == "return") {
 			std::istringstream iss(value);
 			std::string code, url;
@@ -264,6 +267,7 @@ void ConfigHandler::parseLine(std::string line)
 				parsingErr = true;
 				return;
 			}
+			Logger::file("Location Parsed size: " + std::to_string(size));
 			currentLocation.client_max_body_size = size;
 		}
 	}

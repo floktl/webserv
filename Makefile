@@ -12,32 +12,28 @@ CYAN := \033[36m
 X := \033[0m
 
 SUCCESS := \n\
-🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\
-$(X)\n\
-🐑     🐑  🐑🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑   🐑🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑🐑  🐑     🐑$(X)\n\
-🐑     🐑  🐑        🐑     🐑  🐑        🐑        🐑     🐑  🐑     🐑$(X)\n\
-🐑  🐑  🐑  🐑🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑   🐑🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑🐑   🐑   🐑 $(X)\n\
-🐑 🐑 🐑 🐑  🐑        🐑     🐑        🐑  🐑        🐑   🐑      🐑 🐑  $(X)\n\
-$(BLACK)_$(X)🐑   🐑   🐑🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑   🐑🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑🐑  🐑    🐑🐑     🐑   $(X)\n\
-🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\
+🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\
+🐑                                                                                                          🐑\n\
+🐑  🐑       🐑  🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑    🐑      🐑$(X)       🐑\n\
+🐑  🐑       🐑  🐑            🐑          🐑  🐑            🐑            🐑       🐑    🐑    🐑      🐑$(X)\n\
+🐑  🐑   🐑  🐑  🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑      🐑  🐑      🐑 $(X)\n\
+🐑  🐑 🐑 🐑 🐑  🐑            🐑          🐑            🐑  🐑            🐑   🐑          🐑🐑        🐑$(X)\n\
+$(BLACK)🐑    $(X)🐑   🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑  🐑    🐑🐑        🐑           🐑 $(X)\n\
+🐑                                                                                                          🐑\n\
+🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\
 $(X) 🐑 Wir muessen noch alle config werte im req handler abfangen!!!!!!\n\
 $(X) 🐑 Checking the value of errno is strictly forbidden after a read or a write operation\n\
 $(X) 🐑 You can use every macro and define like FD_SET, FD_CLR, FD_ISSET, FD_ZERO (understanding what and how they do it is very useful).\n\
 $(X) 🐑 Stress test shell script das de kiste fickt!!!!!!!!!\n\
-$(X) 🐑 Set a default file to answer if the request is a directory.\n\
-$(X) 🐑 Uploads alle bekannten 403\n\
-$(X) 🐑 Redirects.\n\
 $(X) 🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
 $(X) 🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
-$(X) 🐑 Cookies BY REDIRECT!!!! und Session managment\n\
-$(X) 🐑 approveExtention check exitance 404 and error codes for any set in access\n\
+$(X) 🐑 Cookies in CGI und Session managment\n\
 $(X) 🐑 Über CGI-Scripts mit deren eigener Upload-Logik\n\
+$(X) 🐑 check how to redirect vhosts_gate into services\n\
 $(X) 🐑 The first server for a host:port will be the default for this host:port (that means it will answer to all the requests that don’t belong to an other server).\n\
-$(X) 🇫🇷🐑 \n\
 $(X) 🇫🇷 Shorten jeberles wonderful contig\n\
 $(X) 🇫🇷 Logger file in Error handle fucntion.... \n\
 $(X) 🇫🇷 Forbidden functions.\n\
-$(X) 🇫🇷 ERRORS ueber hilfsfunction nuten\n\
 $(X) 🇫🇷 Include file \n\
 $(X) 🇫🇷 100MBe \n\
 $(X) 🇫🇷 Chunk und MB (1048576) size als CONST \n\
@@ -196,3 +192,6 @@ fclean: clean
 	@echo "$(RED)binaries deleted$(X)"
 
 re: fclean all
+
+sheep:
+	@echo "$(SUCCESS)"

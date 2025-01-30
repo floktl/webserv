@@ -10,31 +10,32 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 	//Logger::file("\n");
 	while (true)
 	{
-		int n = epoll_wait(epoll_fd, events, max_events, timeout_ms);
+		int eventNum = epoll_wait(epoll_fd, events, max_events, timeout_ms);
 		////Logger::file("Events count: " + std::to_string(n));
 
-		if (n < 0)
+		if (eventNum < 0)
 		{
 			Logger::errorLog("Epoll error: " + std::string(strerror(errno)));
-			if (errno == EINTR) continue;
+			if (errno == EINTR)
+				continue;
 			break;
 		}
-		else if (n == 0)
+		else if (eventNum == 0)
 		{
 			checkAndCleanupTimeouts();
 			continue;
 		}
 
-		for (int i = 0; i < n; i++)
+		for (int eventIter = 0; eventIter < eventNum; eventIter++)
 		{
-			incoming_fd = events[i].data.fd;
+			incoming_fd = events[eventIter].data.fd;
 
 			if (incoming_fd <= 0)
 			{
 				Logger::errorLog("WARNING: Invalid fd " + std::to_string(incoming_fd) + " in epoll event");
 				continue;
 			}
-			uint32_t ev = events[i].events;
+			uint32_t ev = events[eventIter].events;
 			if (dispatchEvent(epoll_fd, incoming_fd, ev, configs))
 			{
 				// handle successfull dispatch
@@ -68,7 +69,7 @@ bool Server::dispatchEvent(int epoll_fd, int incoming_fd, uint32_t ev, std::vect
 		Logger::file("dispatchEvent: Server fd identified: " + std::to_string(server_fd) + " events=" + std::to_string(ev));
 		if (server_fd > 0)
 		{
-			return handleNewConnection(epoll_fd, server_fd);
+			return handleNewConnection(epoll_fd, server_fd, configs);
 		}
 		else
 		{
@@ -108,6 +109,11 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 		if (ev & EPOLLIN)
 		{
 			status = handleRead(ctx, configs);
+			logContext(ctx, "after handle read in epoll in");
+			if (status == false && ctx.error_code != 0)
+			{
+				return (errorsHandler(ctx));
+			}
 			//log_global_fds(globalFDS);
 			//logContext(ctx);
 		}
@@ -139,11 +145,9 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 			delFromEpoll(epoll_fd, client_fd);
 			//log_global_fds(globalFDS);
 		}
-		if (status == false)
+		if (status == false && ctx.error_code != 0)
 		{
-			Logger::errorLog("handleAcceptConnection Error: client_fd " + std::to_string(client_fd));
-			if (ctx.error_code != 0)
-					return (errorsHandler(ctx));
+			return (errorsHandler(ctx));
 		}
 		return status;
 	}
@@ -199,7 +203,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
         }
         else
         {
-            //Logger::file("Extension validation failed - CGI type: [" + ctx.location.cgi_filetype + "], Extension: [" + extension + "]");
+            Logger::file("Extension validation failed - CGI type: [" + ctx.location.cgi_filetype + "], Extension: [" + extension + "]");
 			updateErrorStatus(ctx, 500, "Internal Server Error");
             return "";
         }
@@ -338,6 +342,7 @@ bool Server::checkAccessRights(Context &ctx, std::string path) {
     }
 
     Logger::file("[INFO] Access rights check passed for: " + path);
+	Logger::file("method: " + ctx.method);
     return true;
 }
 
@@ -346,7 +351,7 @@ bool Server::checkAccessRights(Context &ctx, std::string path) {
 void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 {
 	ServerBlock* conf = nullptr;
-
+	logContext(ctx);
 	// Finde passende Konfiguration
 	for (auto& config : configs) {
 		if (config.server_fd == ctx.server_fd)
@@ -358,9 +363,11 @@ void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 
 	if (!conf)
 	{
+	Logger::file("	if (!conf): " + ctx.method);
 		updateErrorStatus(ctx, 500, "Internal Server Error");
 		return;
 	}
+	logContext(ctx, "lgbtqv+marvin == bi marvin ? true, false : return true");
 
 	// path und index file muss da sein. Pfad aufloesen..
 	// autoindex
@@ -375,10 +382,12 @@ void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 			ctx.root = conf->root;
 			ctx.index = conf->index;
 			ctx.errorPages = conf->errorPages;
-			ctx.client_max_body_size = conf->client_max_body_size;
 			ctx.timeout = conf->timeout;
 			ctx.location = loc;
 			ctx.location_inited = true;
+			logContext(ctx);
+			Logger::file(ctx.location.methods);
+			Logger::file(std::to_string(ctx.location.allowDelete));
 			if (!isMethodAllowed(ctx))
 			{
 				updateErrorStatus(ctx, 405, "Method (" + ctx.method + ") not allowed");
@@ -392,6 +401,41 @@ void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 			return;
 		}
 	}
+	Logger::file("	parseAccessRights(ctx); " + ctx.method);
 	updateErrorStatus(ctx, 500, "Internal Server Error");
 }
 
+// Bestimmt Request-Typ aus Konfiguration
+void Server::getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock>& configs)
+{
+	ServerBlock* conf = nullptr;
+
+	// Finde passende Konfiguration
+	for (auto& config : configs) {
+		if (config.server_fd == ctx.server_fd)
+		{
+			conf = &config;
+			break;
+		}
+	}
+
+	if (!conf)
+	{
+		return;
+	}
+
+	// path und index file muss da sein. Pfad aufloesen..
+	// autoindex
+	// uploadstore
+
+	for (auto loc : conf->locations)
+	{
+		if (matchLoc(loc, ctx.path))
+		{
+			Logger::file("max_size found: " + std::to_string(loc.client_max_body_size));
+			ctx.client_max_body_size = loc.client_max_body_size;
+			return;
+		}
+	}
+	Logger::file("Type not found");
+}

@@ -4,7 +4,6 @@ bool ConfigHandler::sanitizeConfData(void)
 {
 	std::set<int> usedPorts;
 	for (size_t i = 0; i < registeredServerConfs.size(); ++i) {
-		registeredServerConfs[i].client_max_body_size = 1048576;
 		if (registeredServerConfs[i].port == 0) {
 			Logger::error("Port number is mandatory for server block " + std::to_string(i + 1));
 			configFileValid = false;
@@ -42,9 +41,10 @@ bool ConfigHandler::sanitizeConfData(void)
 			return false;
 		}
 
-		if (registeredServerConfs[i].client_max_body_size == 0) {
-			registeredServerConfs[i].client_max_body_size = 1048576;
-		} else if (!Sanitizer::sanitize_clMaxBodSize(registeredServerConfs[i].client_max_body_size)) {
+		if (registeredServerConfs[i].client_max_body_size == -1) {
+			registeredServerConfs[i].client_max_body_size = DEFAULT_MAXBODYSIZE;
+		}
+		if (!Sanitizer::sanitize_clMaxBodSize(registeredServerConfs[i].client_max_body_size)) {
 			Logger::red("Invalid client_max_body_size for server block " + std::to_string(i + 1));
 			configFileValid = false;
 			return false;
@@ -139,26 +139,21 @@ bool ConfigHandler::sanitizeConfData(void)
 				return false;
 			}
 
-
 			if (!loc.cgi.empty() &&
 				!Sanitizer::sanitize_locationCgi(loc.cgi, loc.cgi_filetype, expandEnvironmentVariables("$PWD", env))) {
 				configFileValid = false;
 				return false;
 			}
 
-			if (loc.client_max_body_size == 0) {
+			if (loc.client_max_body_size == -1) {
 				loc.client_max_body_size = registeredServerConfs[i].client_max_body_size;
-			} else {
-				if (!Sanitizer::sanitize_clMaxBodSize(loc.client_max_body_size)) {
-					Logger::red("Invalid client_max_body_size for location in server block " + std::to_string(i + 1));
-					configFileValid = false;
-					return false;
-				}
+			}
+			if (!Sanitizer::sanitize_clMaxBodSize(loc.client_max_body_size)) {
+				Logger::red("Invalid client_max_body_size for location in server block " + std::to_string(i + 1));
+				configFileValid = false;
+				return false;
 			}
 
-			if (loc.client_max_body_size == 0) {
-				loc.client_max_body_size = 1048576;
-			}
 			if (!Sanitizer::sanitize_locationUploadStore(
 					loc.upload_store,
 					expandEnvironmentVariables("$PWD", env),
