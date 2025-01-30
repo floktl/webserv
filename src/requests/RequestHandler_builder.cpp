@@ -81,38 +81,38 @@
 //	}
 //}
 
-////void RequestHandler::handleDeleteRequest(RequestBody &req)
-////{
-////	////Logger::file("[handleDeleteRequest] Entering handleDeleteRequest for path: " + req.requested_path);
+//void RequestHandler::handleDeleteRequest(RequestBody &req)
+//{
+//	////Logger::file("[handleDeleteRequest] Entering handleDeleteRequest for path: " + req.requested_path);
 
-////	// Finde die passende Location für den aktuellen Request
-////	const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
-////	if (!loc)
-////	{
-////		////Logger::file("[handleDeleteRequest] No matching location found.");
-////		std::stringstream response;
-////		buildErrorResponse(404, "Not Found", &response, req);
+//	// Finde die passende Location für den aktuellen Request
+//	const Location* loc = findMatchingLocation(req.associated_conf, req.location_path);
+//	if (!loc)
+//	{
+//		////Logger::file("[handleDeleteRequest] No matching location found.");
+//		std::stringstream response;
+//		buildErrorResponse(404, "Not Found", &response, req);
 
-////		std::string response_data = response.str();
-////		// Füge "Connection: close" hinzu
-////		response_data.insert(response_data.find("\r\n"), "Connection: close\r\n");
+//		std::string response_data = response.str();
+//		// Füge "Connection: close" hinzu
+//		response_data.insert(response_data.find("\r\n"), "Connection: close\r\n");
 
-////		size_t chunk_size_delete = 64;
-////		size_t total_size_delete = response_data.size();
+//		size_t chunk_size_delete = 64;
+//		size_t total_size_delete = response_data.size();
 
-////		req.response_buffer.clear();
-////		for (size_t i = 0; i < total_size_delete; i += chunk_size_delete) {
-////			size_t length = std::min(chunk_size_delete, total_size_delete - i);
-////			req.response_buffer.insert(req.response_buffer.end(),
-////										response_data.begin() + i,
-////										response_data.begin() + i + length);
-////		}
-////		////Logger::file("[handleDeleteRequest] Sent 404 Not Found response");
-////		// Setze den Zustand auf SENDING_RESPONSE
-////		req.state = RequestBody::STATE_SENDING_RESPONSE;
-////		server.modEpoll(server.getGlobalFds().epoll_fd, req.ctx.client_fd, EPOLLOUT);
-////		return;
-////	}
+//		req.response_buffer.clear();
+//		for (size_t i = 0; i < total_size_delete; i += chunk_size_delete) {
+//			size_t length = std::min(chunk_size_delete, total_size_delete - i);
+//			req.response_buffer.insert(req.response_buffer.end(),
+//										response_data.begin() + i,
+//										response_data.begin() + i + length);
+//		}
+//		////Logger::file("[handleDeleteRequest] Sent 404 Not Found response");
+//		// Setze den Zustand auf SENDING_RESPONSE
+//		req.state = RequestBody::STATE_SENDING_RESPONSE;
+//		server.modEpoll(server.getGlobalFds().epoll_fd, req.ctx.client_fd, EPOLLOUT);
+//		return;
+//	}
 
 //	// Verwende upload_store, um den Dateipfad zu konstruieren
 //	std::string uploadStore = loc->upload_store;
@@ -238,17 +238,17 @@
 //		// Setze den Zustand auf SENDING_RESPONSE
 //		req.state = RequestBody::STATE_SENDING_RESPONSE;
 //		server.modEpoll(server.getGlobalFds().epoll_fd, req.ctx.client_fd, EPOLLOUT);
-//		return;
-//	}
+	//	return;
+	//}
 
-//	////Logger::file("[handleDeleteRequest] Successfully deleted file: " + filePath);
+	////Logger::file("[handleDeleteRequest] Successfully deleted file: " + filePath);
 
-//	// Senden der 204 No Content Antwort mit "Connection: close"
-//	std::string headers = "HTTP/1.1 204 No Content\r\n";
-//	if (!req.cookie_header.empty())
-//		headers += "Set-Cookie: " + req.cookie_header + "\r\n";
-//	headers += "Connection: close\r\n";
-//	headers += "\r\n";
+	// Senden der 204 No Content Antwort mit "Connection: close"
+	//std::string headers = "HTTP/1.1 204 No Content\r\n";
+	//if (!req.cookie_header.empty())
+	//	headers += "Set-Cookie: " + req.cookie_header + "\r\n";
+	//headers += "Connection: close\r\n";
+	//headers += "\r\n";
 
 //	req.response_buffer.clear();
 

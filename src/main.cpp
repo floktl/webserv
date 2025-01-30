@@ -2,6 +2,52 @@
 #include <csignal>
 #include <iostream>
 #include <memory>
+std::string mergePathsToFilename(const std::string& requestPath, const std::string& basePath) {
+    // Helper function to split path into components
+    auto splitPath = [](const std::string& path) -> std::vector<std::string> {
+        std::vector<std::string> components;
+        std::stringstream ss(path);
+        std::string item;
+        while (std::getline(ss, item, '/')) {
+            if (!item.empty()) {
+                components.push_back(item);
+            }
+        }
+        return components;
+    };
+
+    auto requestComponents = splitPath(requestPath);
+    auto baseComponents = splitPath(basePath);
+
+    // Find common segment (e.g., "upload")
+    size_t matchIndex = 0;
+    bool found = false;
+    for (size_t i = 0; i < requestComponents.size(); i++) {
+        for (size_t j = 0; j < baseComponents.size(); j++) {
+            if (requestComponents[i] == baseComponents[j]) {
+                matchIndex = i;
+                found = true;
+                break;
+            }
+        }
+        if (found) break;
+    }
+
+    if (!found) {
+        return "";  // No common path found
+    }
+
+    // Extract the remaining path after the match
+    std::string result;
+    for (size_t i = matchIndex + 1; i < requestComponents.size(); i++) {
+        result += requestComponents[i];
+        if (i < requestComponents.size() - 1) {
+            result += "/";
+        }
+    }
+
+    return result;
+}
 void log_server_configs(const std::vector<ServerBlock>& configs) {
     Logger::file("Server Configurations:");
     Logger::file("[");
@@ -154,7 +200,6 @@ int main(int argc, char **argv, char **envp)
 			Logger::red() << "No configurations found!";
 			return EXIT_FAILURE;
 		}
-
 		int epoll_fd = serverInstance->server_init(configs);
 		if (epoll_fd == EXIT_FAILURE)
 			return EXIT_FAILURE;
@@ -172,3 +217,5 @@ int main(int argc, char **argv, char **envp)
 	return EXIT_SUCCESS;
 }
 
+
+//Logger::errorLog(std::to_string(loc.port) + " " + std::to_string(registeredServerConfs[i].client_max_body_size));

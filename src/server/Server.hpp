@@ -27,6 +27,7 @@ class Server
 		// CgiHandler* getCgiHandler(void);
 		// RequestHandler* getRequestHandler(void);
 		ErrorHandler* getErrorHandler(void);
+		int has_gate = false;
 		//TaskManager* getTaskManager(void);
 
 		//server_helpers
@@ -77,7 +78,7 @@ class Server
 
 		// Server loop
 		bool dispatchEvent(int epoll_fd, int fd, uint32_t ev, std::vector<ServerBlock> &configs);
-		bool handleNewConnection(int epoll_fd, int fd);
+		bool handleNewConnection(int epoll_fd, int server_fd, std::vector<ServerBlock> &configs);
 		void checkAndCleanupTimeouts();
 		void killTimeoutedCGI(RequestBody &req);
 
@@ -92,14 +93,16 @@ class Server
 		std::string getDirectory(const std::string& path);
 		bool buildAutoIndexResponse(Context& ctx, std::stringstream* response);
 		bool handleRead(Context& ctx, std::vector<ServerBlock> &configs);
-		bool parseHeaders(Context& ctx, ssize_t bytes);
+		bool parseHeaders(Context& ctx);
 		bool handleWrite(Context& ctx);
 		bool queueResponse(Context& ctx, const std::string& response);
-		bool isRequestComplete(const Context& ctx);
+		bool isRequestComplete(Context& ctx);
 		std::string approveExtention(Context& ctx, std::string path_to_check);
 		void parseChunkedBody(Context& ctx);
 		bool handleStaticUpload(Context& ctx);
 		bool redirectAction(Context& ctx);
+		bool deleteHandler(Context &ctx);
+		void getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock>& configs);
 };
 
 #endif

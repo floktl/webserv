@@ -212,7 +212,7 @@ bool Sanitizer::sanitize_errorPage(std::string &errorPage, const std::string &pw
 
 
 bool Sanitizer::sanitize_clMaxBodSize(long size) {
-	return (size > 0 && size <= 2147483648L);
+    return (size > 0 && size <= 2147483648L);
 }
 
 bool Sanitizer::sanitize_locationPath(std::string& locationPath, const std::string& pwd) {
