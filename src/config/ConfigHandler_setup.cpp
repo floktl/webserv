@@ -99,11 +99,45 @@ bool ConfigHandler::getconfigFileValid(void) const
 	return configFileValid;
 }
 
-std::vector<ServerBlock> ConfigHandler::get_registeredServerConfs(void) const
+std::vector<ServerBlock> ConfigHandler::get_registeredServerConfs()
 {
-	if (registeredServerConfs.empty())
+    if (registeredServerConfs.empty())
 	{
-		throw std::runtime_error("No registered configurations found!");
+        throw std::runtime_error("No registered configurations found!");
+
 	}
-	return registeredServerConfs;
+
+	std::cout << "damit wir wissen es startet jetzt maeaeae" << std::endl;
+
+
+
+    for (auto &conf : registeredServerConfs) {
+		printServerBlock(conf);
+        if (conf.port == 80)
+            serverInstance->has_gate = true;  
+    }
+    ServerBlock vhosts_gate;
+	Location vhosts_gate_location;
+	vhosts_gate.port = 80;
+	vhosts_gate.name = "localhost";
+	vhosts_gate.root = "/";
+
+	// Minimal required fields for the location
+	vhosts_gate_location.path = "/";    // Match all requests
+	vhosts_gate_location.root = "/";    // Root path
+	vhosts_gate_location.default_file = "index.html"; // Default file
+
+	// Add the location to the server block
+	vhosts_gate.locations.push_back(vhosts_gate_location);
+	vhosts_gate.locations.push_back(vhosts_gate_location);
+	std::cout << "ghvdfu" << std::endl;
+    if (!serverInstance->has_gate)
+	{
+        registeredServerConfs.push_back(vhosts_gate);
+		printServerBlock(vhosts_gate);
+
+	} // Use -> instead of .
+
+	std::cout << "sfgjhghvdfud;fghtrh ich heisse amrvin dickschaedel" << std::endl;
+    return registeredServerConfs;
 }

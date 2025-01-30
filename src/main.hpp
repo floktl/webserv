@@ -53,6 +53,9 @@
 # include "./server/Server.hpp"
 # include "structs/webserv.hpp"
 
+
+extern std::unique_ptr<Server> serverInstance;
+
 void printServerBlock(ServerBlock& serverBlock);
 void printRequestBody(const RequestBody& req);
 std::string getEventDescription(uint32_t ev);
@@ -62,5 +65,6 @@ std::string expandEnvironmentVariables(const std::string& value, char** env);
 void log_global_fds(const GlobalFDS& fds);
 void log_server_configs(const std::vector<ServerBlock>& configs);
 bool	updateErrorStatus(Context &ctx, int error_code, std::string error_string);
+std::string mergePathsToFilename(const std::string& requestPath, const std::string& basePath);
 
 # endif

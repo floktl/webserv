@@ -38,7 +38,7 @@ public:
 	void parseArgs(int argc, char **argv, char **envp);
 	bool getconfigFileValid(void) const;
 	void printRegisteredConfs(std::string filename, std::string pwd);
-	std::vector<ServerBlock> get_registeredServerConfs(void) const;
+	std::vector<ServerBlock> get_registeredServerConfs(void);
 
 	class InvalidFileNameException : public std::exception {
 	public:

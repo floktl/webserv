@@ -10,6 +10,7 @@
 
 #define BUFFER_SIZE 17000
 #define DEFAULT_REQUESTBUFFER_SIZE 8192
+#define DEFAULT_MAXBODYSIZE 1048576
 
 struct ChunkedState
 {
@@ -28,7 +29,7 @@ struct Location
 	std::string	autoindex;
 	std::string	default_file;
 	std::string	upload_store{""};
-	unsigned long long		client_max_body_size = 1048576;
+	long long		client_max_body_size = -1;
 	std::string	root;
 	std::string	cgi;
 	std::string	cgi_filetype;
@@ -52,7 +53,7 @@ struct ServerBlock
 	std::string index;
 
 	std::map<int, std::string>	errorPages;
-	unsigned long long						client_max_body_size = 1048576;
+	long long			client_max_body_size = -1;
 	std::vector<Location>		locations;
 	int							timeout;
 
@@ -85,7 +86,7 @@ struct RequestBody
 		PARSING_COMPLETE
 	};
 
-	unsigned long long 		content_length = 0;
+	long long 		content_length = 0;
 	int			cgi_in_fd;
 	int			cgi_out_fd;
 	pid_t		cgi_pid;
@@ -175,7 +176,7 @@ struct Context
 	std::string approved_req_path;
 
 	std::map<int, std::string>	errorPages;
-	unsigned long long						client_max_body_size;
+	long long						client_max_body_size = -1;
 	int							timeout;
 	std::string doAutoIndex = "";
 
@@ -183,8 +184,8 @@ struct Context
 	std::string output_buffer = "";
 	bool headers_complete = false;
 	size_t header_length = 0;
-	unsigned long long content_length = 0;
-	size_t body_received = 0;
+	long long content_length = 0;
+	long long body_received = 0;
 	bool keepAlive = false;
 	bool is_multipart;
 };
