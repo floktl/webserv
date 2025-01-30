@@ -180,7 +180,7 @@
 //     vars.push_back("SERVER_PORT=" + std::to_string(tunnel.config->port));
 
 //     // Nicht standard, aber evtl. intern von dir genutzt:
-//     vars.push_back("UPLOAD_STORE=" + tunnel.location->upload_store);
+//     vars.push_back("UPLOAD_STORE=" + tunnel.location.upload_store);
 
 //     // Inhalt des Bodys
 //     vars.push_back("CONTENT_TYPE=" + content_type);
@@ -248,7 +248,7 @@
 // 	tunnel.is_busy = true;
 // 	tunnel.last_used = std::chrono::steady_clock::now();
 // 	tunnel.pid = -1;
-// 	////Logger::file("req.upload_store: " + tunnel.location->upload_store);
+// 	////Logger::file("req.upload_store: " + tunnel.location.upload_store);
 // 	tunnel.script_path = req.requested_path;
 // 	tunnel.request = req;
 // 	return true;
@@ -284,7 +284,7 @@
 // 	////Logger::file("[INFO] Executing CGI script: " + tunnel.script_path);
 // 	////Logger::file("[INFO] Request body content: " + tunnel.request.request_body);
 
-// 	if (access(tunnel.location->cgi.c_str(), X_OK) != 0 ||
+// 	if (access(tunnel.location.cgi.c_str(), X_OK) != 0 ||
 // 		!tunnel.location ||
 // 		access(tunnel.script_path.c_str(), R_OK) != 0) {
 // 		////Logger::file("[ERROR] Cannot execute CGI script at: " + tunnel.script_path + ", Error: " + std::string(strerror(errno)));
@@ -293,7 +293,7 @@
 
 // 	// Prepare arguments for execve
 // 	std::vector<char*> args;
-// 	args.push_back(strdup(tunnel.location->cgi.c_str()));  // CGI interpreter
+// 	args.push_back(strdup(tunnel.location.cgi.c_str()));  // CGI interpreter
 // 	args.push_back(strdup(tunnel.script_path.c_str()));    // Script path
 // 	args.push_back(nullptr);
 

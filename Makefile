@@ -30,6 +30,7 @@ $(X) 🐑 Redirects.\n\
 $(X) 🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
 $(X) 🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
 $(X) 🐑 Cookies BY REDIRECT!!!! und Session managment\n\
+$(X) 🐑 approveExtention check exitance 404 and error codes for any set in access\n\
 $(X) 🐑 Über CGI-Scripts mit deren eigener Upload-Logik\n\
 $(X) 🐑 The first server for a host:port will be the default for this host:port (that means it will answer to all the requests that don’t belong to an other server).\n\
 $(X) 🇫🇷🐑 \n\
@@ -38,6 +39,8 @@ $(X) 🇫🇷 Logger file in Error handle fucntion.... \n\
 $(X) 🇫🇷 Forbidden functions.\n\
 $(X) 🇫🇷 ERRORS ueber hilfsfunction nuten\n\
 $(X) 🇫🇷 Include file \n\
+$(X) 🇫🇷 100MBe \n\
+$(X) 🇫🇷 Chunk und MB (1048576) size als CONST \n\
 
 #------------------------------------------------------------------------------#
 #--------------                      GENERAL                      -------------#

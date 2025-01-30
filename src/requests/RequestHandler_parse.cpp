@@ -16,7 +16,7 @@
 //	else
 //	{
 //		////Logger::file("[handlePostBodyComplete] Kein CGI -> Datei speichern und Upload finalisieren.");
-//		saveUploadedFile(req.request_body, location->upload_store + "/");
+//		saveUploadedFile(req.request_body, location.upload_store + "/");
 //		finalizeUpload(req);
 //	}
 //}
@@ -333,7 +333,7 @@
 //			}
 
 //			// Normaler Content-Length basierter POST
-//			if (content_length > (size_t)location->client_max_body_size)
+//			if (content_length > (size_t)location.client_max_body_size)
 //			{
 //				////Logger::file("[parseRequest] 413 Payload Too Large");
 //				std::stringstream errorStream;
@@ -418,7 +418,7 @@
 //		}
 
 //		// Maximalgröße prüfen
-//		if (req.request_body.size() > (size_t)location->client_max_body_size)
+//		if (req.request_body.size() > (size_t)location.client_max_body_size)
 //		{
 //			////Logger::file("[parseRequest] 413 Payload Too Large (PARSING_BODY)");
 //			std::stringstream errorStream;
