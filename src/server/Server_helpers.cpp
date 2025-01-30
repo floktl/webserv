@@ -430,7 +430,7 @@ void Server::logContext(const Context& ctx, const std::string& event)
 	log += "Location Path: " + (!ctx.location_path.empty() ? ctx.location_path : "[empty]") + "\n";
 	log += "Requested Path: " + (!ctx.requested_path.empty() ? ctx.requested_path : "[empty]") + "\n";
 
-	log += std::string("Location: ") + (ctx.location ? "Defined" : "[empty]") + "\n";
+	log += std::string("Location: ") + (ctx.location_inited ? "Defined" : "[empty]") + "\n";
 
 
 	log += "Last Activity: " +

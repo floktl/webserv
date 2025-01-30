@@ -28,7 +28,7 @@ struct Location
 	std::string	autoindex;
 	std::string	default_file;
 	std::string	upload_store{""};
-	long		client_max_body_size = 0;
+	unsigned long long		client_max_body_size = 1048576;
 	std::string	root;
 	std::string	cgi;
 	std::string	cgi_filetype;
@@ -52,7 +52,7 @@ struct ServerBlock
 	std::string index;
 
 	std::map<int, std::string>	errorPages;
-	long						client_max_body_size;
+	unsigned long long						client_max_body_size = 1048576;
 	std::vector<Location>		locations;
 	int							timeout;
 
@@ -85,7 +85,7 @@ struct RequestBody
 		PARSING_COMPLETE
 	};
 
-	size_t		content_length = 0;
+	unsigned long long 		content_length = 0;
 	int			cgi_in_fd;
 	int			cgi_out_fd;
 	pid_t		cgi_pid;
@@ -162,12 +162,12 @@ struct Context
 	std::string location_path = "";
 	std::string requested_path = "";
 
-	Location* location = nullptr;
+	bool location_inited = false;
+	Location location;
 	RequestBody req;
 
 	int error_code = 0;
 	std::string error_message = "";
-	ERRORFLAG access_flag = FILE_EXISTS;
 	int port;
 	std::string name;
 	std::string root;
@@ -175,7 +175,7 @@ struct Context
 	std::string approved_req_path;
 
 	std::map<int, std::string>	errorPages;
-	long						client_max_body_size;
+	unsigned long long						client_max_body_size;
 	int							timeout;
 	std::string doAutoIndex = "";
 
@@ -183,7 +183,7 @@ struct Context
 	std::string output_buffer = "";
 	bool headers_complete = false;
 	size_t header_length = 0;
-	size_t content_length = 0;
+	unsigned long long content_length = 0;
 	size_t body_received = 0;
 	bool keepAlive = false;
 	bool is_multipart;
