@@ -41,7 +41,11 @@ class Server
 		int runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs);
 		void logRequestBodyMapFDs();
 		void parseAccessRights(Context& ctx);
-		bool checkAccessRights(Context &ctx, std::string errorString);
+		bool checkAccessRights(Context &ctx, std::string path);
+		bool fileReadable(const std::string& path);
+		bool fileExecutable(const std::string& path);
+		bool dirReadable(const std::string& path);
+		bool dirWritable(const std::string& path);
 		bool sendWrapper(Context& ctx, std::string http_response);
 		bool handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, std::vector<ServerBlock> &configs);
 

@@ -107,6 +107,7 @@ bool Server::handleWrite(Context& ctx)
 }
 
 void Server::parseChunkedBody(Context& ctx) {
+			Logger::file("parseChunkedBody");
 	while (!ctx.input_buffer.empty()) {
 		if (!ctx.req.chunked_state.processing) {
 			// Looking for the chunk size line
@@ -147,6 +148,9 @@ void Server::parseChunkedBody(Context& ctx) {
 			ctx.input_buffer.erase(0, available);
 		}
 
+			Logger::file("what the fuck!!!! " + std::to_string(ctx.content_length));
+			Logger::file("what the fuck!!!! " + std::to_string(ctx.req.current_body_length));
+			Logger::file("what the fuck!!!! " + std::to_string(ctx.req.expected_body_length));
 		// Check for chunk end
 		if (ctx.req.current_body_length == ctx.req.expected_body_length) {
 			if (ctx.input_buffer.size() >= 2 && ctx.input_buffer.substr(0, 2) == "\r\n") {
@@ -164,6 +168,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 	ssize_t bytes;
 
 
+			Logger::file("handleRead > hier nochmal pruefen.!!");
 	bytes = read(ctx.client_fd, buffer, sizeof(buffer));
 	if (bytes == 0) {
 
@@ -176,6 +181,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 	}
 
 	// Update last activity time
+	ctx.content_length = 0;
 	ctx.last_activity = std::chrono::steady_clock::now();
 
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
@@ -214,13 +220,10 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 					if (!ctx.input_buffer.empty()) {
 						parseChunkedBody(ctx);
 					}
-				} else if (ctx.content_length > 0) {
-					if ((long int)ctx.content_length > ctx.location->client_max_body_size)
+				} else if (ctx.content_length > 0 && ctx.headers_complete) {
+					if (ctx.content_length > ctx.location.client_max_body_size)
 					{
-						ctx.type = ERROR;
-						ctx.error_code = 413;
-						ctx.error_message = "Payload Too Large";
-						return false;
+						return updateErrorStatus(ctx, 413, "Payload Too Large");
 					}
 					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
 					ctx.req.expected_body_length = ctx.content_length;
@@ -248,6 +251,9 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs) {
 			if (ctx.req.chunked_state.processing) {
 				parseChunkedBody(ctx);
 			} else {
+			Logger::file("what the fuck!!!! " + std::to_string(ctx.content_length));
+			Logger::file("what the fuck!!!! " + std::to_string(ctx.req.current_body_length));
+			Logger::file("what the fuck!!!! " + std::to_string(ctx.location.client_max_body_size));
 				// Standard body processing
 				ctx.req.received_body += ctx.input_buffer;
 				ctx.req.current_body_length += ctx.input_buffer.length();
@@ -368,17 +374,59 @@ bool Server::errorsHandler(Context& ctx)
 	return (sendWrapper(ctx, errorResponse));
 }
 
-bool Server::redirectAction(Context& ctx)
-{
-	Logger::file("redirectAction " + ctx.location->return_code);
-	Logger::file("redirectAction " + ctx.location->return_url);
-	return true;
+bool Server::redirectAction(Context& ctx) {
+    int return_code = 301;
+    std::string return_url = "/";
+
+    if (!ctx.location.return_code.empty())
+        return_code = std::stoi(ctx.location.return_code);  // Convert string to int
+    if (!ctx.location.return_url.empty())
+        return_url = ctx.location.return_url;
+
+    // Use string streams for proper string concatenation
+    std::stringstream log_message;
+    log_message << "Handling redirect: code=" << return_code << " url=" << return_url;
+    Logger::file(log_message.str());
+
+    // Prepare redirect response
+    std::stringstream response;
+    response << "HTTP/1.1 " << return_code << " Moved Permanently\r\n"
+            << "Location: " << return_url << "\r\n"
+            << "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n"
+            << "Content-Length: 0\r\n"
+            << "\r\n";
+
+    // Send the redirect response
+    if (!sendWrapper(ctx, response.str())) {
+        Logger::errorLog("Failed to send redirect response");
+        return false;
+    }
+
+    // Reset the context for potential next request if keep-alive
+    if (ctx.keepAlive) {
+        ctx.input_buffer.clear();
+        ctx.body.clear();
+        ctx.headers_complete = false;
+        ctx.content_length = 0;
+        ctx.body_received = 0;
+        ctx.headers.clear();
+        ctx.error_code = 0;
+        ctx.method.clear();
+        ctx.path.clear();
+        ctx.version.clear();
+        ctx.type = INITIAL;
+
+        // Modify epoll to watch for next request
+        modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+    }
+
+    return true;
 }
 
 bool Server::handleStaticUpload(Context& ctx)
 {
 	// Extract filename
-	std::regex filenameRegex(R"(Content-Dispositionaaa:.*filename=\"([^\"]+)\")");
+	std::regex filenameRegex(R"(Content-Disposition:.*filename=\"([^\"]+)\")");
 	std::smatch matches;
 
 	std::string filename;
@@ -392,10 +440,7 @@ bool Server::handleStaticUpload(Context& ctx)
 	size_t contentStart = ctx.req.received_body.find("\r\n\r\n");
 	if (contentStart == std::string::npos) {
 		Logger::errorLog("[Upload] ERROR: Failed to find content start boundary");
-		ctx.type = ERROR;
-		ctx.error_code = 422;
-		ctx.error_message = "Unprocessable Entity";
-		return false;
+		return updateErrorStatus(ctx, 422, "Unprocessable Entity");
 	}
 	contentStart += 4;
 
@@ -410,7 +455,11 @@ bool Server::handleStaticUpload(Context& ctx)
 	////Logger::file("[Upload] Extracted file content size: " + std::to_string(fileContent.size()));
 
 	// Build full path and save
-	std::string uploadPath = concatenatePath(ctx.location_path, ctx.location->upload_store);
+	std::string uploadPath = concatenatePath(ctx.location_path, ctx.location.upload_store);
+	if (!dirWritable(uploadPath))
+	{
+		return updateErrorStatus(ctx, 403, "Forbidden");
+	}
 	std::string filePath = uploadPath + "/" + filename;
 
 	std::ofstream outputFile(filePath, std::ios::binary);
@@ -500,9 +549,8 @@ void Server::buildStaticResponse(Context &ctx) {
 	// Öffne und lese die Datei
 	std::ifstream file(fullPath, std::ios::binary);
 	if (!file) {
-		ctx.type = ERROR;
-		ctx.error_code = 404;
-		ctx.error_message = "File not found";
+		Logger::file("buildStaticResponse");
+		updateErrorStatus(ctx, 404, "Not found");
 		return;
 	}
 
@@ -565,10 +613,7 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response) {
 	//Logger::file("buildAutoIndexResponse: " + ctx.doAutoIndex);
 	DIR* dir = opendir(ctx.doAutoIndex.c_str());
 	if (!dir) {
-		ctx.type = ERROR;
-		ctx.error_code = 500;
-		ctx.error_message = "Internal Server Error";
-		return false;
+		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	}
 
 	std::vector<DirEntry> entries;

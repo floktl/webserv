@@ -159,19 +159,19 @@ bool Server::isMethodAllowed(Context& ctx)
 	bool isAllowed = false;
 	std::string reason;
 
-	if (ctx.method == "GET" && ctx.location->allowGet) {
+	if (ctx.method == "GET" && ctx.location.allowGet) {
 		isAllowed = true;
 		reason = "GET method allowed for this location";
 	}
-	else if (ctx.method == "POST" && ctx.location->allowPost) {
+	else if (ctx.method == "POST" && ctx.location.allowPost) {
 		isAllowed = true;
 		reason = "POST method allowed for this location";
 	}
-	else if (ctx.method == "DELETE" && ctx.location->allowDelete) {
+	else if (ctx.method == "DELETE" && ctx.location.allowDelete) {
 		isAllowed = true;
 		reason = "DELETE method allowed for this location";
 	}
-	else if (ctx.method == "COOKIE" && ctx.location->allowCookie) {
+	else if (ctx.method == "COOKIE" && ctx.location.allowCookie) {
 		isAllowed = true;
 		reason = "COOKIE method allowed for this location";
 	}
@@ -192,28 +192,30 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
         std::string extension = path_to_check.substr(dot_pos + 1);
         //Logger::file("Checking default file extension (without dot): " + extension);
 
-        if (ctx.type != CGI || (extension == ctx.location->cgi_filetype && ctx.type == CGI))
+        if (ctx.type != CGI || (extension == ctx.location.cgi_filetype && ctx.type == CGI))
         {
             approvedIndex = path_to_check;
             //Logger::file("Default file approved: " + approvedIndex);
         }
         else
         {
-            //Logger::file("Extension validation failed - CGI type: [" + ctx.location->cgi_filetype + "], Extension: [" + extension + "]");
-            ctx.error_code = 500;
-            ctx.type = ERROR;
-            ctx.error_message = "Internal Server Error";
+            //Logger::file("Extension validation failed - CGI type: [" + ctx.location.cgi_filetype + "], Extension: [" + extension + "]");
+			updateErrorStatus(ctx, 500, "Internal Server Error");
             return "";
         }
     }
-    else if (ctx.type != CGI && ctx.method != "POST")
+    else if (ctx.type == CGI && ctx.method != "POST")
     {
-        ctx.error_code = 400;
-        ctx.type = ERROR;
-        ctx.error_message = "Bad Request: No file extension found";
+        updateErrorStatus(ctx, 400, "Bad Request: No file extension found");
         return "";
     }
-
+    else if (!ctx.location.return_url.empty()) {
+        return path_to_check;
+    }
+    else {
+        updateErrorStatus(ctx, 404, "Not found");
+        return "";
+    }
     return approvedIndex;
 }
 
@@ -228,32 +230,21 @@ void Server::parseAccessRights(Context& ctx)
 	if (ctx.index.empty()) {
 		ctx.index = "index.html";
 	}
-	if (ctx.location->default_file.empty()) {
-		ctx.location->default_file = ctx.index;
+	if (ctx.location.default_file.empty()) {
+		ctx.location.default_file = ctx.index;
 	}
-	//Logger::file("ctx.index: " + ctx.index);
-	//Logger::file("ctx.location->default_file: " + ctx.location->default_file);
-	ctx.access_flag = FILE_EXISTS;
 	if (!requestedPath.empty() && requestedPath.back() == '/') {
 		//Logger::file("apply default file config");
-		requestedPath = concatenatePath(requestedPath, ctx.location->default_file);
+		requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
 	}
+	if (ctx.location_inited && requestedPath == ctx.location.upload_store) {
+		if (dirWritable(requestedPath))
+ 			return;
+    }
 	requestedPath = approveExtention(ctx, requestedPath);
 	//Logger::file("After Requested Path: " + requestedPath);
 	if (ctx.type == ERROR)
 		return;
-	// File existence check
-	ctx.access_flag = FILE_EXISTS;
-	//checkAccessRights(ctx, rootAndLocationIndex);
-	//Logger::file("File existence check completed for: " + requestedPath);
-
-	// Read permission check
-	ctx.access_flag = FILE_READ;
-	//checkAccessRights(ctx, rootAndLocationIndex);
-	//Logger::file("Read permission check completed for: " + requestedPath);
-
-	// Execute permission check
-	ctx.access_flag = FILE_EXISTS;
 	checkAccessRights(ctx, requestedPath);
 	//Logger::file("Execute permission check completed for: " + requestedPath);
 	if (ctx.type == ERROR)
@@ -271,61 +262,83 @@ void Server::parseAccessRights(Context& ctx)
 	}
 }
 
-bool Server::checkAccessRights(Context &ctx, std::string path)
-{
-	//Logger::file("[INFO] Checking access rights for: " + path);
-	if (access(path.c_str(), ctx.access_flag))
-	{
-		if (ctx.location->autoindex == "on")
-		{
-			std::string dirPath = getDirectory(path) + '/';
-			//Logger::file("[INFO] Autoindex enabled, checking directory: " + dirPath);
-			if (access(dirPath.c_str(), F_OK))
-			{
-				ctx.error_code = 403;
-				ctx.type = ERROR;
-				ctx.error_message = "Forbidden";
-				//Logger::file("[ERROR] Autoindex forbidden for: " + dirPath);
-				return false;
-			}
-			ctx.doAutoIndex = dirPath;
-			ctx.type = STATIC;
-			//Logger::file("[INFO] Autoindexing directory: " + dirPath);
-			return false;
-		}
+bool Server::fileReadable(const std::string& path) {
+	struct stat st;
+	return (stat(path.c_str(), &st) == 0 && (st.st_mode & S_IRUSR));
+}
 
-		switch (errno)
-		{
-			case ENOENT:
-				ctx.error_message = "File does not exist";
-				ctx.error_code = 404;
-				break;
-			case EACCES:
-				ctx.error_message = "Permission denied";
-				ctx.error_code = 403;
-				break;
-			case EROFS:
-				ctx.error_message = "Read-only file system";
-				ctx.error_code = 500;
-				break;
-			case ENOTDIR:
-				ctx.error_message = "A component of the path is not a directory";
-				ctx.error_code = 500;
-				break;
-			default:
-				ctx.error_message = "Unknown error: " + std::to_string(errno);
-				ctx.error_code = 500;
-				break;
-		}
-		ctx.type = ERROR;
-		//Logger::file("[ERROR] Access denied for " + path + " Reason: " + ctx.error_message);
-		return false;
-	}
-	else
-	{
-		//Logger::file("[INFO] Access granted for: " + path);
-		return true;
-	}
+bool Server::fileExecutable(const std::string& path) {
+	struct stat st;
+	return (stat(path.c_str(), &st) == 0 && (st.st_mode & S_IXUSR));
+}
+
+bool Server::dirReadable(const std::string& path) {
+	struct stat st;
+	return (stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode) && (st.st_mode & S_IRUSR));
+}
+
+bool Server::dirWritable(const std::string& path) {
+	struct stat st;
+	return (stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode) && (st.st_mode & S_IWUSR));
+}
+
+bool Server::checkAccessRights(Context &ctx, std::string path) {
+    Logger::file("[INFO] Checking access rights for path: " + path);
+
+    // Grundlegende Existenzprüfung
+    struct stat path_stat;
+    if (stat(path.c_str(), &path_stat) != 0) {
+        Logger::file("[ERROR] Path not found: " + path);
+		Logger::file("checkAccessRights");
+        return updateErrorStatus(ctx, 404, "Not found");
+    }
+
+    // Verzeichnisbehandlung
+    if (S_ISDIR(path_stat.st_mode)) {
+        if (ctx.location_inited && ctx.location.autoindex == "on") {
+            std::string dirPath = getDirectory(path) + '/';
+            Logger::file("[INFO] Directory access with autoindex enabled: " + dirPath);
+
+            // Verzeichnisberechtigungen prüfen
+            if (!dirReadable(dirPath)) {
+                Logger::file("[ERROR] Directory access forbidden: " + dirPath);
+                return updateErrorStatus(ctx, 403, "Forbidden");
+            }
+
+            ctx.doAutoIndex = dirPath;
+            ctx.type = STATIC;
+            return true;
+        } else {
+            Logger::file("[ERROR] Directory listing forbidden (autoindex off): " + path);
+            return updateErrorStatus(ctx, 403, "Forbidden");
+        }
+    }
+
+    if (!fileReadable(path)) {
+        Logger::file("[ERROR] Read permission denied: " + path);
+        return updateErrorStatus(ctx, 403, "Forbidden");
+    }
+
+    if (ctx.type == CGI && !fileExecutable(path)) {
+        Logger::file("[ERROR] Execute permission denied for CGI: " + path);
+        return updateErrorStatus(ctx, 500, "CGI script not executable");
+    }
+
+    if (ctx.method == "POST") {
+        std::string uploadDir = getDirectory(path);
+        if (!dirWritable(uploadDir)) {
+            Logger::file("[ERROR] Write permission denied to directory: " + uploadDir);
+            return updateErrorStatus(ctx, 403, "Forbidden");
+        }
+    }
+
+    if (path.length() > 4096) {
+        Logger::file("[ERROR] Path exceeds maximum length: " + path);
+        return updateErrorStatus(ctx, 414, "URI Too Long");
+    }
+
+    Logger::file("[INFO] Access rights check passed for: " + path);
+    return true;
 }
 
 
@@ -345,9 +358,7 @@ void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 
 	if (!conf)
 	{
-		ctx.type = ERROR;
-		ctx.error_code = 500;
-		ctx.error_message = "Internal Server Error";
+		updateErrorStatus(ctx, 500, "Internal Server Error");
 		return;
 	}
 
@@ -355,7 +366,7 @@ void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 	// autoindex
 	// uploadstore
 
-	for (auto& loc : conf->locations)
+	for (auto loc : conf->locations)
 	{
 		if (matchLoc(loc, ctx.path))
 		{
@@ -366,12 +377,11 @@ void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 			ctx.errorPages = conf->errorPages;
 			ctx.client_max_body_size = conf->client_max_body_size;
 			ctx.timeout = conf->timeout;
-			ctx.location = &loc;
+			ctx.location = loc;
+			ctx.location_inited = true;
 			if (!isMethodAllowed(ctx))
 			{
-				ctx.type = ERROR;
-				ctx.error_code = 405;
-				ctx.error_message = "Method (" + ctx.method + ") not allowed";
+				updateErrorStatus(ctx, 405, "Method (" + ctx.method + ") not allowed");
 				return;
 			}
 			if (loc.cgi != "")
@@ -382,9 +392,6 @@ void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 			return;
 		}
 	}
-
-	ctx.type = ERROR;
-	ctx.error_code = 500;
-	ctx.error_message = "Internal Server Error";
+	updateErrorStatus(ctx, 500, "Internal Server Error");
 }
 
