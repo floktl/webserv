@@ -1,34 +1,61 @@
 #include "Server.hpp"
-void extractPort(Context& ctx, const std::string& header) {
-	size_t host_pos = header.find("Host: ");
-	if (host_pos != std::string::npos) {
-		size_t port_pos = header.find(":", host_pos + 6);
-		if (port_pos != std::string::npos) {
-			size_t end_pos = header.find("\r\n", port_pos);
-			if (end_pos != std::string::npos) {
-				std::string port_str = header.substr(port_pos + 1, end_pos - port_pos - 1);
-				ctx.port = std::stoi(port_str);
-			}
-		} else {
-			ctx.port = 80; // Default HTTP port
-		}
-	}
+int extractPort(const std::string& header) {
+
+    Logger::file("Starting port extraction from header");
+
+    size_t host_pos = header.find("Host: ");
+    if (host_pos != std::string::npos) {
+        Logger::file("Found Host header");
+
+        size_t port_pos = header.find(":", host_pos + 6);
+        if (port_pos != std::string::npos) {
+            size_t end_pos = header.find("\r\n", port_pos);
+            if (end_pos != std::string::npos) {
+                std::string port_str = header.substr(port_pos + 1, end_pos - port_pos - 1);
+                port_str = trim(port_str);
+                Logger::file("Extracted port string: '" + port_str + "'");
+
+                try {
+                    int port = std::stoi(port_str);
+                    // Valid port range check instead of isalnum
+                    if (port <= 0 || port > 65535) {
+                        Logger::red("Invalid port number: '" + port_str + "'");
+                        Logger::errorLog("Port number out of valid range (1-65535)");
+                        return -1;
+                    }
+                    Logger::file("Valid port found: " + std::to_string(port));
+                    return port;
+                } catch (const std::exception& e) {
+                    Logger::file("Failed to convert port string to integer: " + std::string(e.what()));
+                    return -1;
+                }
+            }
+        } else {
+            Logger::file("No port specified, using default port 80");
+            return 80;
+        }
+    }
+
+    Logger::file("No Host header found");
+    return -1;
 }
 
-void extractHostname(Context& ctx, const std::string& header) {
-	size_t host_pos = header.find("Host: ");
-	if (host_pos != std::string::npos) {
-		size_t start = host_pos + 6;
-		size_t end_pos = header.find("\r\n", start);
-		if (end_pos != std::string::npos) {
-			size_t colon_pos = header.find(":", start);
-			if (colon_pos != std::string::npos && colon_pos < end_pos) {
-				ctx.name = header.substr(start, colon_pos - start);
-			} else {
-				ctx.name = header.substr(start, end_pos - start);
-			}
-		}
-	}
+std::string extractHostname(const std::string& header) {
+    std::string hostname;
+    size_t host_pos = header.find("Host: ");
+    if (host_pos != std::string::npos) {
+        size_t start = host_pos + 6;
+        size_t end_pos = header.find("\r\n", start);
+        if (end_pos != std::string::npos) {
+            size_t colon_pos = header.find(":", start);
+            if (colon_pos != std::string::npos && colon_pos < end_pos) {
+                hostname = header.substr(start, colon_pos - start);
+            } else {
+                hostname = header.substr(start, end_pos - start);
+            }
+        }
+    }
+    return hostname; // Returns empty string if no Host header found
 }
 
 bool Server::handleNewConnection(int epoll_fd, int server_fd, std::vector<ServerBlock> &configs)
@@ -36,7 +63,8 @@ bool Server::handleNewConnection(int epoll_fd, int server_fd, std::vector<Server
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     Context ctx;
-    Context tmp_ctx;
+	ServerBlock tmp_conf;
+	int tmp_conf_isset = true;
 
     while (true)
     {
@@ -141,12 +169,33 @@ bool Server::handleNewConnection(int epoll_fd, int server_fd, std::vector<Server
 
 
 
-		Logger::file(tmp_ctx.input_buffer);
-		extractPort(tmp_ctx, tmp_ctx.input_buffer);
-		extractHostname(tmp_ctx, tmp_ctx.input_buffer);
-
         // Rest des Codes bleibt unverändert
         modEpoll(epoll_fd, client_fd, EPOLLIN | EPOLLET);
+
+		// Lese von tmp_fd statt von client_fd
+		char buffer[8192];
+		ssize_t bytes_read;
+		ctx.input_buffer.clear();
+
+		while ((bytes_read = read(client_fd, buffer, sizeof(buffer))) > 0)
+		{
+			ctx.input_buffer.append(buffer, bytes_read);
+			if (ctx.input_buffer.find("\r\n\r\n") != std::string::npos)
+			{
+				break;
+			}
+		}
+
+		// Schließe den temporären FD
+		close(client_fd);
+
+		if (bytes_read < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+		{
+			Logger::errorLog("Failed to read from tmp fd: " + std::string(strerror(errno)));
+			continue;
+		}
+		Logger::file(ctx.input_buffer);
+
         globalFDS.clFD_to_svFD_map[client_fd] = server_fd;
         ctx.server_fd = server_fd;
         ctx.client_fd = client_fd;
@@ -159,13 +208,31 @@ bool Server::handleNewConnection(int epoll_fd, int server_fd, std::vector<Server
         ctx.client_max_body_size = configs[client_fd].client_max_body_size;
         globalFDS.context_map[client_fd] = ctx;
 
-        Logger::file("temp port: " + std::to_string(tmp_ctx.port));
-        Logger::file("Servername: " + tmp_ctx.name);
-		if (tmp_ctx.name.empty() || (tmp_ctx.name != "localhost" && configs[server_fd].name != tmp_ctx.name))
+		int tmp_port = extractPort(ctx.input_buffer);
+        std::string tmp_name = extractHostname(ctx.input_buffer);
+
+		//Logger::file("Finding ServerBlock for fd: " + std::to_string(fd));
+		for (const auto &conf : configs) {
+			////Logger::file("Checking config with fd: " + std::to_string(conf.server_fd));
+			if (conf.server_fd == server_fd) {
+				tmp_conf_isset = true;
+				tmp_conf = conf;
+			}
+		}
+        Logger::file("temp port: " + std::to_string(tmp_port));
+        Logger::file("tempServername: " + tmp_name);
+		if(tmp_conf_isset)
 		{
-        Logger::errorLog("blaaaaaa Weidel: " + std::to_string(tmp_ctx.port));
-			Logger::errorLog("Servername: " + tmp_ctx.name);
-			return updateErrorStatus(ctx, 88, "Merz ");
+			Logger::file("Conf Port: " + std::to_string(tmp_conf.port));
+			Logger::file("Conf Servername: " + tmp_conf.name);
+			if ((tmp_conf.name != "localhost" && tmp_conf.name != tmp_name))
+			{
+       			 Logger::errorLog("blaaaaaa Weidel: " + tmp_conf.name);
+				Logger::errorLog("Servername: " + tmp_name);
+				return updateErrorStatus(ctx, 88, "Merz ");
+			}
+		} else {
+			return updateErrorStatus(ctx, 666, "Trump ");
 		}
         logRequestBodyMapFDs();
     }
@@ -289,156 +356,140 @@ void Server::parseChunkedBody(Context& ctx)
 
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
 {
-	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-	ssize_t bytes;
+    // Remove buffer reading since input_buffer is already populated
 
-	//Logger::errorLog("max body handleread() " + std::to_string(ctx.client_max_body_size));
+    Logger::file("handleRead() - type: " + requestTypeToString(ctx.type));
 
-	Logger::file("handleRead > hier nochmal pruefen.!!");
-	bytes = read(ctx.client_fd, buffer, sizeof(buffer));
-	if (bytes < 0)
-	{
-		Logger::errorLog("read fail, wait for enxt event;");
-		return true;
-	}
-	else if (bytes == 0)
-		return true;
+    // Update last activity time
+    ctx.content_length = 0;
+    ctx.last_activity = std::chrono::steady_clock::now();
 
+    if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE)
+    {
+        Logger::file("handleRead() - PARSING_COMPLETE reset  ");
+        ctx.input_buffer.clear();
+        ctx.headers.clear();
+        ctx.method.clear();
+        ctx.path.clear();
+        ctx.version.clear();
+        ctx.headers_complete = false;
+        ctx.content_length = 0;
+        ctx.error_code = 0;
+        ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
+        ctx.req.current_body_length = 0;
+        ctx.req.expected_body_length = 0;
+        ctx.req.received_body.clear();
+        ctx.req.chunked_state.processing = false;
+        ctx.req.is_upload_complete = false;
+        ctx.type = RequestType::INITIAL;
+    }
 
-	Logger::file("handleRead() - type: " + requestTypeToString(ctx.type));
-	Logger::file("handleRead() - after bytes  ");
-	// Update last activity time
-	ctx.content_length = 0;
-	ctx.last_activity = std::chrono::steady_clock::now();
+    // Handle based on current parsing phase
+    switch(ctx.req.parsing_phase) {
+        case RequestBody::PARSING_HEADER:
+            if (!ctx.headers_complete) {
+                if (!parseHeaders(ctx)) {
+                    return true;
+                }
+                Logger::file("handleRead() - parseHeaders  ");
+                auto headersit = ctx.headers.find("Content-Length");
+                if (headersit != ctx.headers.end())
+                {
+                    Logger::file("handleRead() -headersit  ");
+                    long long content_length = std::stoull(headersit->second);
+                    Logger::file("handleRead() - content_length " + std::to_string(content_length));
 
-	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE)
-	{
-					Logger::file("handleRead() - PARSING_COMPLETE reset  ");
-		ctx.input_buffer.clear();
-		ctx.headers.clear();
-		ctx.method.clear();
-		ctx.path.clear();
-		ctx.version.clear();
-		ctx.headers_complete = false;
-		ctx.content_length = 0;
-		ctx.error_code = 0;
-		ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
-		ctx.req.current_body_length = 0;
-		ctx.req.expected_body_length = 0;
-		ctx.req.received_body.clear();
-		ctx.req.chunked_state.processing = false;
-		ctx.req.is_upload_complete = false;
-		ctx.type = RequestType::INITIAL;
-	}
-	// Append new data to input buffer
-	ctx.input_buffer.append(buffer, bytes);
+                    getMaxBodySizeFromConfig(ctx, configs);
+                    Logger::file("clientmax: " + std::to_string(ctx.client_max_body_size));
+                    if (content_length > ctx.client_max_body_size)
+                    {
+                        Logger::file("handleRead() - Content length exceeds limit: " + std::to_string(content_length));
+                        Logger::errorLog("Max payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(content_length));
+                        return updateErrorStatus(ctx, 413, "Payload too large");
+                    }
+                }
+                auto it = ctx.headers.find("Transfer-Encoding");
+                if (it != ctx.headers.end() && it->second == "chunked")
+                {
+                    ctx.req.parsing_phase = RequestBody::PARSING_BODY;
+                    ctx.req.chunked_state.processing = true;
+                    if (!ctx.input_buffer.empty()) {
+                        parseChunkedBody(ctx);
+                    }
+                }
+                else if (ctx.content_length > 0 && ctx.headers_complete)
+                {
+                    if (ctx.content_length > ctx.client_max_body_size)
+                    {
+                        Logger::errorLog("MAx payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(ctx.content_length));
+                        return updateErrorStatus(ctx, 413, "Payload too large");
+                    }
+                    ctx.req.parsing_phase = RequestBody::PARSING_BODY;
+                    ctx.req.expected_body_length = ctx.content_length;
+                    ctx.req.current_body_length = 0;
 
-	// Handle based on current parsing phase
-	switch(ctx.req.parsing_phase) {
-		case RequestBody::PARSING_HEADER:
-			if (!ctx.headers_complete) {
-				if (!parseHeaders(ctx)) {
-					return true;
-				}
-					Logger::file("handleRead() - parseHeaders  ");
-			auto headersit = ctx.headers.find("Content-Length");
-			if (headersit != ctx.headers.end())
-			{
-					Logger::file("handleRead() -headersit  ");
-				long long content_length = std::stoull(headersit->second);
-					Logger::file("handleRead() - content_length " + std::to_string(content_length));
+                    // Process any remaining data in input buffer as body
+                    if (!ctx.input_buffer.empty()) {
+                        ctx.req.received_body += ctx.input_buffer;
+                        ctx.req.current_body_length += ctx.input_buffer.length();
+                        ctx.input_buffer.clear();
 
-				getMaxBodySizeFromConfig(ctx, configs);
-				Logger::file("clientmax: " + std::to_string(ctx.client_max_body_size));
-				if (content_length > ctx.client_max_body_size)
-				{
-					Logger::file("handleRead() - Content length exceeds limit: " + std::to_string(content_length));
-					Logger::errorLog("Max payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(content_length));
-					return updateErrorStatus(ctx, 413, "Payload too large");
-				}
-			}
-				auto it = ctx.headers.find("Transfer-Encoding");
-				if (it != ctx.headers.end() && it->second == "chunked")
-				{
-					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
-					ctx.req.chunked_state.processing = true;
-					if (!ctx.input_buffer.empty()) {
-						parseChunkedBody(ctx);
-					}
-				}
-				else if (ctx.content_length > 0 && ctx.headers_complete)
-				{
-					if (ctx.content_length > ctx.client_max_body_size)
-					{
-						Logger::errorLog("MAx payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(ctx.content_length));
-						return updateErrorStatus(ctx, 413, "Payload too large");
-					}
-					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
-					ctx.req.expected_body_length = ctx.content_length;
-					ctx.req.current_body_length = 0;
+                        // Check if we've received the complete body
+                        if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+                            ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+                            ctx.req.is_upload_complete = true;
+                        }
+                    }
+                } else {
+                    ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+                }
+            }
+            break;
 
-					// Process any remaining data in input buffer as body
-					if (!ctx.input_buffer.empty()) {
-						ctx.req.received_body += ctx.input_buffer;
-						ctx.req.current_body_length += ctx.input_buffer.length();
-						ctx.input_buffer.clear();
+        case RequestBody::PARSING_BODY:
+            if (ctx.req.chunked_state.processing) {
+                parseChunkedBody(ctx);
+            } else {
+                Logger::file("PARSING_BODY: content_length " + std::to_string(ctx.content_length));
+                Logger::file("PARSING_BODY: current_body_length " + std::to_string(ctx.req.current_body_length));
+                Logger::file("PARSING_BODY: client_max_body_size " + std::to_string(ctx.location.client_max_body_size));
+                // Standard body processing
+                ctx.req.received_body += ctx.input_buffer;
+                ctx.req.current_body_length += ctx.input_buffer.length();
+                ctx.input_buffer.clear();
 
-						// Check if we've received the complete body
-						if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
-							ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
-							ctx.req.is_upload_complete = true;
-						}
-					}
-				} else {
-					ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
-				}
-			}
-			break;
+                if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+                    ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+                    ctx.req.is_upload_complete = true;
 
-		case RequestBody::PARSING_BODY:
-			if (ctx.req.chunked_state.processing) {
-				parseChunkedBody(ctx);
-			} else {
-			Logger::file("PARSING_BODY: content_length " + std::to_string(ctx.content_length));
-			Logger::file("PARSING_BODY: current_body_length " + std::to_string(ctx.req.current_body_length));
-			Logger::file("PARSING_BODY: client_max_body_size " + std::to_string(ctx.location.client_max_body_size));
-				// Standard body processing
-				ctx.req.received_body += ctx.input_buffer;
-				ctx.req.current_body_length += ctx.input_buffer.length();
-				ctx.input_buffer.clear();
+                    // Trim excess data if any
+                    if (ctx.req.current_body_length > ctx.req.expected_body_length) {
+                        ctx.req.received_body = ctx.req.received_body.substr(
+                            0, ctx.req.expected_body_length);
+                        ctx.req.current_body_length = ctx.req.expected_body_length;
+                    }
+                }
+            }
+            break;
 
-				if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
-					ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
-					ctx.req.is_upload_complete = true;
+        case RequestBody::PARSING_COMPLETE:
+            break;
+    }
 
-					// Trim excess data if any
-					if (ctx.req.current_body_length > ctx.req.expected_body_length) {
-						ctx.req.received_body = ctx.req.received_body.substr(
-							0, ctx.req.expected_body_length);
-						ctx.req.current_body_length = ctx.req.expected_body_length;
-					}
-				}
-			}
-			break;
+    // Handle request completion
+    if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
+        logContext(ctx, "ich haue meines penis auf marvins glatze");
+        determineType(ctx, configs);
+        logContext(ctx, "ich haue meines penis auf marvins popo");
+        modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
+    } else if (ctx.error_code != 0)
+    {
+        // Still need more data, ensure we're watching for it
+        Logger::errorLog("epoll to in");
+        return false;
+    }
 
-		case RequestBody::PARSING_COMPLETE:
-			break;
-	}
-
-	// Handle request completion
-	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
-				logContext(ctx, "ich haue meines penis auf marvins glatze");
-		determineType(ctx, configs);
-		logContext(ctx, "ich haue meines penis auf marvins popo");
-		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
-	} else if (ctx.error_code != 0)
-	{
-		// Still need more data, ensure we're watching for it
-		Logger::errorLog("epoll to in");
-		return false;
-	}
-
-	return true;
+    return true;
 }
 
 bool Server::parseHeaders(Context& ctx)

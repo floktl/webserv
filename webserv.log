@@ -1,12 +1,88 @@
-[2025-02-01 11:30:26] Server Parsed size: 104857600
-[2025-02-01 11:30:26] Server Parsed size: 314572800
-[2025-02-01 11:30:26] conf porrrrrt: 9090
-[2025-02-01 11:30:27] conf.server_fd = socket(: 4
-[2025-02-01 11:30:27] conf porrrrrt: 1939
-[2025-02-01 11:30:27] conf.server_fd = socket(: 5
-[2025-02-01 11:30:27] conf porrrrrt: 8050
-[2025-02-01 11:30:27] conf.server_fd = socket(: 6
-[2025-02-01 11:30:27] conf porrrrrt: 8060
-[2025-02-01 11:30:27] conf.server_fd = socket(: 7
-[2025-02-01 11:30:27] conf porrrrrt: 80
-[2025-02-01 11:30:27] conf.server_fd = socket(: 8
+[2025-02-01 12:29:09] Server Parsed size: 104857600
+[2025-02-01 12:29:09] Server Parsed size: 314572800
+[2025-02-01 12:29:09] conf porrrrrt: 9090
+[2025-02-01 12:29:09] conf.server_fd = socket(: 4
+[2025-02-01 12:29:09] conf porrrrrt: 1939
+[2025-02-01 12:29:09] conf.server_fd = socket(: 5
+[2025-02-01 12:29:09] conf porrrrrt: 8050
+[2025-02-01 12:29:09] conf.server_fd = socket(: 6
+[2025-02-01 12:29:09] conf porrrrrt: 8060
+[2025-02-01 12:29:09] conf.server_fd = socket(: 7
+[2025-02-01 12:29:09] conf porrrrrt: 80
+[2025-02-01 12:29:09] conf.server_fd = socket(: 8
+[2025-02-01 12:29:10] 
+[2025-02-01 12:29:10] EPOLLIN
+[2025-02-01 12:29:10] dispatchEvent: Server fd identified: 6 events=1
+[2025-02-01 12:29:10] New client_fd: 9 accepted on server_fd: 6
+[2025-02-01 12:29:10] GET / HTTP/1.1
+Host: localhost:8050
+Connection: keep-alive
+Cache-Control: max-age=0
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+
+
+[2025-02-01 12:29:10] Starting port extraction from header
+[2025-02-01 12:29:10] Found Host header
+[2025-02-01 12:29:10] Extracted port string: '8050'
+[2025-02-01 12:29:10] Valid port found: 8050
+[2025-02-01 12:29:10] temp port: 8050
+[2025-02-01 12:29:10] tempServername: localhost
+[2025-02-01 12:29:10] Conf Port: 8050
+[2025-02-01 12:29:10] Conf Servername: localhost
+[2025-02-01 12:29:10] New client_fd: 9 accepted on server_fd: 6
+[2025-02-01 12:29:10] 
+[2025-02-01 12:29:10] Starting port extraction from header
+[2025-02-01 12:29:10] No Host header found
+[2025-02-01 12:29:10] temp port: -1
+[2025-02-01 12:29:10] tempServername: 
+[2025-02-01 12:29:10] Conf Port: 8050
+[2025-02-01 12:29:10] Conf Servername: localhost
+[2025-02-01 12:29:12] 
+[2025-02-01 12:29:12] EPOLLIN
+[2025-02-01 12:29:12] dispatchEvent: Server fd identified: 6 events=1
+[2025-02-01 12:29:12] New client_fd: 9 accepted on server_fd: 6
+[2025-02-01 12:29:12] 
+[2025-02-01 12:29:12] Starting port extraction from header
+[2025-02-01 12:29:12] No Host header found
+[2025-02-01 12:29:12] temp port: -1
+[2025-02-01 12:29:12] tempServername: 
+[2025-02-01 12:29:12] Conf Port: 8050
+[2025-02-01 12:29:12] Conf Servername: localhost
+[2025-02-01 12:29:12] New client_fd: 9 accepted on server_fd: 6
+[2025-02-01 12:29:12] GET / HTTP/1.1
+Host: localhost:8050
+Connection: keep-alive
+Cache-Control: max-age=0
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+
+
+[2025-02-01 12:29:12] Starting port extraction from header
+[2025-02-01 12:29:12] Found Host header
+[2025-02-01 12:29:12] Extracted port string: '8050'
+[2025-02-01 12:29:12] Valid port found: 8050
+[2025-02-01 12:29:12] temp port: 8050
+[2025-02-01 12:29:12] tempServername: localhost
+[2025-02-01 12:29:12] Conf Port: 8050
+[2025-02-01 12:29:12] Conf Servername: localhost

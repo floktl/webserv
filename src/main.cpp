@@ -211,7 +211,7 @@ int main(int argc, char **argv, char **envp)
 	{
 		std::string err_msg = "Error: " + std::string(e.what());
 		Logger::red() << err_msg;
-		return EXIT_FAILURE;
+		//return EXIT_FAILURE;
 	}
 
 	return EXIT_SUCCESS;
