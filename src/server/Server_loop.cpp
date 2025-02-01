@@ -112,8 +112,10 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 			logContext(ctx, "after handle read in epoll in");
 			if (status == false && ctx.error_code != 0)
 			{
+				Logger::file("WARUM BRUDAHHH");
 				return (errorsHandler(ctx));
 			}
+				Logger::file("WARUM SCHWAEASTAAAA");
 			//log_global_fds(globalFDS);
 			//logContext(ctx);
 		}
@@ -153,7 +155,7 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 	}
 
 	Logger::errorLog("Unknown fd: " + std::to_string(client_fd));
-	//delFromEpoll(epoll_fd, client_fd);
+	delFromEpoll(epoll_fd, client_fd);
 	//log_global_fds(globalFDS);
 	return true;
 }

@@ -1,0 +1,12 @@
+[2025-02-01 11:30:26] Server Parsed size: 104857600
+[2025-02-01 11:30:26] Server Parsed size: 314572800
+[2025-02-01 11:30:26] conf porrrrrt: 9090
+[2025-02-01 11:30:27] conf.server_fd = socket(: 4
+[2025-02-01 11:30:27] conf porrrrrt: 1939
+[2025-02-01 11:30:27] conf.server_fd = socket(: 5
+[2025-02-01 11:30:27] conf porrrrrt: 8050
+[2025-02-01 11:30:27] conf.server_fd = socket(: 6
+[2025-02-01 11:30:27] conf porrrrrt: 8060
+[2025-02-01 11:30:27] conf.server_fd = socket(: 7
+[2025-02-01 11:30:27] conf porrrrrt: 80
+[2025-02-01 11:30:27] conf.server_fd = socket(: 8

@@ -1,56 +1,175 @@
 #include "Server.hpp"
+void extractPort(Context& ctx, const std::string& header) {
+	size_t host_pos = header.find("Host: ");
+	if (host_pos != std::string::npos) {
+		size_t port_pos = header.find(":", host_pos + 6);
+		if (port_pos != std::string::npos) {
+			size_t end_pos = header.find("\r\n", port_pos);
+			if (end_pos != std::string::npos) {
+				std::string port_str = header.substr(port_pos + 1, end_pos - port_pos - 1);
+				ctx.port = std::stoi(port_str);
+			}
+		} else {
+			ctx.port = 80; // Default HTTP port
+		}
+	}
+}
+
+void extractHostname(Context& ctx, const std::string& header) {
+	size_t host_pos = header.find("Host: ");
+	if (host_pos != std::string::npos) {
+		size_t start = host_pos + 6;
+		size_t end_pos = header.find("\r\n", start);
+		if (end_pos != std::string::npos) {
+			size_t colon_pos = header.find(":", start);
+			if (colon_pos != std::string::npos && colon_pos < end_pos) {
+				ctx.name = header.substr(start, colon_pos - start);
+			} else {
+				ctx.name = header.substr(start, end_pos - start);
+			}
+		}
+	}
+}
 
 bool Server::handleNewConnection(int epoll_fd, int server_fd, std::vector<ServerBlock> &configs)
 {
-	struct sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
-	Context ctx;
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    Context ctx;
+    Context tmp_ctx;
 
-	while (true)
-	{
-		int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
-		if (client_fd <= 0)
+    while (true)
+    {
+        int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+        if (client_fd <= 0)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                break;
+            }
+            else
+            {
+                Logger::errorLog("Failed to accept connection: " + std::string(strerror(errno)) + " Server_fd: " +  std::to_string(server_fd));
+                return false;
+            }
+        }
+
+        Logger::file("New client_fd: " + std::to_string(client_fd) + " accepted on server_fd: " + std::to_string(server_fd));
+
+        if (setNonBlocking(client_fd) < 0)
+        {
+            Logger::errorLog("Failed to set non-blocking mode for client_fd: " + std::to_string(client_fd));
+            close(client_fd);
+            client_fd = -1;
+            continue;
+        }
+
+// VARIANTE: dup (tot)
+        // // Erstelle eine Kopie des File Descriptors für tmp_ctx
+        // int tmp_fd = dup(client_fd);
+        // if (tmp_fd < 0)
+        // {
+        //     Logger::errorLog("Failed to duplicate fd: " + std::string(strerror(errno)));
+        //     continue;
+        // }
+
+        // // Lese von tmp_fd statt von client_fd
+        // char buffer[8192];
+        // ssize_t bytes_read;
+        // tmp_ctx.input_buffer.clear();
+
+        // while ((bytes_read = read(tmp_fd, buffer, sizeof(buffer))) > 0)
+        // {
+        //     tmp_ctx.input_buffer.append(buffer, bytes_read);
+        //     if (tmp_ctx.input_buffer.find("\r\n\r\n") != std::string::npos)
+        //     {
+        //         break;
+        //     }
+        // }
+
+        // // Schließe den temporären FD
+        // close(tmp_fd);
+
+        // if (bytes_read < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+        // {
+        //     Logger::errorLog("Failed to read from tmp fd: " + std::string(strerror(errno)));
+        //     continue;
+        // }
+
+
+
+
+
+
+
+// VARIANTE: recv Looop
+// char buffer[8192];
+// ssize_t bytes_read;
+// tmp_ctx.input_buffer.clear();
+
+// // Erst mit MSG_PEEK lesen - liest die Daten ohne sie zu entfernen
+// while (true) {
+//     bytes_read = recv(client_fd, buffer, sizeof(buffer), MSG_PEEK);
+//     if (bytes_read <= 0) break;
+
+//     tmp_ctx.input_buffer.append(buffer, bytes_read);
+
+//     if (tmp_ctx.input_buffer.find("\r\n\r\n") != std::string::npos) {
+//         break;
+//     }
+// }
+
+
+
+// VARIANTE: socketname connect
+// int peek_fd = socket(AF_INET, SOCK_STREAM, 0);
+// if (peek_fd != -1) {
+//     // Kopiere die Adresse vom client_fd
+//     struct sockaddr_in addr;
+//     socklen_t len = sizeof(addr);
+//     if (getsockname(client_fd, (struct sockaddr*)&addr, &len) == 0) {
+//         if (connect(peek_fd, (struct sockaddr*)&addr, len) == 0) {
+//             char buffer[8192];
+//             ssize_t bytes_read = recv(peek_fd, buffer, sizeof(buffer), 0);
+//             if (bytes_read > 0) {
+//                 tmp_ctx.input_buffer.append(buffer, bytes_read);
+//             }
+//         }
+//     }
+//     close(peek_fd);
+// }
+
+
+
+		Logger::file(tmp_ctx.input_buffer);
+		extractPort(tmp_ctx, tmp_ctx.input_buffer);
+		extractHostname(tmp_ctx, tmp_ctx.input_buffer);
+
+        // Rest des Codes bleibt unverändert
+        modEpoll(epoll_fd, client_fd, EPOLLIN | EPOLLET);
+        globalFDS.clFD_to_svFD_map[client_fd] = server_fd;
+        ctx.server_fd = server_fd;
+        ctx.client_fd = client_fd;
+        ctx.epoll_fd = epoll_fd;
+        ctx.type = RequestType::INITIAL;
+        ctx.last_activity = std::chrono::steady_clock::now();
+        ctx.doAutoIndex = "";
+        ctx.keepAlive = true;
+        ctx.error_code = 0;
+        ctx.client_max_body_size = configs[client_fd].client_max_body_size;
+        globalFDS.context_map[client_fd] = ctx;
+
+        Logger::file("temp port: " + std::to_string(tmp_ctx.port));
+        Logger::file("Servername: " + tmp_ctx.name);
+		if (tmp_ctx.name.empty() || (tmp_ctx.name != "localhost" && configs[server_fd].name != tmp_ctx.name))
 		{
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-			{
-				break;
-			}
-			else
-			{
-				Logger::errorLog("Failed to accept connection: " + std::string(strerror(errno)) + " Server_fd: " +  std::to_string(server_fd));
-				return false;
-			}
+        Logger::errorLog("blaaaaaa Weidel: " + std::to_string(tmp_ctx.port));
+			Logger::errorLog("Servername: " + tmp_ctx.name);
+			return updateErrorStatus(ctx, 88, "Merz ");
 		}
-
-		Logger::file("New client_fd: " + std::to_string(client_fd) + " accepted on server_fd: " + std::to_string(server_fd));
-
-		if (setNonBlocking(client_fd) < 0)
-		{
-			Logger::errorLog("Failed to set non-blocking mode for client_fd: " + std::to_string(client_fd));
-			close(client_fd);
-			client_fd = -1;
-			continue;
-		}
-		modEpoll(epoll_fd, client_fd, EPOLLIN | EPOLLET);
-		globalFDS.clFD_to_svFD_map[client_fd] = server_fd;
-		ctx.server_fd = server_fd;
-		ctx.client_fd = client_fd;
-		ctx.epoll_fd = epoll_fd;
-		ctx.type = RequestType::INITIAL;
-		ctx.last_activity = std::chrono::steady_clock::now();
-		ctx.doAutoIndex = "";
-		ctx.keepAlive = true;
-		ctx.error_code = 0;
-		ctx.client_max_body_size = configs[client_fd].client_max_body_size;
-		globalFDS.context_map[client_fd] = ctx;
-		Logger::file("Bitte noch einen ordnetlichen Log vorher damit wir wissen wann das passiert dingesnd dahineter");
-		log_global_fds(globalFDS);
-
-		logRequestBodyMapFDs();
-		//logContext(ctx, "New Connection");
-	}
-	//logContext(ctx, "Exit New Connection");
-	return true;
+        logRequestBodyMapFDs();
+    }
+    return true;
 }
 
 bool Server::handleWrite(Context& ctx)
