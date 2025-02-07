@@ -41,8 +41,8 @@ bool Server::handleNewConnection(int epoll_fd, int server_fd, std::vector<Server
 		ctx.doAutoIndex = "";
 		ctx.keepAlive = true;
 		ctx.error_code = 0;
-		ctx.client_max_body_size = configs[client_fd].client_max_body_size;
 		globalFDS.context_map[client_fd] = ctx;
+		getMaxBodySizeFromConfig(ctx, configs);
 		Logger::file("Bitte noch einen ordnetlichen Log vorher damit wir wissen wann das passiert dingesnd dahineter");
 		log_global_fds(globalFDS);
 
@@ -157,11 +157,14 @@ void Server::parseChunkedBody(Context& ctx)
 			Logger::file("PARSING_BODY CHUNKED: current_body_length " + std::to_string(ctx.req.current_body_length));
 			Logger::file("PARSING_BODY CHUNKED: client_max_body_size " + std::to_string(ctx.location.client_max_body_size));
 		// Check for chunk end
+			Logger::file("PARSING_BODY CHUNKED: ctx.req.current_body_length" + std::to_string(ctx.req.current_body_length));
+			Logger::file("PARSING_BODY CHUNKED: ctx.req.expected_body_length" + std::to_string(ctx.req.expected_body_length));
 		if (ctx.req.current_body_length == ctx.req.expected_body_length) {
 			if (ctx.input_buffer.size() >= 2 && ctx.input_buffer.substr(0, 2) == "\r\n") {
 				ctx.input_buffer.erase(0, 2);
 				ctx.req.chunked_state.processing = false;
 			} else {
+			Logger::file("Need more data");
 				return; // Need more data
 			}
 		}
@@ -338,6 +341,7 @@ void Server::parseChunkedBody(Context& ctx)
 
 
 bool Server::resetContext(Context& ctx) {
+	Logger::file("resetContext");
 	ctx.input_buffer.clear();
 	ctx.headers.clear();
 	ctx.method.clear();
@@ -357,11 +361,11 @@ bool Server::resetContext(Context& ctx) {
 }
 
 bool Server::handleContentLength(Context& ctx, const std::vector<ServerBlock>& configs) {
+	Logger::file("handleContentLength");
 	auto headersit = ctx.headers.find("Content-Length");
 	if (headersit != ctx.headers.end()) {
 		long long content_length = std::stoull(headersit->second);
 		getMaxBodySizeFromConfig(ctx, configs);
-
 		if (content_length > ctx.client_max_body_size) {
 			Logger::file("handleRead() - Content length exceeds limit: " + std::to_string(content_length));
 			Logger::errorLog("Max payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(content_length));
@@ -372,6 +376,7 @@ bool Server::handleContentLength(Context& ctx, const std::vector<ServerBlock>& c
 }
 
 bool Server::handleTransferEncoding(Context& ctx) {
+	Logger::file("handleTransferEncoding");
 	auto it = ctx.headers.find("Transfer-Encoding");
 	if (it != ctx.headers.end() && it->second == "chunked") {
 		ctx.req.parsing_phase = RequestBody::PARSING_BODY;
@@ -385,6 +390,7 @@ bool Server::handleTransferEncoding(Context& ctx) {
 }
 
 bool Server::handleStandardBody(Context& ctx) {
+	Logger::file("handleStandardBody");
 	if (ctx.content_length > 0 && ctx.headers_complete) {
 		if (ctx.content_length > ctx.client_max_body_size) {
 			logContext(ctx, "Max payghvjgjghjload");
@@ -414,11 +420,13 @@ bool Server::handleStandardBody(Context& ctx) {
 }
 
 bool Server::processParsingBody(Context& ctx) {
+	Logger::file("processParsingBody");
 	if (ctx.req.chunked_state.processing) {
 		parseChunkedBody(ctx);
 	} else {
 		Logger::file("PARSING_BODY: content_length " + std::to_string(ctx.content_length));
 		Logger::file("PARSING_BODY: current_body_length " + std::to_string(ctx.req.current_body_length));
+		Logger::file("PARSING_BODY: client_max_body_size " + std::to_string(ctx.client_max_body_size));
 		Logger::file("PARSING_BODY: client_max_body_size " + std::to_string(ctx.location.client_max_body_size));
 
 		ctx.req.received_body += ctx.input_buffer;
@@ -439,10 +447,12 @@ bool Server::processParsingBody(Context& ctx) {
 }
 
 bool Server::handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs) {
+	Logger::file("handleParsingPhase");
 	switch(ctx.req.parsing_phase) {
 		case RequestBody::PARSING_HEADER:
+			Logger::file("in PARSING_HEADER");
 			if (!ctx.headers_complete) {
-				if (!parseHeaders(ctx)) {
+				if (!parseHeaders(ctx, configs)) {
 					return true;
 				}
 				if (!handleContentLength(ctx, configs)) return false;
@@ -453,15 +463,18 @@ bool Server::handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& co
 			break;
 
 		case RequestBody::PARSING_BODY:
+			Logger::file("in PARSING_BODY");
 			return processParsingBody(ctx);
 
 		case RequestBody::PARSING_COMPLETE:
+			Logger::file("in PARSING_COMPLETE");
 			break;
 	}
 	return true;
 }
 
 bool Server::finalizeRequest(Context& ctx, const std::vector<ServerBlock>& configs) {
+	Logger::file("finalizeRequest");
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
 		logContext(ctx, "ich haue meines penis auf marvins glatze");
 		determineType(ctx, configs);
@@ -475,36 +488,41 @@ bool Server::finalizeRequest(Context& ctx, const std::vector<ServerBlock>& confi
 }
 
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
-	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-	ssize_t bytes;
+    char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+    ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
 
-	Logger::file("handleRead > hier nochmal pruefen.!!");
-	bytes = read(ctx.client_fd, buffer, sizeof(buffer));
-	if (bytes < 0) {
-		Logger::errorLog("read fail, wait for enxt event;");
-		return true;
-	} else if (bytes == 0) {
-		return true;
-	}
+    if (bytes < 0) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            Logger::errorLog("Read error: " + std::string(strerror(errno)));
+            return false;
+        }
+        return true;  // Wait for next EPOLLIN event
+    }
 
-	Logger::file("handleRead() - type: " + requestTypeToString(ctx.type));
-	Logger::file("handleRead() - after bytes  ");
+    if (bytes == 0) {
+        return true;  // Connection closed normally
+    }
 
-	ctx.content_length = 0;
-	ctx.last_activity = std::chrono::steady_clock::now();
+    ctx.last_activity = std::chrono::steady_clock::now();
 
-	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
-		Logger::file("handleRead() - PARSING_COMPLETE reset  ");
-		resetContext(ctx);
-	}
+    if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
+        resetContext(ctx);
+    }
 
-	ctx.input_buffer.append(buffer, bytes);
+    ctx.input_buffer.append(buffer, bytes);
 
-	if (!handleParsingPhase(ctx, configs)) {
-		return false;
-	}
+    if (!handleParsingPhase(ctx, configs)) {
+        return false;
+    }
 
-	return finalizeRequest(ctx, configs);
+    // Stay in EPOLLIN until we get all the data
+    if (ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
+        ctx.req.current_body_length < ctx.req.expected_body_length) {
+        modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+        return true;
+    }
+
+    return finalizeRequest(ctx, configs);
 }
 
 
@@ -519,12 +537,72 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
 
 
 
+	int extractPort(const std::string& header) {
+	Logger::file("Starting port extraction from header");
+	size_t host_pos = header.find("Host: ");
+	if (host_pos != std::string::npos) {
+		Logger::file("Found Host header");
+		size_t port_pos = header.find(":", host_pos + 6);
+		if (port_pos != std::string::npos) {
+		size_t end_pos = header.find("\r\n", port_pos);
+		if (end_pos != std::string::npos) {
+			std::string port_str = header.substr(port_pos + 1, end_pos - port_pos - 1);
+			port_str = trim(port_str);
+			Logger::file("Extracted port string: '" + port_str + "'");
+			try {
+			int port = std::stoi(port_str);
+			// Valid port range check instead of isalnum
+			if (port <= 0 || port > 65535) {
+				Logger::red("Invalid port number: '" + port_str + "'");
+				Logger::errorLog("Port number out of valid range (1-65535)");
+				return -1;
+			}
+			Logger::file("Valid port found: " + std::to_string(port));
+			return port;
+			} catch (const std::exception& e) {
+			Logger::file("Failed to convert port string to integer: " + std::string(e.what()));
+			return -1;
+			}
+		}
+		} else {
+		Logger::file("No port specified, using default port 80");
+		return 80;
+		}
+	}
+	Logger::file("No Host header found");
+	return -1;
+	}
+	std::string extractHostname(const std::string& header) {
+	std::string hostname;
+	size_t host_pos = header.find("Host: ");
+	if (host_pos != std::string::npos) {
+		size_t start = host_pos + 6;
+		size_t end_pos = header.find("\r\n", start);
+		if (end_pos != std::string::npos) {
+		size_t colon_pos = header.find(":", start);
+		if (colon_pos != std::string::npos && colon_pos < end_pos) {
+			hostname = header.substr(start, colon_pos - start);
+		} else {
+			hostname = header.substr(start, end_pos - start);
+		}
+		}
+	}
+	return hostname; // Returns empty string if no Host header found
+	}
 
+void Server::parseNewCookie(Context& ctx, std::string value)
+{
+	Logger::errorLog("parseNewCookie: " + value);
+    ctx.setCookie = value;
+}
 
+void Server::parseCookies(Context& ctx, std::string value)
+{
+	Logger::errorLog("parseCookies: " + value);
+	ctx.cookies = value;
+}
 
-
-
-bool Server::parseHeaders(Context& ctx)
+bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 {
     size_t header_end = ctx.input_buffer.find("\r\n\r\n");
     if (header_end == std::string::npos) {
@@ -567,7 +645,42 @@ bool Server::parseHeaders(Context& ctx)
                     return false;
                 }
             }
+            ctx.setCookie = "";
+            ctx.cookies.clear();
+            if (key == "Set-Cookie") {
+                parseNewCookie(ctx, value);
+            }
+            if (key == "Cookie") {
+                parseCookies(ctx, value);
+            }
         }
+    }
+
+    std::string requested_host = extractHostname(ctx.input_buffer);
+    int requested_port = extractPort(ctx.input_buffer);
+    Logger::file("\n" + ctx.input_buffer);
+    Logger::file("Parsed request - Host: " + requested_host + " Port: " + std::to_string(requested_port));
+    bool server_match_found = false;
+    for (const auto &config : configs)
+    {
+		if (((config.name == requested_host && config.port == requested_port) ||
+			(config.name == "localhost" && (requested_host == "localhost" || requested_host == "127.0.0.1")) ||
+			(requested_host.empty() && config.port == requested_port)))
+		{
+			Logger::file("configname: " + config.name + " requested_host: " + requested_host);
+			server_match_found = true;
+			break;
+		}
+    }
+    if (server_match_found)
+    {
+        Logger::file("Connection accepted - Server: " + requested_host + " Port: " + std::to_string(requested_port));
+    }
+    else
+    {
+		Logger::errorLog("No matching server block found - Closing connection");
+		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+        return false;
     }
 
     ctx.input_buffer.erase(0, header_end + 4);

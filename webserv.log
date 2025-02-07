@@ -1,66 +1,101 @@
-[2025-02-07 16:12:15] Server Parsed size: 209715200
-[2025-02-07 16:12:15] Server Parsed size: 314572800
-[2025-02-07 16:12:15] conf porrrrrt: 8080
-[2025-02-07 16:12:15] conf.server_fd = socket(: 4
-[2025-02-07 16:12:15] conf porrrrrt: 9090
-[2025-02-07 16:12:15] conf.server_fd = socket(: 5
-[2025-02-07 16:12:15] conf porrrrrt: 1939
-[2025-02-07 16:12:15] conf.server_fd = socket(: 6
-[2025-02-07 16:12:15] conf porrrrrt: 8050
-[2025-02-07 16:12:15] conf.server_fd = socket(: 7
-[2025-02-07 16:12:15] conf porrrrrt: 8060
-[2025-02-07 16:12:15] conf.server_fd = socket(: 8
-[2025-02-07 16:12:15] conf porrrrrt: 80
-[2025-02-07 16:12:15] conf.server_fd = socket(: 9
-[2025-02-07 16:12:21] 
-[2025-02-07 16:12:21] EPOLLIN
-[2025-02-07 16:12:21] dispatchEvent: Server fd identified: 7 events=1
-[2025-02-07 16:12:21] New client_fd: 10 accepted on server_fd: 7
-[2025-02-07 16:12:21] Bitte noch einen ordnetlichen Log vorher damit wir wissen wann das passiert dingesnd dahineter
-[2025-02-07 16:12:21] GlobalFDS clFD_to_svFD_map:
-[2025-02-07 16:12:21] epoll_fd: 3
-[2025-02-07 16:12:21] [
-[2025-02-07 16:12:21]    client_fd: 10 -> server_fd: 7
-[2025-02-07 16:12:21] ]
+[2025-02-07 18:13:44] Server Parsed size: 209715200
+[2025-02-07 18:13:44] Server Parsed size: 314572800
+[2025-02-07 18:13:44] conf porrrrrt: 8080
+[2025-02-07 18:13:44] conf.server_fd = socket(: 4
+[2025-02-07 18:13:44] conf porrrrrt: 9090
+[2025-02-07 18:13:44] conf.server_fd = socket(: 5
+[2025-02-07 18:13:44] conf porrrrrt: 1939
+[2025-02-07 18:13:44] conf.server_fd = socket(: 6
+[2025-02-07 18:13:44] conf porrrrrt: 8050
+[2025-02-07 18:13:44] conf.server_fd = socket(: 7
+[2025-02-07 18:13:44] conf porrrrrt: 8060
+[2025-02-07 18:13:44] conf.server_fd = socket(: 8
+[2025-02-07 18:13:44] conf porrrrrt: 80
+[2025-02-07 18:13:44] conf.server_fd = socket(: 9
+[2025-02-07 18:13:51] 
+[2025-02-07 18:13:51] EPOLLIN
+[2025-02-07 18:13:51] dispatchEvent: Server fd identified: 7 events=1
+[2025-02-07 18:13:51] New client_fd: 10 accepted on server_fd: 7
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: 
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: loop 
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: loop 
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: loop 
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: loop 
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: fit 
+[2025-02-07 18:13:51] max_size found: 209715200
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: ctx.client_max_body_size 209715200
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: ctx.client_max_body_size location 209715200
+[2025-02-07 18:13:51] Bitte noch einen ordnetlichen Log vorher damit wir wissen wann das passiert dingesnd dahineter
+[2025-02-07 18:13:51] GlobalFDS clFD_to_svFD_map:
+[2025-02-07 18:13:51] epoll_fd: 3
+[2025-02-07 18:13:51] [
+[2025-02-07 18:13:51]    client_fd: 10 -> server_fd: 7
+[2025-02-07 18:13:51] ]
 
-[2025-02-07 16:12:21] New client_fd: 11 accepted on server_fd: 7
-[2025-02-07 16:12:21] Bitte noch einen ordnetlichen Log vorher damit wir wissen wann das passiert dingesnd dahineter
-[2025-02-07 16:12:21] GlobalFDS clFD_to_svFD_map:
-[2025-02-07 16:12:21] epoll_fd: 3
-[2025-02-07 16:12:21] [
-[2025-02-07 16:12:21]    client_fd: 10 -> server_fd: 7
-[2025-02-07 16:12:21]    client_fd: 11 -> server_fd: 7
-[2025-02-07 16:12:21] ]
+[2025-02-07 18:13:51] 
+[2025-02-07 18:13:51] EPOLLIN
+[2025-02-07 18:13:51] handleAcceptedConnection client fd: 10 events=1
+[2025-02-07 18:13:51] handleParsingPhase
+[2025-02-07 18:13:51] in PARSING_HEADER
+[2025-02-07 18:13:51] Starting port extraction from header
+[2025-02-07 18:13:51] Found Host header
+[2025-02-07 18:13:51] Extracted port string: '8050'
+[2025-02-07 18:13:51] Valid port found: 8050
+[2025-02-07 18:13:51] 
+POST /cookie HTTP/1.1
+Host: localhost:8050
+Connection: keep-alive
+Content-Length: 41
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+Content-Type: application/json
+sec-ch-ua-mobile: ?0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua-platform: "macOS"
+Accept: */*
+Origin: http://localhost:8050
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: http://localhost:8050/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
 
-[2025-02-07 16:12:21] 
-[2025-02-07 16:12:21] EPOLLIN
-[2025-02-07 16:12:21] handleAcceptedConnection client fd: 10 events=1
-[2025-02-07 16:12:21] handleRead > hier nochmal pruefen.!!
-[2025-02-07 16:12:21] handleRead() - type: INITIAL
-[2025-02-07 16:12:21] handleRead() - after bytes  
-[2025-02-07 16:12:21] max_size found: 209715200
-[2025-02-07 16:12:21] Context [after handle read in epoll in]:
+{"name":"sfdsf","value":"sdfdsfdsfdsfds"}
+[2025-02-07 18:13:51] Parsed request - Host: localhost Port: 8050
+[2025-02-07 18:13:51] configname: localhost requested_host: localhost
+[2025-02-07 18:13:51] Connection accepted - Server: localhost Port: 8050
+[2025-02-07 18:13:51] handleContentLength
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: 
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: loop 
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: loop 
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: loop 
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: loop 
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: fit 
+[2025-02-07 18:13:51] max_size found: 209715200
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: ctx.client_max_body_size 209715200
+[2025-02-07 18:13:51] getMaxBodySizeFromConfig: ctx.client_max_body_size location 209715200
+[2025-02-07 18:13:51] handleTransferEncoding
+[2025-02-07 18:13:51] handleStandardBody
+[2025-02-07 18:13:51] finalizeRequest
+[2025-02-07 18:13:51] Context [ich haue meines penis auf marvins glatze]:
 FDs: epoll=3 server=7 client=10
 Type: INITIAL
 Method: POST
-Path: /upload
+Path: /cookie
 Version: HTTP/1.1
 Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept: */*
 Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
 Connection: keep-alive
-Content-Length: 104857796
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundarysfBJaACZBxjhC7V1
+Content-Length: 41
+Content-Type: application/json
 Host: localhost:8050
 Origin: http://localhost:8050
 Referer: http://localhost:8050/
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
 Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
 sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
 sec-ch-ua-mobile: ?0
@@ -69,38 +104,26 @@ Body: [empty]
 Location Path: [empty]
 Requested Path: [empty]
 Location: [empty]
-Last Activity: 15133 seconds since epoch
-[2025-02-07 16:12:21] 
-[2025-02-07 16:12:21] EPOLLIN
-[2025-02-07 16:12:21] handleAcceptedConnection client fd: 10 events=1
-[2025-02-07 16:12:21] handleRead > hier nochmal pruefen.!!
-[2025-02-07 16:12:21] handleRead() - type: INITIAL
-[2025-02-07 16:12:21] handleRead() - after bytes  
-[2025-02-07 16:12:21] PARSING_BODY: content_length 0
-[2025-02-07 16:12:21] PARSING_BODY: current_body_length 7309
-[2025-02-07 16:12:21] PARSING_BODY: client_max_body_size -1
-[2025-02-07 16:12:21] Context [after handle read in epoll in]:
+Last Activity: 5288 seconds since epoch
+[2025-02-07 18:13:51] Context []:
 FDs: epoll=3 server=7 client=10
 Type: INITIAL
 Method: POST
-Path: /upload
+Path: /cookie
 Version: HTTP/1.1
 Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept: */*
 Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
 Connection: keep-alive
-Content-Length: 104857796
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundarysfBJaACZBxjhC7V1
+Content-Length: 41
+Content-Type: application/json
 Host: localhost:8050
 Origin: http://localhost:8050
 Referer: http://localhost:8050/
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
 Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
 sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
 sec-ch-ua-mobile: ?0
@@ -109,4 +132,126 @@ Body: [empty]
 Location Path: [empty]
 Requested Path: [empty]
 Location: [empty]
-Last Activity: 15133 seconds since epoch
+Last Activity: 5288 seconds since epoch
+[2025-02-07 18:13:51] Context [lgbtqv+marvin == bi marvin ? true, false : return true]:
+FDs: epoll=3 server=7 client=10
+Type: INITIAL
+Method: POST
+Path: /cookie
+Version: HTTP/1.1
+Headers:
+Accept: */*
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Connection: keep-alive
+Content-Length: 41
+Content-Type: application/json
+Host: localhost:8050
+Origin: http://localhost:8050
+Referer: http://localhost:8050/
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: [empty]
+Last Activity: 5288 seconds since epoch
+[2025-02-07 18:13:51] Context []:
+FDs: epoll=3 server=7 client=10
+Type: INITIAL
+Method: POST
+Path: /cookie
+Version: HTTP/1.1
+Headers:
+Accept: */*
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Connection: keep-alive
+Content-Length: 41
+Content-Type: application/json
+Host: localhost:8050
+Origin: http://localhost:8050
+Referer: http://localhost:8050/
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: Defined
+Last Activity: 5288 seconds since epoch
+[2025-02-07 18:13:51] GET POST DELETE
+[2025-02-07 18:13:51] 1
+[2025-02-07 18:13:51] Context [ich haue meines penis auf marvins popo]:
+FDs: epoll=3 server=7 client=10
+Type: ERROR
+Method: POST
+Path: /cookie
+Version: HTTP/1.1
+Headers:
+Accept: */*
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Connection: keep-alive
+Content-Length: 41
+Content-Type: application/json
+Host: localhost:8050
+Origin: http://localhost:8050
+Referer: http://localhost:8050/
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: Defined
+Last Activity: 5288 seconds since epoch
+[2025-02-07 18:13:51] Context [after handle read in epoll in]:
+FDs: epoll=3 server=7 client=10
+Type: ERROR
+Method: POST
+Path: /cookie
+Version: HTTP/1.1
+Headers:
+Accept: */*
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Connection: keep-alive
+Content-Length: 41
+Content-Type: application/json
+Host: localhost:8050
+Origin: http://localhost:8050
+Referer: http://localhost:8050/
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: Defined
+Last Activity: 5288 seconds since epoch
+[2025-02-07 18:13:51] 
+[2025-02-07 18:13:51] EPOLLOUT
+[2025-02-07 18:13:51] handleAcceptedConnection client fd: 10 events=4
+[2025-02-07 18:13:51] entering handleWrite()
+[2025-02-07 18:13:51] 8===D  [ERROR] ErrorHandler: Errorcode: 404 Not found
+[2025-02-07 18:13:51] sendwrapper()
+[2025-02-07 18:13:51] 8===D  [ERROR] Epoll add failed: Bad file descriptor
+[2025-02-07 18:13:57] 8===D  [ERROR] Error removing from epoll: Bad file descriptor

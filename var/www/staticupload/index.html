@@ -223,7 +223,7 @@
 			}
 
 			try {
-				const response = await fetch('/cookie', {
+				const response = await fetch('/', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -254,7 +254,7 @@
 			}
 
 			try {
-				const response = await fetch(`/cookie/${name}`, {
+				const response = await fetch(`/${name}`, {
 					method: 'DELETE'
 				});
 
