@@ -348,7 +348,7 @@ bool Server::checkAccessRights(Context &ctx, std::string path) {
 
 
 // Bestimmt Request-Typ aus Konfiguration
-void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
+void Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 {
 	ServerBlock* conf = nullptr;
 	logContext(ctx);
@@ -406,7 +406,7 @@ void Server::determineType(Context& ctx, std::vector<ServerBlock>& configs)
 }
 
 // Bestimmt Request-Typ aus Konfiguration
-void Server::getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock>& configs)
+void Server::getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs)
 {
 	ServerBlock* conf = nullptr;
 

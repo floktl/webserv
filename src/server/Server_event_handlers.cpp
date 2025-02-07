@@ -168,159 +168,361 @@ void Server::parseChunkedBody(Context& ctx)
 	}
 }
 
-bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
-{
-	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-	ssize_t bytes;
+// bool Server::handleRead(Context& ctx, std::vector<ServerBlock> &configs)
+// {
+// 	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+// 	ssize_t bytes;
 
-	//Logger::errorLog("max body handleread() " + std::to_string(ctx.client_max_body_size));
+// 	//Logger::errorLog("max body handleread() " + std::to_string(ctx.client_max_body_size));
 
-	Logger::file("handleRead > hier nochmal pruefen.!!");
-	bytes = read(ctx.client_fd, buffer, sizeof(buffer));
-	if (bytes < 0)
-	{
-		Logger::errorLog("read fail, wait for enxt event;");
-		return true;
-	}
-	else if (bytes == 0)
-		return true;
+// 	Logger::file("handleRead > hier nochmal pruefen.!!");
+// 	bytes = read(ctx.client_fd, buffer, sizeof(buffer));
+// 	if (bytes < 0)
+// 	{
+// 		Logger::errorLog("read fail, wait for enxt event;");
+// 		return true;
+// 	}
+// 	else if (bytes == 0)
+// 		return true;
 
 
-	Logger::file("handleRead() - type: " + requestTypeToString(ctx.type));
-	Logger::file("handleRead() - after bytes  ");
-	// Update last activity time
+// 	Logger::file("handleRead() - type: " + requestTypeToString(ctx.type));
+// 	Logger::file("handleRead() - after bytes  ");
+// 	// Update last activity time
+// 	ctx.content_length = 0;
+// 	ctx.last_activity = std::chrono::steady_clock::now();
+
+// 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE)
+// 	{
+// 					Logger::file("handleRead() - PARSING_COMPLETE reset  ");
+// 		ctx.input_buffer.clear();
+// 		ctx.headers.clear();
+// 		ctx.method.clear();
+// 		ctx.path.clear();
+// 		ctx.version.clear();
+// 		ctx.headers_complete = false;
+// 		ctx.content_length = 0;
+// 		ctx.error_code = 0;
+// 		ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
+// 		ctx.req.current_body_length = 0;
+// 		ctx.req.expected_body_length = 0;
+// 		ctx.req.received_body.clear();
+// 		ctx.req.chunked_state.processing = false;
+// 		ctx.req.is_upload_complete = false;
+// 		ctx.type = RequestType::INITIAL;
+// 	}
+// 	// Append new data to input buffer
+// 	ctx.input_buffer.append(buffer, bytes);
+
+// 	// Handle based on current parsing phase
+// 	switch(ctx.req.parsing_phase) {
+// 		case RequestBody::PARSING_HEADER:
+// 			if (!ctx.headers_complete) {
+// 				if (!parseHeaders(ctx)) {
+// 					return true;
+// 				}
+// 					Logger::file("handleRead() - parseHeaders  ");
+// 			auto headersit = ctx.headers.find("Content-Length");
+// 			if (headersit != ctx.headers.end())
+// 			{
+// 					Logger::file("handleRead() -headersit  ");
+// 				long long content_length = std::stoull(headersit->second);
+// 					Logger::file("handleRead() - content_length " + std::to_string(content_length));
+
+// 				getMaxBodySizeFromConfig(ctx, configs);
+// 				Logger::file("clientmax: " + std::to_string(ctx.client_max_body_size));
+// 				if (content_length > ctx.client_max_body_size)
+// 				{
+// 					Logger::file("handleRead() - Content length exceeds limit: " + std::to_string(content_length));
+// 					Logger::errorLog("Max payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(content_length));
+// 					return updateErrorStatus(ctx, 413, "Payload too large");
+// 				}
+// 			}
+// 				auto it = ctx.headers.find("Transfer-Encoding");
+// 				if (it != ctx.headers.end() && it->second == "chunked")
+// 				{
+// 					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
+// 					ctx.req.chunked_state.processing = true;
+// 					if (!ctx.input_buffer.empty()) {
+// 						parseChunkedBody(ctx);
+// 					}
+// 				}
+// 				else if (ctx.content_length > 0 && ctx.headers_complete)
+// 				{
+// 					if (ctx.content_length > ctx.client_max_body_size)
+// 					{
+// 						logContext(ctx, "Max payghvjgjghjload");
+// 						log_global_fds(globalFDS);
+// 						Logger::errorLog("MAx payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(ctx.content_length));
+// 						return updateErrorStatus(ctx, 413, "Payload too large");
+// 					}
+// 					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
+// 					ctx.req.expected_body_length = ctx.content_length;
+// 					ctx.req.current_body_length = 0;
+
+// 					// Process any remaining data in input buffer as body
+// 					if (!ctx.input_buffer.empty()) {
+// 						ctx.req.received_body += ctx.input_buffer;
+// 						ctx.req.current_body_length += ctx.input_buffer.length();
+// 						ctx.input_buffer.clear();
+
+// 						// Check if we've received the complete body
+// 						if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+// 							ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+// 							ctx.req.is_upload_complete = true;
+// 						}
+// 					}
+// 				} else {
+// 					ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+// 				}
+// 			}
+// 			break;
+
+// 		case RequestBody::PARSING_BODY:
+// 			if (ctx.req.chunked_state.processing) {
+// 				parseChunkedBody(ctx);
+// 			} else {
+// 			Logger::file("PARSING_BODY: content_length " + std::to_string(ctx.content_length));
+// 			Logger::file("PARSING_BODY: current_body_length " + std::to_string(ctx.req.current_body_length));
+// 			Logger::file("PARSING_BODY: client_max_body_size " + std::to_string(ctx.location.client_max_body_size));
+// 				// Standard body processing
+// 				ctx.req.received_body += ctx.input_buffer;
+// 				ctx.req.current_body_length += ctx.input_buffer.length();
+// 				ctx.input_buffer.clear();
+
+// 				if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+// 					ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+// 					ctx.req.is_upload_complete = true;
+
+// 					// Trim excess data if any
+// 					if (ctx.req.current_body_length > ctx.req.expected_body_length) {
+// 						ctx.req.received_body = ctx.req.received_body.substr(
+// 							0, ctx.req.expected_body_length);
+// 						ctx.req.current_body_length = ctx.req.expected_body_length;
+// 					}
+// 				}
+// 			}
+// 			break;
+
+// 		case RequestBody::PARSING_COMPLETE:
+// 			break;
+// 	}
+
+// 	// Handle request completion
+// 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
+// 				logContext(ctx, "ich haue meines penis auf marvins glatze");
+// 		determineType(ctx, configs);
+// 		logContext(ctx, "ich haue meines penis auf marvins popo");
+// 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
+// 	} else if (ctx.error_code != 0)
+// 	{
+// 		// Still need more data, ensure we're watching for it
+// 		Logger::errorLog("epoll to in");
+// 		return false;
+// 	}
+
+// 	return true;
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool Server::resetContext(Context& ctx) {
+	ctx.input_buffer.clear();
+	ctx.headers.clear();
+	ctx.method.clear();
+	ctx.path.clear();
+	ctx.version.clear();
+	ctx.headers_complete = false;
 	ctx.content_length = 0;
-	ctx.last_activity = std::chrono::steady_clock::now();
+	ctx.error_code = 0;
+	ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
+	ctx.req.current_body_length = 0;
+	ctx.req.expected_body_length = 0;
+	ctx.req.received_body.clear();
+	ctx.req.chunked_state.processing = false;
+	ctx.req.is_upload_complete = false;
+	ctx.type = RequestType::INITIAL;
+	return true;
+}
 
-	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE)
-	{
-					Logger::file("handleRead() - PARSING_COMPLETE reset  ");
-		ctx.input_buffer.clear();
-		ctx.headers.clear();
-		ctx.method.clear();
-		ctx.path.clear();
-		ctx.version.clear();
-		ctx.headers_complete = false;
-		ctx.content_length = 0;
-		ctx.error_code = 0;
-		ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
-		ctx.req.current_body_length = 0;
-		ctx.req.expected_body_length = 0;
-		ctx.req.received_body.clear();
-		ctx.req.chunked_state.processing = false;
-		ctx.req.is_upload_complete = false;
-		ctx.type = RequestType::INITIAL;
+bool Server::handleContentLength(Context& ctx, const std::vector<ServerBlock>& configs) {
+	auto headersit = ctx.headers.find("Content-Length");
+	if (headersit != ctx.headers.end()) {
+		long long content_length = std::stoull(headersit->second);
+		getMaxBodySizeFromConfig(ctx, configs);
+
+		if (content_length > ctx.client_max_body_size) {
+			Logger::file("handleRead() - Content length exceeds limit: " + std::to_string(content_length));
+			Logger::errorLog("Max payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(content_length));
+			return updateErrorStatus(ctx, 413, "Payload too large");
+		}
 	}
-	// Append new data to input buffer
-	ctx.input_buffer.append(buffer, bytes);
+	return true;
+}
 
-	// Handle based on current parsing phase
+bool Server::handleTransferEncoding(Context& ctx) {
+	auto it = ctx.headers.find("Transfer-Encoding");
+	if (it != ctx.headers.end() && it->second == "chunked") {
+		ctx.req.parsing_phase = RequestBody::PARSING_BODY;
+		ctx.req.chunked_state.processing = true;
+		if (!ctx.input_buffer.empty()) {
+			parseChunkedBody(ctx);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool Server::handleStandardBody(Context& ctx) {
+	if (ctx.content_length > 0 && ctx.headers_complete) {
+		if (ctx.content_length > ctx.client_max_body_size) {
+			logContext(ctx, "Max payghvjgjghjload");
+			log_global_fds(globalFDS);
+			Logger::errorLog("MAx payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(ctx.content_length));
+			return updateErrorStatus(ctx, 413, "Payload too large");
+		}
+
+		ctx.req.parsing_phase = RequestBody::PARSING_BODY;
+		ctx.req.expected_body_length = ctx.content_length;
+		ctx.req.current_body_length = 0;
+
+		if (!ctx.input_buffer.empty()) {
+			ctx.req.received_body += ctx.input_buffer;
+			ctx.req.current_body_length += ctx.input_buffer.length();
+			ctx.input_buffer.clear();
+
+			if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+				ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+				ctx.req.is_upload_complete = true;
+			}
+		}
+		return true;
+	}
+	ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+	return true;
+}
+
+bool Server::processParsingBody(Context& ctx) {
+	if (ctx.req.chunked_state.processing) {
+		parseChunkedBody(ctx);
+	} else {
+		Logger::file("PARSING_BODY: content_length " + std::to_string(ctx.content_length));
+		Logger::file("PARSING_BODY: current_body_length " + std::to_string(ctx.req.current_body_length));
+		Logger::file("PARSING_BODY: client_max_body_size " + std::to_string(ctx.location.client_max_body_size));
+
+		ctx.req.received_body += ctx.input_buffer;
+		ctx.req.current_body_length += ctx.input_buffer.length();
+		ctx.input_buffer.clear();
+
+		if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+			ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+			ctx.req.is_upload_complete = true;
+
+			if (ctx.req.current_body_length > ctx.req.expected_body_length) {
+				ctx.req.received_body = ctx.req.received_body.substr(0, ctx.req.expected_body_length);
+				ctx.req.current_body_length = ctx.req.expected_body_length;
+			}
+		}
+	}
+	return true;
+}
+
+bool Server::handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs) {
 	switch(ctx.req.parsing_phase) {
 		case RequestBody::PARSING_HEADER:
 			if (!ctx.headers_complete) {
 				if (!parseHeaders(ctx)) {
 					return true;
 				}
-					Logger::file("handleRead() - parseHeaders  ");
-			auto headersit = ctx.headers.find("Content-Length");
-			if (headersit != ctx.headers.end())
-			{
-					Logger::file("handleRead() -headersit  ");
-				long long content_length = std::stoull(headersit->second);
-					Logger::file("handleRead() - content_length " + std::to_string(content_length));
-
-				getMaxBodySizeFromConfig(ctx, configs);
-				Logger::file("clientmax: " + std::to_string(ctx.client_max_body_size));
-				if (content_length > ctx.client_max_body_size)
-				{
-					Logger::file("handleRead() - Content length exceeds limit: " + std::to_string(content_length));
-					Logger::errorLog("Max payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(content_length));
-					return updateErrorStatus(ctx, 413, "Payload too large");
-				}
-			}
-				auto it = ctx.headers.find("Transfer-Encoding");
-				if (it != ctx.headers.end() && it->second == "chunked")
-				{
-					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
-					ctx.req.chunked_state.processing = true;
-					if (!ctx.input_buffer.empty()) {
-						parseChunkedBody(ctx);
-					}
-				}
-				else if (ctx.content_length > 0 && ctx.headers_complete)
-				{
-					if (ctx.content_length > ctx.client_max_body_size)
-					{
-						Logger::errorLog("MAx payload: " + std::to_string(ctx.client_max_body_size) + " Content length: " + std::to_string(ctx.content_length));
-						return updateErrorStatus(ctx, 413, "Payload too large");
-					}
-					ctx.req.parsing_phase = RequestBody::PARSING_BODY;
-					ctx.req.expected_body_length = ctx.content_length;
-					ctx.req.current_body_length = 0;
-
-					// Process any remaining data in input buffer as body
-					if (!ctx.input_buffer.empty()) {
-						ctx.req.received_body += ctx.input_buffer;
-						ctx.req.current_body_length += ctx.input_buffer.length();
-						ctx.input_buffer.clear();
-
-						// Check if we've received the complete body
-						if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
-							ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
-							ctx.req.is_upload_complete = true;
-						}
-					}
-				} else {
-					ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+				if (!handleContentLength(ctx, configs)) return false;
+				if (!handleTransferEncoding(ctx)) {
+					return handleStandardBody(ctx);
 				}
 			}
 			break;
 
 		case RequestBody::PARSING_BODY:
-			if (ctx.req.chunked_state.processing) {
-				parseChunkedBody(ctx);
-			} else {
-			Logger::file("PARSING_BODY: content_length " + std::to_string(ctx.content_length));
-			Logger::file("PARSING_BODY: current_body_length " + std::to_string(ctx.req.current_body_length));
-			Logger::file("PARSING_BODY: client_max_body_size " + std::to_string(ctx.location.client_max_body_size));
-				// Standard body processing
-				ctx.req.received_body += ctx.input_buffer;
-				ctx.req.current_body_length += ctx.input_buffer.length();
-				ctx.input_buffer.clear();
-
-				if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
-					ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
-					ctx.req.is_upload_complete = true;
-
-					// Trim excess data if any
-					if (ctx.req.current_body_length > ctx.req.expected_body_length) {
-						ctx.req.received_body = ctx.req.received_body.substr(
-							0, ctx.req.expected_body_length);
-						ctx.req.current_body_length = ctx.req.expected_body_length;
-					}
-				}
-			}
-			break;
+			return processParsingBody(ctx);
 
 		case RequestBody::PARSING_COMPLETE:
 			break;
 	}
+	return true;
+}
 
-	// Handle request completion
+bool Server::finalizeRequest(Context& ctx, const std::vector<ServerBlock>& configs) {
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
-				logContext(ctx, "ich haue meines penis auf marvins glatze");
+		logContext(ctx, "ich haue meines penis auf marvins glatze");
 		determineType(ctx, configs);
 		logContext(ctx, "ich haue meines penis auf marvins popo");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
-	} else if (ctx.error_code != 0)
-	{
-		// Still need more data, ensure we're watching for it
+	} else if (ctx.error_code != 0) {
 		Logger::errorLog("epoll to in");
 		return false;
 	}
-
 	return true;
 }
+
+bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
+	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+	ssize_t bytes;
+
+	Logger::file("handleRead > hier nochmal pruefen.!!");
+	bytes = read(ctx.client_fd, buffer, sizeof(buffer));
+	if (bytes < 0) {
+		Logger::errorLog("read fail, wait for enxt event;");
+		return true;
+	} else if (bytes == 0) {
+		return true;
+	}
+
+	Logger::file("handleRead() - type: " + requestTypeToString(ctx.type));
+	Logger::file("handleRead() - after bytes  ");
+
+	ctx.content_length = 0;
+	ctx.last_activity = std::chrono::steady_clock::now();
+
+	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE) {
+		Logger::file("handleRead() - PARSING_COMPLETE reset  ");
+		resetContext(ctx);
+	}
+
+	ctx.input_buffer.append(buffer, bytes);
+
+	if (!handleParsingPhase(ctx, configs)) {
+		return false;
+	}
+
+	return finalizeRequest(ctx, configs);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 bool Server::parseHeaders(Context& ctx)
 {
@@ -383,24 +585,15 @@ bool Server::parseHeaders(Context& ctx)
 bool Server::sendWrapper(Context& ctx, std::string http_response)
 {
 	// Attempt to send the response
+	Logger::file("sendwrapper()");
 	ssize_t bytes_sent = send(ctx.client_fd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
 	if (bytes_sent < 0) {
 		Logger::errorLog("Error sending response to client_fd: " + std::to_string(ctx.client_fd) + " - " + std::string(strerror(errno)));
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 		return false;
 	}
-
-	if (bytes_sent == static_cast<ssize_t>(http_response.size()))
-	{
-		//Logger::file("Successfully sent full response to client_fd: " + std::to_string(ctx.client_fd));
-		if (!ctx.keepAlive) {
-			//Logger::file("Closing connection for client_fd: " + std::to_string(ctx.client_fd));
-			delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-		}
-	} else {
-		//Logger::file("Partial response sent to client_fd: " + std::to_string(ctx.client_fd) + " - Sent: " + std::to_string(bytes_sent) + " of " + std::to_string(http_response.size()) + " bytes");
+	if (ctx.type == ERROR || !ctx.keepAlive)
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-	}
 
 	return true;
 }

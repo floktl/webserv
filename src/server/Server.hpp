@@ -85,14 +85,14 @@ class Server
 		void logContext(const Context& ctx, const std::string& event = "");
 		void parseRequest(Context& ctx);
 		std::string requestTypeToString(RequestType type);
-		void determineType(Context& ctx, std::vector<ServerBlock>& configs);
+		void determineType(Context& ctx, std::vector<ServerBlock> configs);
 		bool matchLoc(Location& loc, std::string rawPath);
 		std::string normalizePath(const std::string& raw);
 		bool isMethodAllowed(Context& ctx);
 		std::string concatenatePath(const std::string& root, const std::string& path);
 		std::string getDirectory(const std::string& path);
 		bool buildAutoIndexResponse(Context& ctx, std::stringstream* response);
-		bool handleRead(Context& ctx, std::vector<ServerBlock> &configs);
+		//bool handleRead(Context& ctx, std::vector<ServerBlock> &configs);
 		bool parseHeaders(Context& ctx);
 		bool handleWrite(Context& ctx);
 		bool queueResponse(Context& ctx, const std::string& response);
@@ -102,7 +102,24 @@ class Server
 		bool handleStaticUpload(Context& ctx);
 		bool redirectAction(Context& ctx);
 		bool deleteHandler(Context &ctx);
-		void getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock>& configs);
+		void getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs);
+
+
+
+
+
+
+
+
+bool resetContext(Context& ctx);
+bool handleContentLength(Context& ctx, const std::vector<ServerBlock>& configs);
+bool handleTransferEncoding(Context& ctx);
+bool handleStandardBody(Context& ctx);
+bool processParsingBody(Context& ctx);
+bool handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs);
+bool finalizeRequest(Context& ctx, const std::vector<ServerBlock>& configs);
+bool handleRead(Context& ctx, std::vector<ServerBlock>& configs);
+
 };
 
 #endif
