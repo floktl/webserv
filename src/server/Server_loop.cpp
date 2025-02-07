@@ -408,12 +408,18 @@ void Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 // Bestimmt Request-Typ aus Konfiguration
 void Server::getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs)
 {
+	Logger::file("getMaxBodySizeFromConfig: ");
+
 	ServerBlock* conf = nullptr;
 
 	// Finde passende Konfiguration
+
 	for (auto& config : configs) {
+		Logger::file("getMaxBodySizeFromConfig: loop ");
+
 		if (config.server_fd == ctx.server_fd)
 		{
+		Logger::file("getMaxBodySizeFromConfig: fit ");
 			conf = &config;
 			break;
 		}
@@ -434,8 +440,16 @@ void Server::getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> con
 		{
 			Logger::file("max_size found: " + std::to_string(loc.client_max_body_size));
 			ctx.client_max_body_size = loc.client_max_body_size;
+			if (ctx.client_max_body_size != -1 && ctx.location.client_max_body_size == -1)
+			{
+				ctx.location.client_max_body_size = ctx.client_max_body_size;
+			}
+			Logger::file("getMaxBodySizeFromConfig: ctx.client_max_body_size " + std::to_string(ctx.client_max_body_size));
+			Logger::file("getMaxBodySizeFromConfig: ctx.client_max_body_size location " + std::to_string(ctx.location.client_max_body_size));
+
 			return;
 		}
 	}
+
 	Logger::file("Type not found");
 }
