@@ -1,0 +1,112 @@
+[2025-02-07 16:12:15] Server Parsed size: 209715200
+[2025-02-07 16:12:15] Server Parsed size: 314572800
+[2025-02-07 16:12:15] conf porrrrrt: 8080
+[2025-02-07 16:12:15] conf.server_fd = socket(: 4
+[2025-02-07 16:12:15] conf porrrrrt: 9090
+[2025-02-07 16:12:15] conf.server_fd = socket(: 5
+[2025-02-07 16:12:15] conf porrrrrt: 1939
+[2025-02-07 16:12:15] conf.server_fd = socket(: 6
+[2025-02-07 16:12:15] conf porrrrrt: 8050
+[2025-02-07 16:12:15] conf.server_fd = socket(: 7
+[2025-02-07 16:12:15] conf porrrrrt: 8060
+[2025-02-07 16:12:15] conf.server_fd = socket(: 8
+[2025-02-07 16:12:15] conf porrrrrt: 80
+[2025-02-07 16:12:15] conf.server_fd = socket(: 9
+[2025-02-07 16:12:21] 
+[2025-02-07 16:12:21] EPOLLIN
+[2025-02-07 16:12:21] dispatchEvent: Server fd identified: 7 events=1
+[2025-02-07 16:12:21] New client_fd: 10 accepted on server_fd: 7
+[2025-02-07 16:12:21] Bitte noch einen ordnetlichen Log vorher damit wir wissen wann das passiert dingesnd dahineter
+[2025-02-07 16:12:21] GlobalFDS clFD_to_svFD_map:
+[2025-02-07 16:12:21] epoll_fd: 3
+[2025-02-07 16:12:21] [
+[2025-02-07 16:12:21]    client_fd: 10 -> server_fd: 7
+[2025-02-07 16:12:21] ]
+
+[2025-02-07 16:12:21] New client_fd: 11 accepted on server_fd: 7
+[2025-02-07 16:12:21] Bitte noch einen ordnetlichen Log vorher damit wir wissen wann das passiert dingesnd dahineter
+[2025-02-07 16:12:21] GlobalFDS clFD_to_svFD_map:
+[2025-02-07 16:12:21] epoll_fd: 3
+[2025-02-07 16:12:21] [
+[2025-02-07 16:12:21]    client_fd: 10 -> server_fd: 7
+[2025-02-07 16:12:21]    client_fd: 11 -> server_fd: 7
+[2025-02-07 16:12:21] ]
+
+[2025-02-07 16:12:21] 
+[2025-02-07 16:12:21] EPOLLIN
+[2025-02-07 16:12:21] handleAcceptedConnection client fd: 10 events=1
+[2025-02-07 16:12:21] handleRead > hier nochmal pruefen.!!
+[2025-02-07 16:12:21] handleRead() - type: INITIAL
+[2025-02-07 16:12:21] handleRead() - after bytes  
+[2025-02-07 16:12:21] max_size found: 209715200
+[2025-02-07 16:12:21] Context [after handle read in epoll in]:
+FDs: epoll=3 server=7 client=10
+Type: INITIAL
+Method: POST
+Path: /upload
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Content-Length: 104857796
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundarysfBJaACZBxjhC7V1
+Host: localhost:8050
+Origin: http://localhost:8050
+Referer: http://localhost:8050/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: [empty]
+Last Activity: 15133 seconds since epoch
+[2025-02-07 16:12:21] 
+[2025-02-07 16:12:21] EPOLLIN
+[2025-02-07 16:12:21] handleAcceptedConnection client fd: 10 events=1
+[2025-02-07 16:12:21] handleRead > hier nochmal pruefen.!!
+[2025-02-07 16:12:21] handleRead() - type: INITIAL
+[2025-02-07 16:12:21] handleRead() - after bytes  
+[2025-02-07 16:12:21] PARSING_BODY: content_length 0
+[2025-02-07 16:12:21] PARSING_BODY: current_body_length 7309
+[2025-02-07 16:12:21] PARSING_BODY: client_max_body_size -1
+[2025-02-07 16:12:21] Context [after handle read in epoll in]:
+FDs: epoll=3 server=7 client=10
+Type: INITIAL
+Method: POST
+Path: /upload
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Content-Length: 104857796
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundarysfBJaACZBxjhC7V1
+Host: localhost:8050
+Origin: http://localhost:8050
+Referer: http://localhost:8050/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: [empty]
+Last Activity: 15133 seconds since epoch
