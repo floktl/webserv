@@ -19,7 +19,8 @@
 #define BLACK "\033[0;90m"
 #define RESET "\033[0m"
 
-class Logger {
+class Logger
+{
 	private:
 		static std::string formatMessage(const std::string &message, size_t length);
 
