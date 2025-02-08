@@ -1,7 +1,7 @@
 #ifndef STRUCTS_WEBSERV_HPP
 # define STRUCTS_WEBSERV_HPP
 
-#include "../main.hpp"
+#include "../server/server.hpp"
 #include <deque>
 #include <string>
 #include <map>

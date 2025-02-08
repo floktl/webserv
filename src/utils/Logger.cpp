@@ -93,10 +93,12 @@ void Logger::log(const std::string &message, const std::string &color, bool newl
 		std::cout << std::endl;
 }
 
-void Logger::error(const std::string &message, bool newline) {
+bool Logger::error(const std::string &message, bool newline)
+{
 	std::cerr << RED << message << RESET;
 	if (newline)
 		std::cerr << std::endl;
+	return false;
 }
 
 Logger::StreamLogger::StreamLogger(const std::string &colorParam, bool newlineParam, bool useCerrParam)
@@ -169,4 +171,3 @@ Logger::StreamLogger& Logger::file() {
 	static StreamLogger logger("", true, false);
 	return logger;
 }
-

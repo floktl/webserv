@@ -1,16 +1,53 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include "TaskManager.hpp"
-#include "../main.hpp"
+#include <sys/epoll.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstring>
+#include <vector>
+#include <map>
+#include <string>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+# include <iostream>
+# include <set>
+# include <sstream>
+# include <algorithm>
+# include <sys/stat.h>
+# include <dirent.h>
+# include <stdexcept>
+# include <fstream>
+#include <chrono>
+#include <iomanip>
+#include <system_error>
+#include <sstream>
+#include <poll.h>
+#include <deque>
+#include <thread>
+#include <regex>
 #include <csignal>
+#include "../structs/webserv.hpp"
+#include "../config/ConfigHandler.hpp"
+#include "../utils/Logger.hpp"
+#include "../cgi/CgiHandler.hpp"
+# include "../utils/Sanitizer.hpp"
+# include "../utils/Logger.hpp"
+# include "../error/ErrorHandler.hpp"
+# include "../server/Server.hpp"
+# include "../structs/webserv.hpp"
+
+extern std::unique_ptr<Server> serverInstance;
 
 struct GlobalFDS;
 struct ServerBlock;
 
-// class ClientHandler;
 // class CgiHandler;
-// class RequestHandler;
 class ErrorHandler;
 
 class Server
@@ -23,12 +60,9 @@ class Server
 
 		int server_init(std::vector<ServerBlock> configs);
 		GlobalFDS& getGlobalFds(void);
-		// ClientHandler* getClientHandler(void);
 		// CgiHandler* getCgiHandler(void);
-		// RequestHandler* getRequestHandler(void);
 		ErrorHandler* getErrorHandler(void);
 		int has_gate = false;
-		//TaskManager* getTaskManager(void);
 
 		//server_helpers
 		void modEpoll(int epfd, int fd, uint32_t events);
@@ -47,7 +81,7 @@ class Server
 		bool fileExecutable(const std::string& path);
 		bool dirReadable(const std::string& path);
 		bool dirWritable(const std::string& path);
-		bool sendWrapper(Context& ctx, std::string http_response);
+		bool sendHandler(Context& ctx, std::string http_response);
 		bool handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, std::vector<ServerBlock> &configs);
 
 	private:
@@ -72,23 +106,21 @@ class Server
 
 		// server_event_handlers
 		bool staticHandler(Context& ctx);
-		bool errorsHandler(Context& ctx);
 		bool handleCGIEvent(int epoll_fd, int fd, uint32_t ev);
 		void buildStaticResponse(Context &ctx);
 
 		// Server loop
 		bool dispatchEvent(int epoll_fd, int fd, uint32_t ev, std::vector<ServerBlock> &configs);
-		bool handleNewConnection(int epoll_fd, int server_fd, std::vector<ServerBlock> &configs);
+		bool acceptNewConnection(int epoll_fd, int server_fd, std::vector<ServerBlock> &configs);
 		void checkAndCleanupTimeouts();
 		void killTimeoutedCGI(RequestBody &req);
 
 		void logContext(const Context& ctx, const std::string& event = "");
 		void parseRequest(Context& ctx);
 		std::string requestTypeToString(RequestType type);
-		void determineType(Context& ctx, std::vector<ServerBlock> configs);
+		bool determineType(Context& ctx, std::vector<ServerBlock> configs);
 		bool matchLoc(Location& loc, std::string rawPath);
 		std::string normalizePath(const std::string& raw);
-		bool isMethodAllowed(Context& ctx);
 		std::string concatenatePath(const std::string& root, const std::string& path);
 		std::string getDirectory(const std::string& path);
 		bool buildAutoIndexResponse(Context& ctx, std::stringstream* response);
@@ -103,24 +135,29 @@ class Server
 		bool redirectAction(Context& ctx);
 		bool deleteHandler(Context &ctx);
 		void getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs);
-
-
-
-
-
-
-
-
-bool resetContext(Context& ctx);
-bool handleContentLength(Context& ctx, const std::vector<ServerBlock>& configs);
-bool handleTransferEncoding(Context& ctx);
-bool handleStandardBody(Context& ctx);
-bool processParsingBody(Context& ctx);
-bool handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs);
-bool finalizeRequest(Context& ctx, const std::vector<ServerBlock>& configs);
-bool handleRead(Context& ctx, std::vector<ServerBlock>& configs);
-void parseNewCookie(Context& ctx, std::string value);
-void parseCookies(Context& ctx, std::string value);
+		bool resetContext(Context& ctx);
+		bool handleContentLength(Context& ctx, const std::vector<ServerBlock>& configs);
+		bool handleTransferEncoding(Context& ctx);
+		bool handleStandardBody(Context& ctx);
+		bool processParsingBody(Context& ctx);
+		bool handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs);
+		bool finalizeRequest(Context& ctx, const std::vector<ServerBlock>& configs);
+		bool handleRead(Context& ctx, std::vector<ServerBlock>& configs);
+		void parseNewCookie(Context& ctx, std::string value);
+		void parseCookies(Context& ctx, std::string value);
 };
+
+std::string extractHostname(const std::string& header);
+void printServerBlock(ServerBlock& serverBlock);
+void printRequestBody(const RequestBody& req);
+std::string getEventDescription(uint32_t ev);
+std::string trim(const std::string& str);
+std::vector<std::string> parseOptionsToVector(const std::string& opts);
+std::string expandEnvironmentVariables(const std::string& value, char** env);
+void log_global_fds(const GlobalFDS& fds);
+void log_server_configs(const std::vector<ServerBlock>& configs);
+bool	updateErrorStatus(Context &ctx, int error_code, std::string error_string);
+std::string mergePathsToFilename(const std::string& requestPath, const std::string& basePath);
+int extractPort(const std::string& header);
 
 #endif
