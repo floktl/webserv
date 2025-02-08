@@ -1,4 +1,4 @@
-#include "../main.hpp"
+#include "../server/server.hpp"
 
 // internal trimming
 std::string trim(const std::string& str)
@@ -110,13 +110,11 @@ void printServerBlock(ServerBlock& serverBlock)
 void printRequestBody(const Context& ctx)
 {
 	std::cout << "---- RequestBody Information ----" << std::endl;
-
 	std::cout << "Client FD: " << ctx.client_fd << std::endl;
 	std::cout << "CGI Input FD: " << ctx.req.cgi_in_fd << std::endl;
 	std::cout << "CGI Output FD: " << ctx.req.cgi_out_fd << std::endl;
 	std::cout << "CGI PID: " << ctx.req.cgi_pid << std::endl;
 	std::cout << "CGI Done: " << (ctx.req.cgi_done ? "true" : "false") << std::endl;
-
 	std::cout << "State: ";
 	switch (ctx.req.state)
 	{
@@ -137,7 +135,6 @@ void printRequestBody(const Context& ctx)
 		break;
 	}
 	std::cout << std::endl;
-
 	std::cout << "Request Buffer Size: " << ctx.req.request_buffer.size() << std::endl;
 	if (!ctx.req.request_buffer.empty())
 	{
@@ -146,7 +143,6 @@ void printRequestBody(const Context& ctx)
 			ctx.req.request_buffer.end())
 			<< std::endl;
 	}
-
 	std::cout << "Response Buffer Size: " << ctx.req.response_buffer.size() << std::endl;
 	if (!ctx.req.response_buffer.empty())
 	{
@@ -155,7 +151,6 @@ void printRequestBody(const Context& ctx)
 							ctx.req.response_buffer.end())
 			<< std::endl;
 	}
-
 	std::cout << "CGI Output Buffer Size: " << ctx.req.cgi_output_buffer.size() << std::endl;
 	if (!ctx.req.cgi_output_buffer.empty())
 	{
@@ -164,17 +159,13 @@ void printRequestBody(const Context& ctx)
 							ctx.req.cgi_output_buffer.end())
 			<< std::endl;
 	}
-
 	if (ctx.req.associated_conf)
 	{
 		std::cout << "Associated ServerBlock:" << std::endl;
 		printServerBlock(*ctx.req.associated_conf);
 	}
 	else
-	{
 		std::cout << "Associated ServerBlock: NULL" << std::endl;
-	}
 	std::cout << "Requested Path: " << ctx.req.requested_path << std::endl;
-
 	std::cout << "----------------------------------" << std::endl;
 }

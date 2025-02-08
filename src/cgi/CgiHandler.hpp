@@ -1,7 +1,7 @@
 #ifndef CGIHANDLER_HPP
 #define CGIHANDLER_HPP
 
-#include "../main.hpp"
+#include "../server/server.hpp"
 
 struct ServerBlock;
 struct RequestBody;

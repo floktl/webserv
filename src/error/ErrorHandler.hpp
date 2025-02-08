@@ -1,7 +1,7 @@
 #ifndef ERRORHANDLER_HPP
 #define ERRORHANDLER_HPP
 
-#include "../main.hpp"
+#include "../server/server.hpp"
 
 class Server;
 
@@ -11,7 +11,7 @@ public:
 	ErrorHandler(Server& server);
 	~ErrorHandler();
 
-	std::string generateErrorResponse(Context& ctx) const;
+	bool generateErrorResponse(Context& ctx) const;
 
 private:
 	Server& server;

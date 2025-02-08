@@ -1,7 +1,7 @@
 #ifndef SANITIZER_HPP
 # define SANITIZER_HPP
 
-# include "./../main.hpp"
+#include "../server/server.hpp"
 
 class Sanitizer {
 	private:

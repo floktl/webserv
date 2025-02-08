@@ -32,7 +32,7 @@ class Logger {
 		static void magenta(const std::string &message, bool newline = true, size_t length = 0);
 		static void white(const std::string &message, bool newline = true, size_t length = 0);
 		static void black(const std::string &message, bool newline = true, size_t length = 0);
-		static void error(const std::string &message, bool newline = true);
+		static bool error(const std::string &message, bool newline = true);
 		static void file(const std::string &message);
 		static void errorLog(const std::string& message);
 
