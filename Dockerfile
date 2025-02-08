@@ -11,3 +11,5 @@ WORKDIR /app
 COPY ./ /app
 
 CMD ["bash"]
+
+RUN echo 'PS1="\[\033[34m\]webcontainer: \w# \[\033[0m\]"' >> /etc/bash.bashrc

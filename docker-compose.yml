@@ -1,6 +1,7 @@
 services:
   ubuntu-valgrind:
     container_name: webserv
+    hostname: webcontainer
     build:
       context: .
       dockerfile: Dockerfile

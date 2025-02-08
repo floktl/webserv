@@ -49,14 +49,19 @@ NAME=webserv
 #------------------------------------------------------------------------------#
 
 CC=c++
-CFLAGS=-Wall -Wextra -Werror -Wshadow -std=c++17 -g -Wno-unused-but-set-variable
-LDFLAGS=
+CFLAGS = -Wall -Wextra -Werror -Wshadow -std=c++17 -O2 -pipe -march=native -flto -DNDEBUG -Wno-unused-but-set-variable -include $(PCH)
+LDFLAGS=-flto=$(shell nproc)
 
 ifeq ($(DEBUG), 1)
 	CFLAGS += -fsanitize=address -g
 endif
 
-DEPFLAGS=-MMD -MP
+DEPFLAGS=-MMD -MP -MT $@
+PCH = ./src/utils/pch.hpp
+PCHGCH = $(PCH).gch
+
+$(PCHGCH): $(PCH)
+	$(CC) $(CFLAGS) -x c++-header $< -o $@
 
 #------------------------------------------------------------------------------#
 #--------------                        DIR                        -------------#
@@ -94,7 +99,7 @@ OBJECTS := $(addprefix $(OBJ_DIR)/, $(SRCS:%.cpp=%.o))
 
 .PHONY: all clean fclean re
 
-all: $(NAME)
+all: $(PCHGCH) $(NAME)
 	@if [ -e "./webserv.log" ]; then \
 		echo "$(YELLOW)Clearing webserv.log$(X)"; \
 		> ./webserv.log; \
@@ -105,7 +110,7 @@ all: $(NAME)
 
 -include $(OBJECTS:.o=.d)
 
-$(OBJ_DIR)/%.o: %.cpp
+$(OBJ_DIR)/%.o: %.cpp $(PCHGCH)
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(DEPFLAGS) -c $< -o $@
 
@@ -144,12 +149,12 @@ prune:
 	fi
 	@echo "$(GREEN)All done!$(X)"
 
-test:
+test: $(NAME)
 	@if [ -e "./webserv.log" ]; then \
 		echo "$(YELLOW)Clearing webserv.log$(X)"; \
 		> ./webserv.log; \
 	fi
-	@make && ./$(NAME) config/test.conf
+	@./$(NAME) config/test.conf
 
 leak:
 	@if [ -e "./webserv.log" ]; then \
@@ -158,12 +163,16 @@ leak:
 	fi
 	@make && valgrind --leak-check=full --track-origins=yes ./$(NAME)  config/test.conf
 
+#------------------------------------------------------------------------------#
+#--------------                   CLEANUP TARGETS                   -------------#
+#------------------------------------------------------------------------------#
+
 clean:
 	@rm -rf $(OBJ_DIR)
 	@echo "$(RED)objects deleted$(X)"
 
 fclean: clean
-	@rm -f $(NAME)
+	@rm -f $(NAME) $(PCHGCH)
 	@echo "$(RED)binaries deleted$(X)"
 
 re: fclean all

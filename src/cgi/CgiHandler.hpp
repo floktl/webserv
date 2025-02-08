@@ -1,5 +1,4 @@
-#ifndef CGIHANDLER_HPP
-#define CGIHANDLER_HPP
+#pragma once
 
 #include "../server/server.hpp"
 
@@ -40,5 +39,3 @@ class CgiHandler
 			const std::string &method, const std::string &query);
 		void free_environment(std::vector<char*>& env);
 };
-
-#endif
