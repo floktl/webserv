@@ -51,8 +51,10 @@ void Logger::file(const std::string& message) {
 	}
 }
 
-void Logger::errorLog(const std::string& message) {
-	try {
+void Logger::errorLog(const std::string& message)
+{
+	try
+	{
 		// File logging
 		std::string filePath = "./webserv.log";
 		std::ofstream logfile(filePath.c_str(), std::ios::app);

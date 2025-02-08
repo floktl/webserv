@@ -1,5 +1,4 @@
-#ifndef ERRORHANDLER_HPP
-#define ERRORHANDLER_HPP
+#pragma once
 
 #include "../server/server.hpp"
 
@@ -17,5 +16,3 @@ private:
 	Server& server;
 	std::string loadErrorPage(const std::string& filePath) const;
 };
-
-#endif // ERRORHANDLER_HPP
