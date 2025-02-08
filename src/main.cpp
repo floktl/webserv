@@ -1,158 +1,10 @@
-#include "main.hpp"
+#include "./server/server.hpp"
 #include <csignal>
 #include <iostream>
 #include <memory>
-std::string mergePathsToFilename(const std::string& requestPath, const std::string& basePath) {
-    // Helper function to split path into components
-    auto splitPath = [](const std::string& path) -> std::vector<std::string> {
-        std::vector<std::string> components;
-        std::stringstream ss(path);
-        std::string item;
-        while (std::getline(ss, item, '/')) {
-            if (!item.empty()) {
-                components.push_back(item);
-            }
-        }
-        return components;
-    };
-
-    auto requestComponents = splitPath(requestPath);
-    auto baseComponents = splitPath(basePath);
-
-    // Find common segment (e.g., "upload")
-    size_t matchIndex = 0;
-    bool found = false;
-    for (size_t i = 0; i < requestComponents.size(); i++) {
-        for (size_t j = 0; j < baseComponents.size(); j++) {
-            if (requestComponents[i] == baseComponents[j]) {
-                matchIndex = i;
-                found = true;
-                break;
-            }
-        }
-        if (found) break;
-    }
-
-    if (!found) {
-        return "";  // No common path found
-    }
-
-    // Extract the remaining path after the match
-    std::string result;
-    for (size_t i = matchIndex + 1; i < requestComponents.size(); i++) {
-        result += requestComponents[i];
-        if (i < requestComponents.size() - 1) {
-            result += "/";
-        }
-    }
-
-    return result;
-}
-void log_server_configs(const std::vector<ServerBlock>& configs) {
-    Logger::file("Server Configurations:");
-    Logger::file("[");
-
-    if (configs.empty()) {
-        Logger::file("   empty");
-    }
-
-    for (const auto& server : configs) {
-        Logger::file("   ServerBlock {");
-        Logger::file("      port: " + std::to_string(server.port));
-        Logger::file("      server_fd: " + std::to_string(server.server_fd));
-        Logger::file("      name: " + server.name);
-        Logger::file("      root: " + server.root);
-        Logger::file("      index: " + server.index);
-        Logger::file("      timeout: " + std::to_string(server.timeout));
-        Logger::file("      client_max_body_size: " + std::to_string(server.client_max_body_size));
-
-        // Log error pages
-        Logger::file("      error_pages: {");
-        for (const auto& error : server.errorPages) {
-            Logger::file("         " + std::to_string(error.first) + ": " + error.second);
-        }
-        Logger::file("      }");
-
-        // Log locations
-        //Logger::file("      locations: [");
-        //for (const auto& loc : server.locations) {
-        //    Logger::file("         {");
-        //    Logger::file("            port: " + std::to_string(loc.port));
-        //    Logger::file("            path: " + loc.path);
-        //    Logger::file("            methods: " + loc.methods);
-        //    Logger::file("            autoindex: " + loc.autoindex);
-        //    Logger::file("            default_file: " + loc.default_file);
-        //    Logger::file("            upload_store: " + loc.upload_store);
-        //    Logger::file("            client_max_body_size: " + std::to_string(loc.client_max_body_size));
-        //    Logger::file("            root: " + loc.root);
-        //    Logger::file("            cgi: " + loc.cgi);
-        //    Logger::file("            cgi_filetype: " + loc.cgi_filetype);
-        //    Logger::file("            return_code: " + loc.return_code);
-        //    Logger::file("            return_url: " + loc.return_url);
-        //    Logger::file("            doAutoindex: " + std::string(loc.doAutoindex ? "true" : "false"));
-        //    Logger::file("            allowGet: " + std::string(loc.allowGet ? "true" : "false"));
-        //    Logger::file("            allowPost: " + std::string(loc.allowPost ? "true" : "false"));
-        //    Logger::file("            allowDelete: " + std::string(loc.allowDelete ? "true" : "false"));
-        //    Logger::file("            allowCookie: " + std::string(loc.allowCookie ? "true" : "false"));
-        //    Logger::file("         }");
-        //}
-        Logger::file("      ]");
-        Logger::file("   }");
-    }
-
-    Logger::file("]\n");
-}
-std::string getEventDescription(uint32_t ev) {
-    std::ostringstream description;
-
-    if (ev & EPOLLIN) {
-        description << "EPOLLIN ";
-    }
-    if (ev & EPOLLOUT) {
-        description << "EPOLLOUT ";
-    }
-    if (ev & EPOLLHUP) {
-        description << "EPOLLHUP ";
-    }
-    if (ev & EPOLLERR) {
-        description << "EPOLLERR ";
-    }
-    if (ev & EPOLLRDHUP) {
-        description << "EPOLLRDHUP ";
-    }
-    if (ev & EPOLLPRI) {
-        description << "EPOLLPRI ";
-    }
-    if (ev & EPOLLET) {
-        description << "EPOLLET ";
-    }
-    if (ev & EPOLLONESHOT) {
-        description << "EPOLLONESHOT ";
-    }
-
-    // Remove the trailing space if there's any description
-    std::string result = description.str();
-    if (!result.empty() && result.back() == ' ') {
-        result.pop_back();
-    }
-
-    return result.empty() ? "UNKNOWN EVENT" : result;
-}
 
 std::unique_ptr<Server> serverInstance;
-void log_global_fds(const GlobalFDS& fds) {
-    Logger::file("GlobalFDS clFD_to_svFD_map:");
-    Logger::file("epoll_fd: " + std::to_string(fds.epoll_fd));
 
-	Logger::file("[");
-    if (fds.clFD_to_svFD_map.empty()) {
-        Logger::file("   empty");
-    }
-    for (const auto& pair : fds.clFD_to_svFD_map) {
-        Logger::file("   client_fd: " + std::to_string(pair.first) + " -> server_fd: " + std::to_string(pair.second));
-    }
-	Logger::file("]\n");
-}
 void handle_sigint(int sig)
 {
 	(void)sig;
@@ -170,7 +22,6 @@ int main(int argc, char **argv, char **envp)
 	ConfigHandler utils;
 	GlobalFDS globalFDS;
 	serverInstance = std::make_unique<Server>(globalFDS);
-	//ClientHandler clientHandler(*serverInstance);
 	//CgiHandler cgiHandler(*serverInstance);
 
 	// Set up signal handling
@@ -216,6 +67,3 @@ int main(int argc, char **argv, char **envp)
 
 	return EXIT_SUCCESS;
 }
-
-
-//Logger::errorLog(std::to_string(loc.port) + " " + std::to_string(registeredServerConfs[i].client_max_body_size));

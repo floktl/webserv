@@ -1,4 +1,4 @@
-#include "ConfigHandler.hpp"
+#include "./ConfigHandler.hpp"
 
 void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 {
@@ -9,24 +9,30 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 	std::string errorPageDir = pwd + "/err_page_defaults";
 
 	DIR *dir = opendir(errorPageDir.c_str());
-	if (dir != NULL) {
+	if (dir != NULL)
+	{
 		struct dirent *entry;
-		while ((entry = readdir(dir)) != NULL) {
+		while ((entry = readdir(dir)) != NULL)
+		{
 			// skip "." and ".."
-			if (std::string(entry->d_name) == "." || std::string(entry->d_name) == "..") {
+			if (std::string(entry->d_name) == "." || std::string(entry->d_name) == "..")
+			{
 				continue;
 			}
-
 			// check if regular file
 			{
 				std::string fileName = entry->d_name;
 				size_t dotPos = fileName.find('.');
-				if (dotPos != std::string::npos) {
-					try {
+				if (dotPos != std::string::npos)
+				{
+					try
+					{
 						int errorCode = std::stoi(fileName.substr(0, dotPos));
 						std::string fullPath = errorPageDir + "/" + fileName;
 						errorPageDefaults[errorCode] = fullPath;
-					} catch (const std::exception& e) {
+					}
+					catch (const std::exception& e)
+					{
 						continue;
 					}
 				}
@@ -60,12 +66,16 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 	};
 
 	auto printIntValue = [](int& value, const std::string& label,
-						int default_value = 0, int padding = 30) {
+						int default_value = 0, int padding = 30)
+						{
 		Logger::white(label, false, padding);
-		if (value == 0) {
-			if (default_value == 0) {
+		if (value == 0)
+		{
+			if (default_value == 0)
+			{
 				Logger::black("[undefined]");
-			} else {
+			}
+			else{
 				value = default_value;
 				Logger::black("[undefined (default: " + std::to_string(default_value) + ")]");
 			}
