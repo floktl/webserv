@@ -44,9 +44,9 @@ bool Server::handleStaticUpload(Context& ctx)
 bool Server::deleteHandler(Context &ctx)
 {
 
-    std::string filename = mergePathsToFilename(ctx.path, ctx.location.upload_store);
+	std::string filename = mergePathsToFilename(ctx.path, ctx.location.upload_store);
 
-    if (filename.empty())
+	if (filename.empty())
 		return updateErrorStatus(ctx, 404, "Not found");
 	filename = concatenatePath(ctx.location.upload_store, filename);
 
@@ -65,70 +65,70 @@ bool Server::deleteHandler(Context &ctx)
 // Splits a given path into components, removing empty segments
 std::vector<std::string> splitPath(const std::string& path)
 {
-    std::vector<std::string> components;
-    std::stringstream ss(path);
-    std::string item;
-    while (std::getline(ss, item, '/'))
-    {
-        if (!item.empty())
-            components.push_back(item);
-    }
-    return components;
+	std::vector<std::string> components;
+	std::stringstream ss(path);
+	std::string item;
+	while (std::getline(ss, item, '/'))
+	{
+		if (!item.empty())
+			components.push_back(item);
+	}
+	return components;
 }
 
 std::vector<std::string> Server::splitPathLoc(const std::string& path) {
-    std::vector<std::string> segments;
-    std::string segment;
+	std::vector<std::string> segments;
+	std::string segment;
 
-    for (size_t i = 0; i < path.length(); ++i) {
-        if (path[i] == '/') {
-            if (!segment.empty()) {
-                segments.push_back(segment);
-                segment.clear();
-            }
-        } else {
-            segment += path[i];
-        }
-    }
+	for (size_t i = 0; i < path.length(); ++i) {
+		if (path[i] == '/') {
+			if (!segment.empty()) {
+				segments.push_back(segment);
+				segment.clear();
+			}
+		} else {
+			segment += path[i];
+		}
+	}
 
-    if (!segment.empty()) {
-        segments.push_back(segment);
-    }
+	if (!segment.empty()) {
+		segments.push_back(segment);
+	}
 
-    return segments;
+	return segments;
 }
 
 // Merges request and base paths, extracting the relative filename for further processing
 std::string mergePathsToFilename(const std::string& requestPath, const std::string& basePath)
 {
-    auto requestComponents = splitPath(requestPath);
-    auto baseComponents = splitPath(basePath);
+	auto requestComponents = splitPath(requestPath);
+	auto baseComponents = splitPath(basePath);
 
-    // Find common segment (e.g., "upload")
-    size_t matchIndex = 0;
-    bool found = false;
-    for (size_t i = 0; i < requestComponents.size(); i++)
-    {
-        for (size_t j = 0; j < baseComponents.size(); j++)
-        {
-            if (requestComponents[i] == baseComponents[j])
-            {
-                matchIndex = i;
-                found = true;
-                break;
-            }
-        }
-        if (found)
-            break;
-    }
-    if (!found)
-        return "";  // No common path found
-    std::string result;
-    for (size_t i = matchIndex + 1; i < requestComponents.size(); i++)
-    {
-        result += requestComponents[i];
-        if (i < requestComponents.size() - 1)
-            result += "/";
-    }
-    return result;
+	// Find common segment (e.g., "upload")
+	size_t matchIndex = 0;
+	bool found = false;
+	for (size_t i = 0; i < requestComponents.size(); i++)
+	{
+		for (size_t j = 0; j < baseComponents.size(); j++)
+		{
+			if (requestComponents[i] == baseComponents[j])
+			{
+				matchIndex = i;
+				found = true;
+				break;
+			}
+		}
+		if (found)
+			break;
+	}
+	if (!found)
+		return "";  // No common path found
+	std::string result;
+	for (size_t i = matchIndex + 1; i < requestComponents.size(); i++)
+	{
+		result += requestComponents[i];
+		if (i < requestComponents.size() - 1)
+			result += "/";
+	}
+	return result;
 }

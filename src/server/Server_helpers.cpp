@@ -63,95 +63,89 @@ void Server::removeAddedServerNamesFromHosts()
 
 // Normalizes a given path, ensuring it starts with '/' and removing trailing slashes
 std::string Server::normalizePath(const std::string& path) {
-    std::string normalized;
-    if (path.empty()) {
-        return "/";
-    }
-
-    if (path[0] != '/') {
-        normalized = "/" + path;
-    } else {
-        normalized = path;
-    }
-
-    std::string result;
-    bool lastWasSlash = false;
-
-    for (char c : normalized) {
-        if (c == '/') {
-            if (!lastWasSlash) {
-                result += c;
-            }
-            lastWasSlash = true;
-        } else {
-            result += c;
-            lastWasSlash = false;
-        }
-    }
-
-    return result;
-}
-
-bool isPathMatch(const std::vector<std::string>& requestSegments,
-                        const std::vector<std::string>& locationSegments) {
-    // Location path cannot be longer than request path
-    if (locationSegments.size() > requestSegments.size()) {
-        return false;
-    }
-
-    // Compare each segment
-    for (size_t i = 0; i < locationSegments.size(); ++i) {
-        if (locationSegments[i] != requestSegments[i]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-// Matches a request path to a location block
-bool Server::matchLoc(const std::vector<Location>& locations, const std::string& rawPath, Location& bestMatch) {
-    // Normalize the request path
-	Logger::errorLog("rawPath: " + rawPath);
-    std::string normalizedPath = normalizePath(rawPath);
-	Logger::errorLog("normalizedPath: " + normalizedPath);
-
-    // Split path into segments
-    std::vector<std::string> requestSegments = splitPathLoc(normalizedPath);
-
-    size_t bestMatchLength = 0;
-    bool foundMatch = false;
-
-    // Iterate through all locations to find best match
-    for (const Location& loc : locations) {
-        std::vector<std::string> locationSegments = splitPathLoc(loc.path);
-
-		for (auto it : locationSegments)
-		{
-			Logger::errorLog("locationSegment: " + it);
-		}
-		for (auto blub : requestSegments)
-		{
-			Logger::errorLog("requestSegment: " + blub);
-		}
-        // Check if this location is a potential match
-        if (isPathMatch(requestSegments, locationSegments)) {
-            // If we found a match that's longer than our current best match
-            if (locationSegments.size() > bestMatchLength) {
-                bestMatchLength = locationSegments.size();
-                bestMatch = loc;
-                foundMatch = true;
-            }
-        }
-    }
-
-	if (foundMatch == false )
-	{
-		Logger::errorLog("mamamamam: ");
+	if (path.empty()) {
+		return "/";
 	}
-    return foundMatch;
+
+	std::string normalized = (path[0] != '/') ? "/" + path : path;
+	std::string result;
+	bool lastWasSlash = false;
+
+	for (char c : normalized) {
+		if (c == '/') {
+			if (!lastWasSlash) {
+				result += c;
+			}
+			lastWasSlash = true;
+		} else {
+			result += c;
+			lastWasSlash = false;
+		}
+	}
+
+	// Ensure path ends without trailing slash unless it's root
+	if (result.length() > 1 && result.back() == '/') {
+		result.pop_back();
+	}
+
+	return result;
 }
 
-// Concatenates a root path with a sub-path, ensuring correct path separators
+bool isPathMatch(const std::vector<std::string>& requestSegments, const std::vector<std::string>& locationSegments) {
+	if (locationSegments.empty()) {
+		return true;
+	}
+
+	if (locationSegments.size() > requestSegments.size()) {
+		return false;
+	}
+
+	for (size_t i = 0; i < locationSegments.size(); ++i) {
+		if (locationSegments[i] != requestSegments[i]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Server::matchLoc(const std::vector<Location>& locations, const std::string& rawPath, Location& bestMatch) {
+	std::string normalizedPath = normalizePath(rawPath);
+
+	std::vector<std::string> requestSegments = splitPathLoc(normalizedPath);
+
+	size_t bestMatchLength = 0;
+	bool foundMatch = false;
+	const Location* rootLocation = nullptr;
+
+	for (const Location& loc : locations) {
+		std::vector<std::string> locationSegments = splitPathLoc(loc.path);
+
+		if (loc.path == "/" || loc.path.empty()) {
+			rootLocation = &loc;
+		}
+
+		if (isPathMatch(requestSegments, locationSegments)) {
+			if (locationSegments.size() > bestMatchLength) {
+				bestMatchLength = locationSegments.size();
+				bestMatch = loc;
+				foundMatch = true;
+			}
+		}
+	}
+
+	if (!foundMatch && rootLocation != nullptr) {
+		bestMatch = *rootLocation;
+		foundMatch = true;
+	}
+
+	if (!foundMatch) {
+		Logger::errorLog("No matching location found, including root location!");
+	}
+
+	return foundMatch;
+}
+
 std::string Server::concatenatePath(const std::string& root, const std::string& path)
 {
 	if (root.empty())
@@ -184,6 +178,7 @@ std::string Server::requestTypeToString(RequestType type)
 		case RequestType::INITIAL: return "INITIAL";
 		case RequestType::STATIC: return "STATIC";
 		case RequestType::CGI: return "CGI";
+		case RequestType::REDIRECT: return "REDIRECT";
 		case RequestType::ERROR: return "ERROR";
 		default: return "UNKNOWN";
 	}
@@ -220,42 +215,41 @@ bool Server::dirWritable(const std::string& path)
 // Verifies access permissions for a given path based on the request context
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
-    struct stat path_stat;
-        Logger::errorLog("checkAccessRights");
-    if (stat(path.c_str(), &path_stat) != 0)
-        return updateErrorStatus(ctx, 404, "Not found");
+	struct stat path_stat;
+	if (stat(path.c_str(), &path_stat) != 0)
+		return updateErrorStatus(ctx, 404, "Not found");
 
-    if (S_ISDIR(path_stat.st_mode))
+	if (S_ISDIR(path_stat.st_mode))
 	{
-        if (ctx.location_inited && ctx.location.autoindex == "on")
+		if (ctx.location_inited && ctx.location.autoindex == "on")
 		{
-            std::string dirPath = getDirectory(path) + '/';
-            if (!dirReadable(dirPath))
-                return updateErrorStatus(ctx, 403, "Forbidden");
-            ctx.doAutoIndex = dirPath;
-            ctx.type = STATIC;
-            return true;
-        }
+			std::string dirPath = getDirectory(path) + '/';
+			if (!dirReadable(dirPath))
+				return updateErrorStatus(ctx, 403, "Forbidden");
+			ctx.doAutoIndex = dirPath;
+			ctx.type = STATIC;
+			return true;
+		}
 		else
-            return updateErrorStatus(ctx, 403, "Forbidden");
-    }
+			return updateErrorStatus(ctx, 403, "Forbidden");
+	}
 
-    if (!fileReadable(path))
-        return updateErrorStatus(ctx, 403, "Forbidden");
+	if (!fileReadable(path))
+		return updateErrorStatus(ctx, 403, "Forbidden");
 
-    if (ctx.type == CGI && !fileExecutable(path))
-        return updateErrorStatus(ctx, 500, "CGI script not executable");
+	if (ctx.type == CGI && !fileExecutable(path))
+		return updateErrorStatus(ctx, 500, "CGI script not executable");
 
-    if (ctx.method == "POST")
+	if (ctx.method == "POST")
 	{
-        std::string uploadDir = getDirectory(path);
-        if (!dirWritable(uploadDir))
-            return updateErrorStatus(ctx, 403, "Forbidden");
-    }
+		std::string uploadDir = getDirectory(path);
+		if (!dirWritable(uploadDir))
+			return updateErrorStatus(ctx, 403, "Forbidden");
+	}
 
-    if (path.length() > 4096)
-        return updateErrorStatus(ctx, 414, "URI Too Long");
-    return true;
+	if (path.length() > 4096)
+		return updateErrorStatus(ctx, 414, "URI Too Long");
+	return true;
 }
 
 // Determines whether the requested HTTP method is allowed in the location block
@@ -300,51 +294,56 @@ bool detectMultipartFormData(Context &ctx)
 // Approves a file extension based on CGI configuration or static file handling rules
 std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 {
-    std::string approvedIndex;
+	std::string approvedIndex;
 
-    size_t dot_pos = path_to_check.find_last_of('.');
+	size_t dot_pos = path_to_check.find_last_of('.');
 
-    if (dot_pos != std::string::npos)
-    {
-        std::string extension = path_to_check.substr(dot_pos + 1);
-        if (ctx.type != CGI || (extension == ctx.location.cgi_filetype && ctx.type == CGI))
-        {
-            approvedIndex = path_to_check;
-        }
-        else
-        {
-			updateErrorStatus(ctx, 500, "Internal Server Error");
-            return "";
-        }
-    }
-    else if (ctx.type == CGI && ctx.method != "POST")
-    {
-        updateErrorStatus(ctx, 400, "Bad Request: No file extension found");
-        return "";
-    }
-    else if (!ctx.location.return_url.empty())
+	if (dot_pos != std::string::npos)
 	{
-        return path_to_check;
-    }
-    else
-	{
-		for (const auto &conf : configData)
+		std::string extension = path_to_check.substr(dot_pos + 1);
+		if (ctx.type != CGI || (extension == ctx.location.cgi_filetype && ctx.type == CGI))
 		{
-			if (conf.server_fd == ctx.server_fd)
-				printServerBlock((ServerBlock&)conf);
+			approvedIndex = path_to_check;
 		}
-		Logger::errorLog("approveExtention " + ctx.method + " " + path_to_check + " " + ctx.location.return_url);
-        updateErrorStatus(ctx, 404, "Not found");
-        return "";
-    }
-    return approvedIndex;
+		else
+		{
+			updateErrorStatus(ctx, 500, "Internal Server Error");
+			return "";
+		}
+	}
+	else if (ctx.type == CGI && ctx.method != "POST")
+	{
+		updateErrorStatus(ctx, 400, "Bad Request: No file extension found");
+		return "";
+	}
+	else if (!ctx.location.return_url.empty() && ctx.method == "GET")
+	{
+		auto it = std::find(ctx.blocks_location_paths.begin(),
+						ctx.blocks_location_paths.end(),
+						ctx.location.return_url);
+		if (it != ctx.blocks_location_paths.end()) {
+	Logger::errorLog("hadnled as redirect");
+			ctx.type = REDIRECT;
+		}
+		return path_to_check;
+	}
+	else if (path_to_check == ctx.location.upload_store && ctx.method != "POST")
+	{
+		return path_to_check;
+	}
+	else
+	{
+		updateErrorStatus(ctx, 404, "Not found sd sd");
+		return "";
+	}
+	return approvedIndex;
 }
 
 // Resets the context, clearing request data and restoring initial values
 bool Server::resetContext(Context& ctx)
 {
-    ctx.cookies.clear();
-    ctx.setCookies.clear();
+	ctx.cookies.clear();
+	ctx.setCookies.clear();
 	ctx.input_buffer.clear();
 	ctx.headers.clear();
 	ctx.method.clear();
@@ -363,13 +362,20 @@ bool Server::resetContext(Context& ctx)
 	return true;
 }
 
+std::vector<std::string> Server::getBlocksLocsPath(const std::vector<Location>& locations) {
+	std::vector<std::string> locPaths;
+	for (const Location& loc : locations) {
+		locPaths.push_back(loc.path);
+	}
+	return (locPaths);
+}
+
 // Determines the request type based on the server configuration and updates the context
 bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 {
 	ServerBlock* conf = nullptr;
 	for (auto& config : configs)
 	{
-			Logger::errorLog("asdasdadada ");
 		if (config.server_fd == ctx.server_fd)
 		{
 			conf = &config;
@@ -379,18 +385,15 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 
 	if (!conf)
 		return updateErrorStatus(ctx, 500, "Internal Server Error");
-	Logger::errorLog(ctx.path);
 	Location bestMatch;
 	if (matchLoc(conf->locations, ctx.path, bestMatch)) {
-		Logger::errorLog("in match: ");
-		Logger::errorLog(bestMatch.return_url);
-		Logger::errorLog(bestMatch.return_code);
 		ctx.port = conf->port;
 		ctx.name = conf->name;
 		ctx.root = conf->root;
 		ctx.index = conf->index;
 		ctx.errorPages = conf->errorPages;
 		ctx.timeout = conf->timeout;
+		ctx.blocks_location_paths = getBlocksLocsPath(conf->locations);
 		ctx.location = bestMatch;
 		ctx.location_inited = true;
 		if (!isMethodAllowed(ctx))

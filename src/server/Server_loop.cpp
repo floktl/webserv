@@ -153,19 +153,27 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 	if (!handleParsingPhase(ctx, configs))
 		return false;
 
-    if (ctx.headers_complete) {
-        for (const auto& cookie : ctx.cookies) {
-            bool exists = false;
-            for (const auto& setCookie : ctx.setCookies) {
-                if (setCookie.first == cookie.first) {
-                    exists = true;
-                    break;
-                }
-            }
-            if (!exists)
-                ctx.setCookies.push_back(cookie);
-        }
-    }
+
+	if (ctx.headers_complete) {
+		bool hasExistingSession = false;
+		for (const auto& cookie : ctx.cookies) {
+			if (cookie.first == "WEBSERV_SESSION") {
+				hasExistingSession = true;
+				break;
+			}
+		}
+
+		if (!hasExistingSession) {
+			std::stringstream sessionId;
+			sessionId << "s" << ctx.server_fd
+					<< "c" << ctx.client_fd
+					<< "t" << std::chrono::duration_cast<std::chrono::milliseconds>(
+							ctx.last_activity.time_since_epoch()).count();
+
+			ctx.setCookies.emplace_back("WEBSERV_SESSION", sessionId.str());
+		}
+	}
+
 
 	if (ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
 		ctx.req.current_body_length < ctx.req.expected_body_length)
@@ -189,6 +197,9 @@ bool Server::handleWrite(Context& ctx)
 			break;
 		case STATIC:
 			result = staticHandler(ctx);
+			break;
+		case REDIRECT:
+			result = redirectAction(ctx);
 			break;
 		case CGI:
 			result = true;
