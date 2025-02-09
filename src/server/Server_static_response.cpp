@@ -1,5 +1,6 @@
 #include "Server.hpp"
 
+// Builds an HTTP response for serving static files, setting content type and response headers
 void Server::buildStaticResponse(Context &ctx)
 {
 	std::string fullPath = ctx.approved_req_path;
@@ -42,6 +43,30 @@ void Server::buildStaticResponse(Context &ctx)
 	resetContext(ctx);
 }
 
+// Builds an auto-index (directory listing) response when no index file is found
+bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
+{
+    std::vector<DirEntry> entries = getDirectoryEntries(ctx);
+    if (entries.empty())
+        return updateErrorStatus(ctx, 500, "Internal Server Error");
+
+    std::stringstream content;
+    generateAutoIndexHeader(ctx, content);
+    generateAutoIndexBody(entries, content);
+
+    content << "    </div>\n" << "</body>\n" << "</html>\n";
+
+    std::string content_str = content.str();
+
+    *response << "HTTP/1.1 200 OK\r\n"
+				<< "Content-Type: text/html; charset=UTF-8\r\n"
+				<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n"
+				<< "Content-Length: " << content_str.length() << "\r\n\r\n"
+				<< content_str;
+    return true;
+}
+
+// Queues an HTTP response in the output buffer and updates epoll events for writing
 bool Server::queueResponse(Context& ctx, const std::string& response)
 {
 	ctx.output_buffer += response;
@@ -49,14 +74,12 @@ bool Server::queueResponse(Context& ctx, const std::string& response)
 	return true;
 }
 
-bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
+// Retrieves directory entries, filtering and sorting them for directory listing
+std::vector<DirEntry> Server::getDirectoryEntries(Context& ctx)
 {
 	DIR* dir = opendir(ctx.doAutoIndex.c_str());
 	if (!dir)
-	{
-		return updateErrorStatus(ctx, 500, "Internal Server Error");
-	}
-
+		return {};
 	std::vector<DirEntry> entries;
 	struct dirent* dir_entry;
 	while ((dir_entry = readdir(dir)) != NULL)
@@ -64,25 +87,21 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 		std::string name = dir_entry->d_name;
 		if (name == "." || (name == ".." && ctx.location_path == "/"))
 			continue;
-
 		if (name == ".." && ctx.location_path != "/")
 		{
 			entries.push_back({"..", true, 0, 0});
 			continue;
 		}
-
 		std::string fullPath = ctx.doAutoIndex;
 		if (fullPath.back() != '/')
 			fullPath += '/';
 		fullPath += name;
-
 		struct stat statbuf;
 		if (stat(fullPath.c_str(), &statbuf) != 0)
 		{
 			Logger::errorLog("stat failed for path: " + fullPath + " with error: " + std::string(strerror(errno)));
 			continue;
 		}
-
 		entries.push_back({
 			name,
 			S_ISDIR(statbuf.st_mode),
@@ -91,7 +110,6 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 		});
 	}
 	closedir(dir);
-
 	std::sort(entries.begin(), entries.end(),
 		[](const DirEntry& a, const DirEntry& b) -> bool {
 			if (a.name == "..") return true;
@@ -99,120 +117,114 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 			if (a.isDir != b.isDir) return a.isDir > b.isDir;
 			return strcasecmp(a.name.c_str(), b.name.c_str()) < 0;
 		});
+	return entries;
+}
 
-	std::stringstream content;
-	content << "<!DOCTYPE html>\n"
-			<< "<html>\n"
-			<< "<head>\n"
-			<< "    <meta charset=\"UTF-8\">\n"
-			<< "    <title>Index of " << ctx.location_path << "</title>\n"
-			<< "    <style>\n"
-			<< "        body {\n"
-			<< "            font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;\n"
-			<< "            max-width: 1200px;\n"
-			<< "            margin: 0 auto;\n"
-			<< "            padding: 20px;\n"
-			<< "            color: #333;\n"
-			<< "            user-select: none;\n"
-			<< "        }\n"
-			<< "        h1 {\n"
-			<< "            border-bottom: 1px solid #eee;\n"
-			<< "            padding-bottom: 10px;\n"
-			<< "            color: #444;\n"
-			<< "        }\n"
-			<< "        .listing {\n"
-			<< "            display: table;\n"
-			<< "            width: 100%;\n"
-			<< "            border-collapse: collapse;\n"
-			<< "        }\n"
-			<< "        .entry {\n"
-			<< "            display: table-row;\n"
-			<< "        }\n"
-			<< "        .entry:hover {\n"
-			<< "            background-color: #f5f5f5;\n"
-			<< "        }\n"
-			<< "        .entry > div {\n"
-			<< "            display: table-cell;\n"
-			<< "            padding: 8px;\n"
-			<< "            border-bottom: 1px solid #eee;\n"
-			<< "        }\n"
-			<< "        .name { width: 50%; }\n"
-			<< "        .modified {\n"
-			<< "            width: 30%;\n"
-			<< "            color: #666;\n"
-			<< "        }\n"
-			<< "        .size {\n"
-			<< "            width: 20%;\n"
-			<< "            text-align: right;\n"
-			<< "            color: #666;\n"
-			<< "        }\n"
-			<< "        a {\n"
-			<< "            color: #0366d6;\n"
-			<< "            text-decoration: none;\n"
-			<< "        }\n"
-			<< "        a:hover { text-decoration: underline; }\n"
-			<< "        .directory { color: #6f42c1; }\n"
-			<< "    </style>\n"
-			<< "</head>\n"
-			<< "<body>\n"
-			<< "    <h1>Index of " << ctx.location_path << "</h1>\n"
-			<< "    <div class=\"listing\">\n";
+// Generates the HTML header and styling for the auto-index response
+void Server::generateAutoIndexHeader(Context& ctx, std::stringstream& content)
+{
+    content << "<!DOCTYPE html>\n"
+            << "<html>\n"
+            << "<head>\n"
+            << "    <meta charset=\"UTF-8\">\n"
+            << "    <title>Index of " << ctx.location_path << "</title>\n"
+            << "    <style>\n"
+            << "        body {\n"
+            << "            font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;\n"
+            << "            max-width: 1200px;\n"
+            << "            margin: 0 auto;\n"
+            << "            padding: 20px;\n"
+            << "            color: #333;\n"
+            << "            user-select: none;\n"
+            << "        }\n"
+            << "        h1 {\n"
+            << "            border-bottom: 1px solid #eee;\n"
+            << "            padding-bottom: 10px;\n"
+            << "            color: #444;\n"
+            << "        }\n"
+            << "        .listing {\n"
+            << "            display: table;\n"
+            << "            width: 100%;\n"
+            << "            border-collapse: collapse;\n"
+            << "        }\n"
+            << "        .entry {\n"
+            << "            display: table-row;\n"
+            << "        }\n"
+            << "        .entry:hover {\n"
+            << "            background-color: #f5f5f5;\n"
+            << "        }\n"
+            << "        .entry > div {\n"
+            << "            display: table-cell;\n"
+            << "            padding: 8px;\n"
+            << "            border-bottom: 1px solid #eee;\n"
+            << "        }\n"
+            << "        .name { width: 50%; }\n"
+            << "        .modified {\n"
+            << "            width: 30%;\n"
+            << "            color: #666;\n"
+            << "        }\n"
+            << "        .size {\n"
+            << "            width: 20%;\n"
+            << "            text-align: right;\n"
+            << "            color: #666;\n"
+            << "        }\n"
+            << "        a {\n"
+            << "            color: #0366d6;\n"
+            << "            text-decoration: none;\n"
+            << "        }\n"
+            << "        a:hover { text-decoration: underline; }\n"
+            << "        .directory { color: #6f42c1; }\n"
+            << "    </style>\n"
+            << "</head>\n"
+            << "<body>\n"
+            << "    <h1>Index of " << ctx.location_path << "</h1>\n"
+            << "    <div class=\"listing\">\n";
+}
 
-	for (const auto& entry : entries)
-	{
-		std::string displayName = entry.name;
-		std::string className = entry.isDir ? "directory" : "";
+// Generates the HTML body containing directory entries for the auto-index response
+void Server::generateAutoIndexBody(const std::vector<DirEntry>& entries, std::stringstream& content)
+{
+    for (const auto& entry : entries)
+    {
+        std::string displayName = entry.name;
+        std::string className = entry.isDir ? "directory" : "";
 
-		char timeStr[50];
-		if (entry.name == "..")
-		{
-			strcpy(timeStr, "-");
-		}
-		else
-		{
-			struct tm* tm = localtime(&entry.mtime);
-			strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M", tm);
-		}
+        char timeStr[50];
+        if (entry.name == "..")
+        {
+            std::strcpy(timeStr, "-");
+        }
+        else
+        {
+            struct tm* tm = localtime(&entry.mtime);
+            strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M", tm);
+        }
 
-		std::string sizeStr;
-		if (entry.isDir || entry.name == "..")
-		{
-			sizeStr = "-";
-		}
-		else
-		{
-			off_t size = entry.size;
-			if (size < 1024)
-				sizeStr = std::to_string(size) + "B";
-			else if (size < 1024 * 1024)
-				sizeStr = std::to_string(size / 1024) + "K";
-			else if (size < 1024 * 1024 * 1024)
-				sizeStr = std::to_string(size / (1024 * 1024)) + "M";
-			else
-				sizeStr = std::to_string(size / (1024 * 1024 * 1024)) + "G";
-		}
+        std::string sizeStr;
+        if (entry.isDir || entry.name == "..")
+        {
+            sizeStr = "-";
+        }
+        else
+        {
+            off_t size = entry.size;
+            if (size < 1024)
+                sizeStr = std::to_string(size) + "B";
+            else if (size < 1024 * 1024)
+                sizeStr = std::to_string(size / 1024) + "K";
+            else if (size < 1024 * 1024 * 1024)
+                sizeStr = std::to_string(size / (1024 * 1024)) + "M";
+            else
+                sizeStr = std::to_string(size / (1024 * 1024 * 1024)) + "G";
+        }
 
-		content << "        <div class=\"entry\">\n"
-				<< "            <div class=\"name\">"
-				<< "<a href=\"" << (entry.name == ".." ? "../" : entry.name + (entry.isDir ? "/" : "")) << "\" "
-				<< "class=\"" << className << "\">"
-				<< displayName << (entry.isDir ? "/" : "") << "</a></div>\n"
-				<< "            <div class=\"modified\">" << timeStr << "</div>\n"
-				<< "            <div class=\"size\">" << sizeStr << "</div>\n"
-				<< "        </div>\n";
-	}
-
-	content << "    </div>\n"
-			<< "</body>\n"
-			<< "</html>\n";
-
-	std::string content_str = content.str();
-
-	*response << "HTTP/1.1 200 OK\r\n"
-			<< "Content-Type: text/html; charset=UTF-8\r\n"
-			<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n"
-			<< "Content-Length: " << content_str.length() << "\r\n\r\n"
-			<< content_str;
-
-	return true;
+        content << "        <div class=\"entry\">\n"
+                << "            <div class=\"name\">"
+                << "<a href=\"" << (entry.name == ".." ? "../" : entry.name + (entry.isDir ? "/" : ""))
+				<< "\" " << "class=\"" << className << "\">"
+                << displayName << (entry.isDir ? "/" : "") << "</a></div>\n"
+                << "            <div class=\"modified\">" << timeStr << "</div>\n"
+                << "            <div class=\"size\">" << sizeStr << "</div>\n"
+                << "        </div>\n";
+    }
 }

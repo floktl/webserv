@@ -1,5 +1,6 @@
 #include "Server.hpp"
 
+// Handles file uploads by extracting filename, validating content boundaries, and saving the file
 bool Server::handleStaticUpload(Context& ctx)
 {
 	std::regex filenameRegex(R"(Content-Disposition:.*filename=\"([^\"]+)\")");
@@ -21,10 +22,7 @@ bool Server::handleStaticUpload(Context& ctx)
 
 	size_t contentEnd = ctx.req.received_body.rfind("\r\n--");
 	if (contentEnd == std::string::npos)
-	{
-		Logger::errorLog("[Upload] ERROR: Failed to find content end boundary");
-		return false;
-	}
+		return (Logger::errorLog("[Upload] ERROR: Failed to find content end boundary"));
 
 	std::string fileContent = ctx.req.received_body.substr(contentStart, contentEnd - contentStart);
 	std::string uploadPath = concatenatePath(ctx.location_path, ctx.location.upload_store);
@@ -34,10 +32,7 @@ bool Server::handleStaticUpload(Context& ctx)
 
 	std::ofstream outputFile(filePath, std::ios::binary);
 	if (!outputFile)
-	{
-		Logger::errorLog("[Upload] ERROR: Failed to open output file: " + filePath);
-		return false;
-	}
+		return (Logger::errorLog("[Upload] ERROR: Failed to open output file: " + filePath));
 	outputFile.write(fileContent.c_str(), fileContent.size());
 	outputFile.close();
 	if (outputFile)
@@ -46,6 +41,7 @@ bool Server::handleStaticUpload(Context& ctx)
 	return false;
 }
 
+// Handles DELETE requests by verifying file permissions and removing the requested file
 bool Server::deleteHandler(Context &ctx)
 {
 
@@ -67,21 +63,23 @@ bool Server::deleteHandler(Context &ctx)
 	return true;
 }
 
+// Splits a given path into components, removing empty segments
+std::vector<std::string> splitPath(const std::string& path)
+{
+    std::vector<std::string> components;
+    std::stringstream ss(path);
+    std::string item;
+    while (std::getline(ss, item, '/'))
+    {
+        if (!item.empty())
+            components.push_back(item);
+    }
+    return components;
+}
+
+// Merges request and base paths, extracting the relative filename for further processing
 std::string mergePathsToFilename(const std::string& requestPath, const std::string& basePath)
 {
-    // Helper function to split path into components
-    auto splitPath = [](const std::string& path) -> std::vector<std::string> {
-        std::vector<std::string> components;
-        std::stringstream ss(path);
-        std::string item;
-        while (std::getline(ss, item, '/'))
-		{
-            if (!item.empty())
-                components.push_back(item);
-        }
-        return components;
-    };
-
     auto requestComponents = splitPath(requestPath);
     auto baseComponents = splitPath(basePath);
 
@@ -89,26 +87,24 @@ std::string mergePathsToFilename(const std::string& requestPath, const std::stri
     size_t matchIndex = 0;
     bool found = false;
     for (size_t i = 0; i < requestComponents.size(); i++)
-	{
+    {
         for (size_t j = 0; j < baseComponents.size(); j++)
-		{
+        {
             if (requestComponents[i] == baseComponents[j])
-			{
+            {
                 matchIndex = i;
                 found = true;
                 break;
             }
         }
-        if (found) break;
+        if (found)
+            break;
     }
-
     if (!found)
         return "";  // No common path found
-
-    // Extract the remaining path after the match
     std::string result;
     for (size_t i = matchIndex + 1; i < requestComponents.size(); i++)
-	{
+    {
         result += requestComponents[i];
         if (i < requestComponents.size() - 1)
             result += "/";

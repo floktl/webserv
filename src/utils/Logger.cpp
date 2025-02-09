@@ -51,7 +51,7 @@ void Logger::file(const std::string& message) {
 	}
 }
 
-void Logger::errorLog(const std::string& message)
+bool Logger::errorLog(const std::string& message)
 {
 	try
 	{
@@ -73,10 +73,12 @@ void Logger::errorLog(const std::string& message)
 
 		// Terminal logging with red "[ERROR]"
 		std::cerr << ss.str() << " " << RED << "[ERROR]" << RESET << " " << message << std::endl;
+		return false;
 
 	} catch (const std::exception& e) {
 		// Fallback in case of an error
 		std::cerr << RED << "[ERROR]" << RESET << " Logging failed: " << e.what() << std::endl;
+		return false;
 	}
 }
 

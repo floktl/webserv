@@ -113,6 +113,12 @@ class Server
 		bool handleRead(Context& ctx, std::vector<ServerBlock>& configs);
 		void parseNewCookie(Context& ctx, std::string value);
 		void parseCookies(Context& ctx, std::string value);
+
+		std::vector<DirEntry> getDirectoryEntries(Context& ctx);
+		void generateAutoIndexBody(const std::vector<DirEntry>& entries, std::stringstream& content);
+		void generateAutoIndexHeader(Context& ctx, std::stringstream& content);
+		bool parseHeaderFields(Context& ctx, std::istringstream& stream);
+		bool parseRequestLine(Context& ctx, std::istringstream& stream);
 };
 
 std::string extractHostname(const std::string& header);

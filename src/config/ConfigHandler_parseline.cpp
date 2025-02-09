@@ -7,8 +7,6 @@ bool ConfigHandler::parseErr(const std::string &str)
 	return (Logger::error(str));
 }
 
-
-
 // Handles the start of a server block, ensuring no nesting
 bool ConfigHandler::handleServerBlock(void)
 {

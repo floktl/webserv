@@ -15,7 +15,8 @@ bool ConfigHandler::validateErrorPages()
 		ServerBlock& conf = registeredServerConfs[j];
 		std::map<int, std::string> errorPagesToValidate = conf.errorPages;
 
-		for (std::map<int, std::string>::const_iterator it = errorPagesToValidate.begin(); it != errorPagesToValidate.end(); ++it)
+		for (std::map<int, std::string>::const_iterator it = errorPagesToValidate.begin();
+			it != errorPagesToValidate.end(); ++it)
 		{
 			int code = it->first;
 			std::string path = it->second;

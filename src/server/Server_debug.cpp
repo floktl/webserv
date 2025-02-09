@@ -1,5 +1,6 @@
 #include "Server.hpp"
 
+// Logs detailed context information, including FDs, request type, headers, and activity timestamp
 void Server::logContext(const Context& ctx, const std::string& event)
 {
 	std::string log = "Context [" + event + "]:\n";
@@ -44,6 +45,7 @@ void Server::logContext(const Context& ctx, const std::string& event)
 	Logger::file(log);
 }
 
+// Logs active file descriptors in the request body map
 void Server::logRequestBodyMapFDs()
 {
 	if (globalFDS.context_map.empty())
@@ -54,6 +56,7 @@ void Server::logRequestBodyMapFDs()
 		log += std::to_string(pair.first) + " ";
 }
 
+// Logs server configuration details, including ports, root paths, timeouts, and error pages
 void log_server_configs(const std::vector<ServerBlock>& configs)
 {
     Logger::file("Server Configurations:");
@@ -109,6 +112,7 @@ void log_server_configs(const std::vector<ServerBlock>& configs)
     Logger::file("]\n");
 }
 
+// Returns a string description of an epoll event based on its event flags
 std::string getEventDescription(uint32_t ev)
 {
     std::ostringstream description;
@@ -138,6 +142,7 @@ std::string getEventDescription(uint32_t ev)
     return result.empty() ? "UNKNOWN EVENT" : result;
 }
 
+// Logs global file descriptors, including epoll FD and client-to-server FD mappings
 void log_global_fds(const GlobalFDS& fds)
 {
 	Logger::file("GlobalFDS clFD_to_svFD_map:");
@@ -149,4 +154,95 @@ void log_global_fds(const GlobalFDS& fds)
 	for (const auto& pair : fds.clFD_to_svFD_map)
 		Logger::file("   client_fd: " + std::to_string(pair.first) + " -> server_fd: " + std::to_string(pair.second));
 	Logger::file("]\n");
+}
+
+// Prints server block details such as port, server FD, root, index, and error pages
+void printServerBlock(ServerBlock& serverBlock)
+{
+	std::cout << "---- ServerBlock Information ----" << std::endl;
+
+	std::cout << "Port: " << serverBlock.port << std::endl;
+	std::cout << "Server FD: " << serverBlock.server_fd << std::endl;
+	std::cout << "Name: " << serverBlock.name << std::endl;
+	std::cout << "Root: " << serverBlock.root << std::endl;
+	std::cout << "Index: " << serverBlock.index << std::endl;
+	std::cout << "Client Max Body Size: " << serverBlock.client_max_body_size << std::endl;
+
+	std::cout << "Error Pages:" << std::endl;
+	for (std::map<int, std::string>::const_iterator it = serverBlock.errorPages.begin();
+		it != serverBlock.errorPages.end(); ++it)
+	{
+		std::cout << "  Error Code: " << it->first << ", Page: " << it->second << std::endl;
+	}
+
+	std::cout << "Locations:" << std::endl;
+	for (size_t i = 0; i < serverBlock.locations.size(); ++i)
+	{
+		std::cout << "  Location " << i + 1 << ":" << std::endl;
+		std::cout << "    (Add Location details here)" << std::endl;
+	}
+
+	std::cout << "---------------------------------" << std::endl;
+}
+
+// Prints request body information, including client FD, CGI state, request and response buffers
+void printRequestBody(const Context& ctx)
+{
+	std::cout << "---- RequestBody Information ----" << std::endl;
+	std::cout << "Client FD: " << ctx.client_fd << std::endl;
+	std::cout << "CGI Input FD: " << ctx.req.cgi_in_fd << std::endl;
+	std::cout << "CGI Output FD: " << ctx.req.cgi_out_fd << std::endl;
+	std::cout << "CGI PID: " << ctx.req.cgi_pid << std::endl;
+	std::cout << "CGI Done: " << (ctx.req.cgi_done ? "true" : "false") << std::endl;
+	std::cout << "State: ";
+	switch (ctx.req.state)
+	{
+	case RequestBody::STATE_READING_REQUEST:
+		std::cout << "STATE_READING_REQUEST";
+		break;
+	case RequestBody::STATE_PREPARE_CGI:
+		std::cout << "STATE_PREPARE_CGI";
+		break;
+	case RequestBody::STATE_CGI_RUNNING:
+		std::cout << "STATE_CGI_RUNNING";
+		break;
+	case RequestBody::STATE_SENDING_RESPONSE:
+		std::cout << "STATE_SENDING_RESPONSE";
+		break;
+	default:
+		std::cout << "UNKNOWN";
+		break;
+	}
+	std::cout << std::endl;
+	std::cout << "Request Buffer Size: " << ctx.req.request_buffer.size() << std::endl;
+	if (!ctx.req.request_buffer.empty())
+	{
+		std::cout << "Request Buffer Content (first 50 chars): "
+			<< std::string(ctx.req.request_buffer.begin(),
+			ctx.req.request_buffer.end())
+			<< std::endl;
+	}
+	std::cout << "Response Buffer Size: " << ctx.req.response_buffer.size() << std::endl;
+	if (!ctx.req.response_buffer.empty())
+	{
+		std::cout << "Response Buffer Content (first 50 chars): "
+			<< std::string(ctx.req.response_buffer.begin(), ctx.req.response_buffer.end())
+			<< std::endl;
+	}
+	std::cout << "CGI Output Buffer Size: " << ctx.req.cgi_output_buffer.size() << std::endl;
+	if (!ctx.req.cgi_output_buffer.empty())
+	{
+		std::cout << "CGI Output Buffer Content (first 50 chars): "
+			<< std::string(ctx.req.cgi_output_buffer.begin(), ctx.req.cgi_output_buffer.end())
+			<< std::endl;
+	}
+	if (ctx.req.associated_conf)
+	{
+		std::cout << "Associated ServerBlock:" << std::endl;
+		printServerBlock(*ctx.req.associated_conf);
+	}
+	else
+		std::cout << "Associated ServerBlock: NULL" << std::endl;
+	std::cout << "Requested Path: " << ctx.req.requested_path << std::endl;
+	std::cout << "----------------------------------" << std::endl;
 }

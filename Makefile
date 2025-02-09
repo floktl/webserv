@@ -31,13 +31,21 @@ $(X) 🐑 Cookies in CGI und Session managment\n\
 $(X) 🐑 Über CGI-Scripts mit deren eigener Upload-Logik\n\
 $(X) 🐑 check how to redirect vhosts_gate into services\n\
 $(X) 🐑 The first server for a host:port will be the default for this host:port (that means it will answer to all the requests that don’t belong to an other server).\n\
-$(X) 🇫🇷 Shorten jeberles wonderful contig\n\
 $(X) 🇫🇷 Logger file in Error handle fucntion.... \n\
 $(X) 🇫🇷 Forbidden functions.\n\
 $(X) 🇫🇷 Include file \n\
 $(X) 🇫🇷 100MBe \n\
 $(X) 🇫🇷 Chunk und MB (1048576) size als CONST \n\
 
+# helper command to search for fucntions with more than 40 lines
+#find . -type f -name "*.cpp" | xargs awk '
+#/^[a-zA-Z_].*\(/ { func_name = $0; line_count = 0; }
+#/{/ { inside_func = 1; }
+#/}/ { if (inside_func) { inside_func = 0; if (line_count > 40) print FILENAME ": " func_name " - " line_count " lines"; } }
+#inside_func { line_count++; }
+
+# coiunt lines in all cpp and hpp files
+#find . -type f \( -name "*.cpp" -o -name "*.hpp" \) | xargs wc -l
 #------------------------------------------------------------------------------#
 #--------------                      GENERAL                      -------------#
 #------------------------------------------------------------------------------#
@@ -153,6 +161,13 @@ test: $(NAME)
 	@if [ -e "./webserv.log" ]; then \
 		echo "$(YELLOW)Clearing webserv.log$(X)"; \
 		> ./webserv.log; \
+	fi
+	@echo "$(GREEN)Running static analysis...$(X)"
+	@echo "$(GREEN)Total C++ Project Lines:$(X) $(shell find . -type f \( -name "*.cpp" -o -name "*.hpp" \) | xargs wc -l | tail -n 1 | awk '{print $$1}')"
+	@python3 src/Jeberle_warner.py
+	@if [ $$? -ne 0 ]; then \
+		echo "$(RED)Static analysis failed! Fix the issues before running the server.$(X)"; \
+		exit 1; \
 	fi
 	@./$(NAME) config/test.conf
 
