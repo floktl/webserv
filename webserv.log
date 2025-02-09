@@ -1,2 +1,33 @@
-[2025-02-09 11:00:28] Server Parsed size: 209715200
-[2025-02-09 11:00:28] Server Parsed size: 314572800
+[2025-02-09 14:00:54] Server Parsed size: 314572800
+[2025-02-09 14:00:54] 8===D  [ERROR] dada: /app/var/www/html
+[2025-02-09 14:00:54] 8===D  [ERROR] dada: /app/var/www/statictester/tester
+[2025-02-09 14:00:54] 8===D  [ERROR] dada: /app/var/www/statictester
+[2025-02-09 14:01:12] GET POST DELETE
+[2025-02-09 14:01:12] 1
+[2025-02-09 14:01:12] Context []:
+FDs: epoll=3 server=4 client=7
+Type: ERROR
+Method: GET
+Path: /asdasdad
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Connection: keep-alive
+Host: localhost:8080
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: Defined
+Last Activity: 22210 seconds since epoch
+[2025-02-09 14:01:12] 8===D  [ERROR] ErrorHandler: Errorcode: 404 Not found

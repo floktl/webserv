@@ -95,7 +95,11 @@ void ConfigHandler::parseArgs(int argc, char **argv, char **envp)
 		env = envp;
 		std::string filepath(argv[1]);
 		if (isConfigFile(filepath))
+		{
 			Logger::green("\nConfig " + filepath + " registered successfully!\n");
+			printRegisteredConfs(filepath, expandEnvironmentVariables("$PWD", env));
+		}
+
 	}
 	else
 		Logger::error() << "Usage: ./webserv [CONFIG_PATH]";

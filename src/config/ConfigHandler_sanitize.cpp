@@ -95,13 +95,23 @@ bool ConfigHandler::sanitizeConfData(void)
 		if (registeredServerConfs[i].port == 0)
 			return confErr("Port number is mandatory for server block " + std::to_string(i + 1));
 
+		if (registeredServerConfs[i].port == 0)
+			return confErr("Port number is mandatory for server block " + std::to_string(i + 1));
+
 		// Validate ports and ensure they are unique
-		if (!Sanitizer::sanitize_portNr(registeredServerConfs[i].port) ||
-			!usedPorts.insert(registeredServerConfs[i].port).second)
-		{
-			registeredServerConfs.erase(registeredServerConfs.begin() + i--);
-			continue;
-		}
+		if (Sanitizer::sanitize_portNr(registeredServerConfs[i].port)) {
+			if (usedPorts.find(registeredServerConfs[i].port) == usedPorts.end()) {
+				usedPorts.insert(registeredServerConfs[i].port);
+			} else {
+				Logger::magenta("Server Block " + std::to_string((i + 1))
+					+ " ignored, because Port " + std::to_string(registeredServerConfs[i].port) + " already used.");
+				registeredServerConfs.erase(registeredServerConfs.begin() + i);
+				--i;
+				continue;
+			}
+        } else {
+			return confErr("Port number is not in system range on server block " + std::to_string(i + 1));
+        }
 
 		// Validate root, server name, and index directives
 		if (!Sanitizer::sanitize_root(registeredServerConfs[i].root, expandEnvironmentVariables("$PWD", env)) ||
