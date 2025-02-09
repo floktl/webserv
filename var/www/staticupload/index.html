@@ -94,7 +94,6 @@
 				</div>
 			</div>
 
-			<!-- Cookie Management Section -->
 			<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
 				<h2 class="text-xl font-semibold text-gray-900 mb-6">Cookie Management</h2>
 
@@ -102,38 +101,79 @@
 				<div id="alertBox" class="hidden mb-4 rounded-lg p-4"></div>
 
 				<!-- Set Cookie Form -->
-				<div class="space-y-6">
+				<form action="/cookie" method="POST" class="space-y-6">
 					<div class="space-y-4">
 						<h3 class="text-lg font-medium text-gray-900">Set Cookie</h3>
 						<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div>
-								<label for="cookieName" class="block text-sm font-medium text-gray-700 mb-2">Cookie
-									Name</label>
-								<input type="text" id="cookieName" placeholder="Enter cookie name" class="block w-full rounded-lg border-gray-300 border px-4 py-2 text-gray-900
-                                    focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+								<label for="cookie_name" class="block text-sm font-medium text-gray-700 mb-2">Cookie Name</label>
+								<input type="text"
+									   id="cookie_name"
+									   name="cookie_name"
+									   placeholder="Enter cookie name"
+									   class="block w-full rounded-lg border-gray-300 border px-4 py-2 text-gray-900
+											  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
 							</div>
 							<div>
-								<label for="cookieValue" class="block text-sm font-medium text-gray-700 mb-2">Cookie
-									Value</label>
-								<input type="text" id="cookieValue" placeholder="Enter cookie value" class="block w-full rounded-lg border-gray-300 border px-4 py-2 text-gray-900
-                                    focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+								<label for="cookie_value" class="block text-sm font-medium text-gray-700 mb-2">Cookie Value</label>
+								<input type="text"
+									   id="cookie_value"
+									   name="cookie_value"
+									   placeholder="Enter cookie value"
+									   class="block w-full rounded-lg border-gray-300 border px-4 py-2 text-gray-900
+											  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
 							</div>
 						</div>
-						<button id="setCookieBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700
-                            transition-colors duration-200 text-sm font-medium">Set Cookie</button>
+						<button type="submit"
+								class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700
+									   transition-colors duration-200 text-sm font-medium">
+							Set Cookie
+						</button>
 					</div>
+				</form>
 
-					<!-- Delete Cookie Form -->
-					<div class="space-y-4 pt-6 border-t border-gray-200">
-						<h3 class="text-lg font-medium text-gray-900">Delete Cookie</h3>
-						<div>
-							<label for="deleteCookieName" class="block text-sm font-medium text-gray-700 mb-2">Cookie
-								Name</label>
-							<input type="text" id="deleteCookieName" placeholder="Enter cookie name to delete" class="block w-full rounded-lg border-gray-300 border px-4 py-2 text-gray-900
-                                focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-						</div>
-						<button id="deleteCookieBtn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700
-                            transition-colors duration-200 text-sm font-medium">Delete Cookie</button>
+				<!-- Delete Cookie Form -->
+				<form action="/cookie" method="POST" class="space-y-4 pt-6 border-t border-gray-200">
+					<h3 class="text-lg font-medium text-gray-900">Delete Cookie</h3>
+					<div>
+						<label for="delete_cookie_name" class="block text-sm font-medium text-gray-700 mb-2">Cookie Name</label>
+						<input type="text"
+							   id="delete_cookie_name"
+							   name="delete_cookie_name"
+							   placeholder="Enter cookie name to delete"
+							   class="block w-full rounded-lg border-gray-300 border px-4 py-2 text-gray-900
+									  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+					</div>
+					<input type="hidden" name="action" value="delete">
+					<button type="submit"
+							class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700
+								   transition-colors duration-200 text-sm font-medium">
+						Delete Cookie
+					</button>
+				</form>
+
+				<!-- Current Cookies Display -->
+				<div class="mt-6 pt-6 border-t border-gray-200">
+					<h3 class="text-lg font-medium text-gray-900 mb-4">Current Cookies</h3>
+					<div id="cookieList" class="text-sm text-gray-600 space-y-2">
+						<script>
+							function updateCookieList() {
+								const cookieList = document.getElementById('cookieList');
+								const cookies = document.cookie.split(';');
+
+								if (cookies.length === 0 || (cookies.length === 1 && cookies[0].trim() === '')) {
+									cookieList.innerHTML = '<p class="text-gray-500 italic">No cookies set</p>';
+									return;
+								}
+
+								cookieList.innerHTML = cookies
+									.map(cookie => cookie.trim())
+									.map(cookie => `<div class="p-2 bg-gray-50 rounded">${cookie}</div>`)
+									.join('');
+							}
+
+							updateCookieList();
+						</script>
 					</div>
 				</div>
 			</div>
@@ -209,64 +249,6 @@
 			} catch (err) {
 				console.error('Error during delete:', err);
 				showAlert(`Delete error: ${err.message}`, 'error');
-			}
-		});
-
-		// Set Cookie
-		document.getElementById('setCookieBtn').addEventListener('click', async () => {
-			const name = document.getElementById('cookieName').value;
-			const value = document.getElementById('cookieValue').value;
-
-			if (!name || !value) {
-				showAlert('Please enter both cookie name and value', 'error');
-				return;
-			}
-
-			try {
-				const response = await fetch('/', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({ name, value })
-				});
-
-				if (response.ok) {
-					showAlert('Cookie successfully set', 'success');
-					document.getElementById('cookieName').value = '';
-					document.getElementById('cookieValue').value = '';
-				} else {
-					showAlert(`Failed to set cookie: ${response.status}`, 'error');
-				}
-			} catch (err) {
-				console.error('Error setting cookie:', err);
-				showAlert(`Error setting cookie: ${err.message}`, 'error');
-			}
-		});
-
-		// Delete Cookie
-		document.getElementById('deleteCookieBtn').addEventListener('click', async () => {
-			const name = document.getElementById('deleteCookieName').value;
-
-			if (!name) {
-				showAlert('Please enter a cookie name to delete', 'error');
-				return;
-			}
-
-			try {
-				const response = await fetch(`/${name}`, {
-					method: 'DELETE'
-				});
-
-				if (response.ok) {
-					showAlert('Cookie successfully deleted', 'success');
-					document.getElementById('deleteCookieName').value = '';
-				} else {
-					showAlert(`Failed to delete cookie: ${response.status}`, 'error');
-				}
-			} catch (err) {
-				console.error('Error deleting cookie:', err);
-				showAlert(`Error deleting cookie: ${err.message}`, 'error');
 			}
 		});
 	</script>

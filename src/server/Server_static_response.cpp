@@ -1,46 +1,54 @@
 #include "Server.hpp"
 
 // Builds an HTTP response for serving static files, setting content type and response headers
-void Server::buildStaticResponse(Context &ctx)
-{
-	std::string fullPath = ctx.approved_req_path;
-	std::ifstream file(fullPath, std::ios::binary);
-	if (!file)
-	{
-		Logger::file("buildStaticResponse");
-		updateErrorStatus(ctx, 404, "Not found");
-		return;
-	}
+void Server::buildStaticResponse(Context &ctx) {
+    std::string fullPath = ctx.approved_req_path;
+    std::ifstream file(fullPath, std::ios::binary);
+        Logger::errorLog("buildStaticResponse");
+    if (!file)
+    {
+        Logger::file("buildStaticResponse");
+        updateErrorStatus(ctx, 404, "Not found");
+        return;
+    }
 
-	std::string contentType = "text/plain";
-	size_t dot_pos = fullPath.find_last_of('.');
-	if (dot_pos != std::string::npos)
-	{
-		std::string ext = fullPath.substr(dot_pos + 1);
-		if (ext == "html" || ext == "htm") contentType = "text/html";
-		else if (ext == "css") contentType = "text/css";
-		else if (ext == "js") contentType = "application/javascript";
-		else if (ext == "jpg" || ext == "jpeg") contentType = "image/jpeg";
-		else if (ext == "png") contentType = "image/png";
-		else if (ext == "gif") contentType = "image/gif";
-		else if (ext == "pdf") contentType = "application/pdf";
-		else if (ext == "json") contentType = "application/json";
-	}
+    std::string contentType = "text/plain";
+    size_t dot_pos = fullPath.find_last_of('.');
+    if (dot_pos != std::string::npos)
+    {
+        std::string ext = fullPath.substr(dot_pos + 1);
+        if (ext == "html" || ext == "htm") contentType = "text/html";
+        else if (ext == "css") contentType = "text/css";
+        else if (ext == "js") contentType = "application/javascript";
+        else if (ext == "jpg" || ext == "jpeg") contentType = "image/jpeg";
+        else if (ext == "png") contentType = "image/png";
+        else if (ext == "gif") contentType = "image/gif";
+        else if (ext == "pdf") contentType = "application/pdf";
+        else if (ext == "json") contentType = "application/json";
+    }
 
-	std::stringstream content;
-	content << file.rdbuf();
-	std::string content_str = content.str();
+    std::stringstream content;
+    content << file.rdbuf();
+    std::string content_str = content.str();
 
-	std::stringstream http_response;
-	http_response << "HTTP/1.1 200 OK\r\n"
-				<< "Content-Type: " << contentType << "\r\n"
-				<< "Content-Length: " << content_str.length() << "\r\n"
-				<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n"
-				<< "\r\n"
-				<< content_str;
+    std::stringstream http_response;
+    http_response << "HTTP/1.1 200 OK\r\n"
+                << "Content-Type: " << contentType << "\r\n"
+                << "Content-Length: " << content_str.length() << "\r\n"
+                << "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
 
-	sendHandler(ctx, http_response.str());
-	resetContext(ctx);
+    if (ctx.location_inited) {
+        for (const auto& cookie : ctx.setCookies) {  // Hier wurde cookies zu setCookies geändert
+            http_response << "Set-Cookie: " << cookie.first << "=" << cookie.second
+                        << "; Path=/\r\n";
+        }
+    }
+
+    http_response << "\r\n"
+                << content_str;
+
+    sendHandler(ctx, http_response.str());
+    resetContext(ctx);
 }
 
 // Builds an auto-index (directory listing) response when no index file is found

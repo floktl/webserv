@@ -37,7 +37,6 @@ bool Server::handleStaticUpload(Context& ctx)
 	outputFile.close();
 	if (outputFile)
 		return redirectAction(ctx);
-	// redirect
 	return false;
 }
 
@@ -75,6 +74,28 @@ std::vector<std::string> splitPath(const std::string& path)
             components.push_back(item);
     }
     return components;
+}
+
+std::vector<std::string> Server::splitPathLoc(const std::string& path) {
+    std::vector<std::string> segments;
+    std::string segment;
+
+    for (size_t i = 0; i < path.length(); ++i) {
+        if (path[i] == '/') {
+            if (!segment.empty()) {
+                segments.push_back(segment);
+                segment.clear();
+            }
+        } else {
+            segment += path[i];
+        }
+    }
+
+    if (!segment.empty()) {
+        segments.push_back(segment);
+    }
+
+    return segments;
 }
 
 // Merges request and base paths, extracting the relative filename for further processing

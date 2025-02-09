@@ -179,6 +179,11 @@ void printServerBlock(ServerBlock& serverBlock)
 	for (size_t i = 0; i < serverBlock.locations.size(); ++i)
 	{
 		std::cout << "  Location " << i + 1 << ":" << std::endl;
+		std::cout <<  serverBlock.locations[i].root << std::endl;
+		std::cout <<  serverBlock.locations[i].path << std::endl;
+		std::cout <<  serverBlock.locations[i].methods << std::endl;
+		std::cout <<  serverBlock.locations[i].return_url << std::endl;
+		std::cout <<  serverBlock.locations[i].return_code << std::endl;
 		std::cout << "    (Add Location details here)" << std::endl;
 	}
 

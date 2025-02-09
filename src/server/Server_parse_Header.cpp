@@ -75,13 +75,8 @@ bool Server::parseHeaderFields(Context& ctx, std::istringstream& stream)
 					return false;
 				}
 			}
-
-			ctx.setCookie = "";
-			ctx.cookies.clear();
-			if (key == "Set-Cookie")
-				parseNewCookie(ctx, value);
-			if (key == "Cookie")
-				parseCookies(ctx, value);
+            if (key == "Cookie")
+                parseCookies(ctx, value);
 		}
 	}
 	return true;
@@ -126,6 +121,7 @@ void Server::parseAccessRights(Context& ctx)
 		requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
 	if (ctx.location_inited && requestedPath == ctx.location.upload_store && dirWritable(requestedPath))
 		return;
+	Logger::errorLog("ich pisse auf marvins glatze und es turnt mich an" + ctx.location.return_url);
 	requestedPath = approveExtention(ctx, requestedPath);
 	if (ctx.type == ERROR)
 		return;

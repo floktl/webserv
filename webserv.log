@@ -1,33 +1,67 @@
-[2025-02-09 14:00:54] Server Parsed size: 314572800
-[2025-02-09 14:00:54] 8===D  [ERROR] dada: /app/var/www/html
-[2025-02-09 14:00:54] 8===D  [ERROR] dada: /app/var/www/statictester/tester
-[2025-02-09 14:00:54] 8===D  [ERROR] dada: /app/var/www/statictester
-[2025-02-09 14:01:12] GET POST DELETE
-[2025-02-09 14:01:12] 1
-[2025-02-09 14:01:12] Context []:
-FDs: epoll=3 server=4 client=7
-Type: ERROR
-Method: GET
-Path: /asdasdad
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
-Connection: keep-alive
-Host: localhost:8080
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: none
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: [empty]
-Location: Defined
-Last Activity: 22210 seconds since epoch
-[2025-02-09 14:01:12] 8===D  [ERROR] ErrorHandler: Errorcode: 404 Not found
+[2025-02-09 17:21:47] Server Parsed size: 209715200
+[2025-02-09 17:21:47] 8===D  [ERROR] 301
+[2025-02-09 17:21:47] 8===D  [ERROR] /
+[2025-02-09 17:21:47] 8===D  [ERROR] 301
+[2025-02-09 17:21:47] 8===D  [ERROR] /
+[2025-02-09 17:21:47] Server Parsed size: 314572800
+[2025-02-09 17:21:47] 8===D  [ERROR] 301
+[2025-02-09 17:21:47] 8===D  [ERROR] /
+[2025-02-09 17:21:47] 8===D  [ERROR] 301
+[2025-02-09 17:21:47] 8===D  [ERROR] /
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/html
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/html
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/html
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/html
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/html
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/staticupload
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/staticupload
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/staticupload
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/statictester/tester
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/statictester
+[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/statictester
+[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
+[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
+[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
+[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
+[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
+[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
+[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
+[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
+[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
+[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
+[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
+[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
+[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
+[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
+[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
+[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
+[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
+[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
+[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
+[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
+[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
+[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
+[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
+[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
+[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
+[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
+[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
+[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
+[2025-02-09 17:21:49] 8===D  [ERROR] /cookie
+[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: /cookie
+[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /cookie
+[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
+[2025-02-09 17:21:49] 8===D  [ERROR] in match: 
+[2025-02-09 17:21:49] 8===D  [ERROR] /
+[2025-02-09 17:21:49] 8===D  [ERROR] 301
+[2025-02-09 17:21:49] 8===D  [ERROR] ErrorHandler: Errorcode: 405 Method (GET) not allowed
+[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
+[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
+[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
+[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
+[2025-02-09 17:21:49] 8===D  [ERROR] /favicon.ico
+[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: /favicon.ico
+[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /favicon.ico
+[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
+[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
+[2025-02-09 17:21:49] 8===D  [ERROR] ErrorHandler: Errorcode: 500 Internal Server Error
