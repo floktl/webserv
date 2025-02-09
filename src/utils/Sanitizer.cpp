@@ -279,10 +279,6 @@ bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore,
 										const std::string& pwd,
 										const std::string& serverRoot,
 										const std::string& locationRoot) {
-	// If upload_store is not set, use default "uploads"
-	if (locationUploadStore.empty()) {
-		locationUploadStore = "upload";
-	}
 
 	// Determine the base path (location root or server root)
 	std::string basePath;
@@ -343,7 +339,7 @@ bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore,
 	}
 
 	// Create the directory structure
-	if (!createDirectoryWithPermissions(fullPath)) {
+	if (!checkUploadStorePermissions(fullPath)) {
 		return false;
 	}
 
@@ -428,44 +424,26 @@ bool Sanitizer::sanitize_locationRedirect(std::string& locationRedirect) {
 			locationRedirect.length() > schemeEnd + 3);
 }
 
-bool Sanitizer::createDirectoryWithPermissions(const std::string& path) {
-	mode_t mode = S_IRWXU | S_IRWXG;  // 0770 permissions
+bool Sanitizer::checkUploadStorePermissions(const std::string& path) {
+    Logger::errorLog("dada: " + path);
 
-	std::string current_path;
-	std::stringstream path_stream(path);
-	std::string segment;
+    struct stat path_stat;
+    if (stat(path.c_str(), &path_stat) != 0) {
+        Logger::error("Cannot access path: " + path);
+        return false;
+    }
 
-	while (std::getline(path_stream, segment, '/')) {
-		if (segment.empty()) {
-			current_path += "/";
-			continue;
-		}
+    if (!S_ISDIR(path_stat.st_mode)) {
+        Logger::error("Path exists but is not a directory: " + path);
+        return false;
+    }
 
-		current_path += segment + "/";
+    if (access(path.c_str(), W_OK) != 0) {
+        Logger::error("No write permission for directory: " + path);
+        return false;
+    }
 
-		// Skip if directory exists
-		struct stat st;
-		if (stat(current_path.c_str(), &st) == 0) {
-			if (!S_ISDIR(st.st_mode)) {
-				Logger::error("Path exists but is not a directory: " + current_path);
-				return false;
-			}
-			// Check write permissions
-			if (access(current_path.c_str(), W_OK) != 0) {
-				Logger::error("No write permission for directory: " + current_path);
-				return false;
-			}
-			continue;
-		}
-
-		// Create new directory
-		if (mkdir(current_path.c_str(), mode) != 0) {
-			Logger::error("Failed to create directory " + current_path + ": " + strerror(errno));
-			return false;
-		}
-	}
-
-	return true;
+    return true;
 }
 
 bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context) {
@@ -507,5 +485,5 @@ bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context)
 	}
 
 	// Create directory with proper permissions
-	return createDirectoryWithPermissions(path);
+	return checkUploadStorePermissions(path);
 }

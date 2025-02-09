@@ -9,6 +9,7 @@ std::string trim(const std::string& str)
 	return str.substr(first, last - first + 1);
 }
 
+
 // parsing constants
 std::vector<std::string> parseOptionsToVector(const std::string& opts)
 {
