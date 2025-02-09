@@ -126,7 +126,6 @@ bool ConfigHandler::handleLocationMethods(Location& currentLocation, const std::
 	currentLocation.allowGet = false;
 	currentLocation.allowPost = false;
 	currentLocation.allowDelete = false;
-	currentLocation.allowCookie = false;
 
 	currentLocation.methods = value;
 
@@ -139,8 +138,6 @@ bool ConfigHandler::handleLocationMethods(Location& currentLocation, const std::
 			currentLocation.allowPost = true;
 		if (method == "DELETE")
 			currentLocation.allowDelete = true;
-		if (method == "COOKIE")
-			currentLocation.allowCookie = true;
 	}
 	return true;
 }
@@ -159,6 +156,8 @@ bool ConfigHandler::handleLocationReturn(Location& currentLocation, const std::s
 		int status = std::stoi(code);
 		if ((status != 301 && status != 302) || url.empty())
 			return parseErr("Error: Invalid return directive at line " + std::to_string(linecount) + ". Format: return 301|302 URL;");
+		Logger::errorLog(code);
+		Logger::errorLog(url);
 		currentLocation.return_code = code;
 		currentLocation.return_url = url;
 	}
@@ -285,7 +284,6 @@ bool ConfigHandler::parseLine(std::string line)
 	stream >> keyword;
 	keyword = trim(keyword);
 	line = trim(line);
-
 	if (line.find("#") == 0)
 		return false;
 	if (line.find("{") != std::string::npos)

@@ -1,6 +1,16 @@
 #include "Server.hpp"
 
+//Die wichtigsten Änderungen:
 
+//Bei autoindex KEINE Cookies setzen, da es sich um eine technische Verzeichnisauflistung handelt
+//Bei normalen GET Requests für Dateien Cookies in buildStaticResponse setzen
+//Bei POST/DELETE nach erfolgreicher Aktion Cookie im Redirect setzen
+
+//Das ist konsistenter, weil:
+
+//Autoindex ist eine technische Funktion und braucht keine Cookies
+//Normale Seiten können Cookies bekommen
+//Nach Aktionen (POST/DELETE) wird das Cookie im Redirect gesetzt
 bool Server::staticHandler(Context& ctx)
 {
 	if (ctx.method == "POST")

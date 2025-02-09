@@ -52,6 +52,7 @@ int main(int argc, char **argv, char **envp)
 			return EXIT_FAILURE;
 		}
 		int epoll_fd = serverInstance->server_init(configs);
+		serverInstance->environment = envp;
 		if (epoll_fd == EXIT_FAILURE)
 			return EXIT_FAILURE;
 

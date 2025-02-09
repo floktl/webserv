@@ -153,6 +153,20 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 	if (!handleParsingPhase(ctx, configs))
 		return false;
 
+    if (ctx.headers_complete) {
+        for (const auto& cookie : ctx.cookies) {
+            bool exists = false;
+            for (const auto& setCookie : ctx.setCookies) {
+                if (setCookie.first == cookie.first) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists)
+                ctx.setCookies.push_back(cookie);
+        }
+    }
+
 	if (ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
 		ctx.req.current_body_length < ctx.req.expected_body_length)
 	{

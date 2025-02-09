@@ -31,6 +31,7 @@ class Server
 		// CgiHandler* getCgiHandler(void);
 		ErrorHandler* getErrorHandler(void);
 		int has_gate = false;
+		char **environment;
 
 		//server_helpers
 		void modEpoll(int epfd, int fd, uint32_t events);
@@ -87,7 +88,7 @@ class Server
 		void parseRequest(Context& ctx);
 		std::string requestTypeToString(RequestType type);
 		bool determineType(Context& ctx, std::vector<ServerBlock> configs);
-		bool matchLoc(Location& loc, std::string rawPath);
+		bool matchLoc(const std::vector<Location>& locations, const std::string& rawPath, Location& bestMatch);
 		std::string normalizePath(const std::string& raw);
 		std::string concatenatePath(const std::string& root, const std::string& path);
 		std::string getDirectory(const std::string& path);
@@ -111,7 +112,6 @@ class Server
 		bool handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs);
 		bool finalizeRequest(Context& ctx, const std::vector<ServerBlock>& configs);
 		bool handleRead(Context& ctx, std::vector<ServerBlock>& configs);
-		void parseNewCookie(Context& ctx, std::string value);
 		void parseCookies(Context& ctx, std::string value);
 
 		std::vector<DirEntry> getDirectoryEntries(Context& ctx);
@@ -119,6 +119,7 @@ class Server
 		void generateAutoIndexHeader(Context& ctx, std::stringstream& content);
 		bool parseHeaderFields(Context& ctx, std::istringstream& stream);
 		bool parseRequestLine(Context& ctx, std::istringstream& stream);
+		std::vector<std::string> splitPathLoc(const std::string& path);
 };
 
 std::string extractHostname(const std::string& header);
