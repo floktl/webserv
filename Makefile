@@ -30,12 +30,19 @@ $(X) 🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!
 $(X) 🐑 Cookies in CGI und Session managment\n\
 $(X) 🐑 Über CGI-Scripts mit deren eigener Upload-Logik\n\
 $(X) 🐑 check how to redirect vhosts_gate into services\n\
-$(X) 🐑 The first server for a host:port will be the default for this host:port (that means it will answer to all the requests that don’t belong to an other server).\n\
-$(X) 🇫🇷 Logger file in Error handle fucntion.... \n\
+$(X) 🐑 wildacrad und pre header compilation checken....\n\
+$(X) 🐑 acheck autoindex\n\\n\
+$(X) 🐑 location paths.... root!!! \n\
+$(X) 🐑 // fallback for common error codes\n\
+$(X) 🐑 const int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};\n\
+$(X) 🐑 for (int errorCode : defaultErrorCodes) {\n\
+$(X) 🐑 	if (conf.errorPages.find(errorCode) == conf.errorPages.end()) {\n\
+$(X) 🐑 		conf.errorPages[errorCode] = "/50x.html";\n\
+$(X) 🐑 	}\n\
+$(X) 🐑 }\n\
 $(X) 🇫🇷 Forbidden functions.\n\
-$(X) 🇫🇷 Include file \n\
-$(X) 🇫🇷 100MBe \n\
-$(X) 🇫🇷 Chunk und MB (1048576) size als CONST \n\
+$(X) 🇫🇷 8===D Lade flos balken \n\
+$(X) 🇫🇷 8===D diverse pimmels wo immer geht \n\
 
 # helper command to search for fucntions with more than 40 lines
 #find . -type f -name "*.cpp" | xargs awk '
@@ -57,7 +64,7 @@ NAME=webserv
 #------------------------------------------------------------------------------#
 
 CC=c++
-CFLAGS = -Wall -Wextra -Werror -Wshadow -std=c++17 -O2 -pipe -march=native -flto -DNDEBUG -Wno-unused-but-set-variable -include $(PCH)
+CFLAGS = -Wall -Wextra -Werror -Wshadow -std=c++17 -include $(PCH)
 LDFLAGS=-flto=$(shell nproc)
 
 ifeq ($(DEBUG), 1)

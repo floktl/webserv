@@ -2,12 +2,13 @@
 # define SANITIZER_HPP
 
 #include "../server/server.hpp"
+#include "./Logger.hpp"
 
 class Sanitizer {
 	private:
 		static bool isValidPath(std::string& path, const std::string& context, const std::string& pwd);
 		static bool isValidFilename(const std::string& filename, bool allowPath);
-		static bool createDirectoryWithPermissions(const std::string& path);
+		static bool checkUploadStorePermissions(const std::string& path);
 		static bool isValidUploadPath(std::string& path, const std::string& context);
 
 	public:
