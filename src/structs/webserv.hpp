@@ -14,10 +14,8 @@
 
 struct ChunkedState
 {
-	bool processing;
+	bool processing = false;
 	std::string buffer;
-
-	ChunkedState() : processing(false) {}
 };
 
 // struct to save the location from each serverblock
@@ -54,9 +52,7 @@ struct ServerBlock
 	std::map<int, std::string>	errorPages;
 	long long			client_max_body_size = -1;
 	std::vector<Location>		locations;
-	int							timeout;
-
-	ServerBlock() : timeout(30) {}
+	int							timeout = 30;
 };
 
 // status from the Request header
@@ -65,14 +61,15 @@ enum RequestType
 	INITIAL,
 	STATIC,
 	CGI,
+	REDIRECT,
 	ERROR
 };
 
 enum ERRORFLAG {
-	FILE_EXISTS  = F_OK,  // Check if file exists
-	FILE_READ    = R_OK,  // Check if file is readable
-	FILE_WRITE   = W_OK,  // Check if file is writable
-	FILE_EXECUTE = X_OK   // Check if file is executable
+	FILE_EXISTS  = F_OK,
+	FILE_READ    = R_OK,
+	FILE_WRITE   = W_OK,
+	FILE_EXECUTE = X_OK
 };
 
 // Request body
@@ -187,8 +184,9 @@ struct Context
 	long long body_received = 0;
 	bool keepAlive = false;
 	bool is_multipart;
-    std::vector<std::pair<std::string, std::string>> setCookies;
-    std::vector<std::pair<std::string, std::string>> cookies;
+	std::vector<std::pair<std::string, std::string>> setCookies;
+	std::vector<std::pair<std::string, std::string>> cookies;
+	std::vector<std::string> blocks_location_paths;
 };
 
 struct CgiTunnel
@@ -222,6 +220,16 @@ struct DirEntry {
 	bool isDir;
 	time_t mtime;
 	off_t size;
+};
+
+struct Cookie {
+	std::string name;
+	std::string value;
+	std::string domain;
+	std::string path;
+	time_t expires = 0;
+	bool secure = false;
+	bool httpOnly = false;
 };
 
 #endif

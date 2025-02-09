@@ -1,67 +1,17 @@
-[2025-02-09 17:21:47] Server Parsed size: 209715200
-[2025-02-09 17:21:47] 8===D  [ERROR] 301
-[2025-02-09 17:21:47] 8===D  [ERROR] /
-[2025-02-09 17:21:47] 8===D  [ERROR] 301
-[2025-02-09 17:21:47] 8===D  [ERROR] /
-[2025-02-09 17:21:47] Server Parsed size: 314572800
-[2025-02-09 17:21:47] 8===D  [ERROR] 301
-[2025-02-09 17:21:47] 8===D  [ERROR] /
-[2025-02-09 17:21:47] 8===D  [ERROR] 301
-[2025-02-09 17:21:47] 8===D  [ERROR] /
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/html
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/html
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/html
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/html
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/html
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/staticupload
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/staticupload
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/staticupload
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/statictester/tester
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/statictester
-[2025-02-09 17:21:47] 8===D  [ERROR] dada: /app/var/www/statictester
-[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
-[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
-[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
-[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
-[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
-[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
-[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
-[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
-[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
-[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
-[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
-[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
-[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
-[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
-[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
-[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
-[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
-[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
-[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
-[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
-[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: 
-[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /
-[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
-[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
-[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
-[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
-[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
-[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
-[2025-02-09 17:21:49] 8===D  [ERROR] /cookie
-[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: /cookie
-[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /cookie
-[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
-[2025-02-09 17:21:49] 8===D  [ERROR] in match: 
-[2025-02-09 17:21:49] 8===D  [ERROR] /
-[2025-02-09 17:21:49] 8===D  [ERROR] 301
-[2025-02-09 17:21:49] 8===D  [ERROR] ErrorHandler: Errorcode: 405 Method (GET) not allowed
-[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
-[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
-[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
-[2025-02-09 17:21:49] 8===D  [ERROR] asdasdadada 
-[2025-02-09 17:21:49] 8===D  [ERROR] /favicon.ico
-[2025-02-09 17:21:49] 8===D  [ERROR] rawPath: /favicon.ico
-[2025-02-09 17:21:49] 8===D  [ERROR] normalizedPath: /favicon.ico
-[2025-02-09 17:21:49] 8===D  [ERROR] setting slahs location: 
-[2025-02-09 17:21:49] 8===D  [ERROR] mamamamam: 
-[2025-02-09 17:21:49] 8===D  [ERROR] ErrorHandler: Errorcode: 500 Internal Server Error
+[2025-02-09 20:52:16] Context []:
+FDs: epoll=3 server=5 client=10
+Type: STATIC
+Method: GET
+Path: /
+Version: HTTP/1.1
+Headers:
+Accept: */*
+Host: schaaf:9090
+User-Agent: curl/7.81.0
+Body: [empty]
+Location Path: [empty]
+Requested Path: [empty]
+Location: Defined
+Last Activity: 12152 seconds since epoch
+[2025-02-09 20:52:27] 8===D  [ERROR] No matching server block found - Closing connection
+[2025-02-09 20:52:50] 8===D  [ERROR] No matching server block found - Closing connection
