@@ -96,7 +96,6 @@ bool ConfigHandler::handleClientMaxBodySize(const std::string& value)
 	long size = Sanitizer::parseSize(value, "M");
 	if (size == -1)
 		return parseErr("Error: Invalid client_max_body_size at line " + std::to_string(linecount));
-	Logger::file("Server Parsed size: " + std::to_string(size));
 	registeredServerConfs.back().client_max_body_size = size;
 	return true;
 }
@@ -156,8 +155,6 @@ bool ConfigHandler::handleLocationReturn(Location& currentLocation, const std::s
 		int status = std::stoi(code);
 		if ((status != 301 && status != 302) || url.empty())
 			return parseErr("Error: Invalid return directive at line " + std::to_string(linecount) + ". Format: return 301|302 URL;");
-		Logger::errorLog(code);
-		Logger::errorLog(url);
 		currentLocation.return_code = code;
 		currentLocation.return_url = url;
 	}

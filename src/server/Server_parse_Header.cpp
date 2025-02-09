@@ -45,38 +45,32 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 }
 
 // Parses and stores individual header fields in the request context
-bool Server::parseHeaderFields(Context& ctx, std::istringstream& stream)
-{
+bool Server::parseHeaderFields(Context& ctx, std::istringstream& stream) {
 	std::string line;
-	while (std::getline(stream, line))
-	{
+	while (std::getline(stream, line)) {
 		if (line.empty() || line == "\r")
 			break;
 		if (line.back() == '\r')
 			line.pop_back();
 
 		size_t colon = line.find(':');
-		if (colon != std::string::npos)
-		{
+		if (colon != std::string::npos) {
 			std::string key = line.substr(0, colon);
 			std::string value = line.substr(colon + 1);
 			value = value.substr(value.find_first_not_of(" "));
 			ctx.headers[key] = value;
 
-			if (key == "Content-Length")
-			{
-				try
-				{
+			if (key == "Content-Length") {
+				try {
 					ctx.content_length = std::stoull(value);
-				}
-				catch (const std::exception& e)
-				{
+				} catch (const std::exception& e) {
 					updateErrorStatus(ctx, 400, "Bad Request - Invalid Content-Length");
 					return false;
 				}
 			}
-            if (key == "Cookie")
-                parseCookies(ctx, value);
+			else if (key == "Cookie") {
+				parseCookies(ctx, value);
+			}
 		}
 	}
 	return true;
@@ -121,11 +115,11 @@ void Server::parseAccessRights(Context& ctx)
 		requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
 	if (ctx.location_inited && requestedPath == ctx.location.upload_store && dirWritable(requestedPath))
 		return;
-	Logger::errorLog("ich pisse auf marvins glatze und es turnt mich an" + ctx.location.return_url);
 	requestedPath = approveExtention(ctx, requestedPath);
 	if (ctx.type == ERROR)
 		return;
-	checkAccessRights(ctx, requestedPath);
+	if (ctx.type != REDIRECT)
+		checkAccessRights(ctx, requestedPath);
 	if (ctx.type == ERROR)
 		return;
 	ctx.approved_req_path = requestedPath;
@@ -199,7 +193,6 @@ void Server::parseChunkedBody(Context& ctx)
 			if (pos == std::string::npos)
 				return;
 
-			// Parse chunk size
 			std::string chunk_size_str = ctx.input_buffer.substr(0, pos);
 			size_t chunk_size;
 			std::stringstream ss;
@@ -208,7 +201,6 @@ void Server::parseChunkedBody(Context& ctx)
 
 			if (chunk_size == 0)
 			{
-				// Final chunk
 				ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
 				ctx.req.is_upload_complete = true;
 				ctx.input_buffer.clear();
@@ -220,7 +212,6 @@ void Server::parseChunkedBody(Context& ctx)
 			ctx.req.expected_body_length += chunk_size;
 		}
 
-		// Process chunk data
 		size_t remaining = ctx.req.expected_body_length - ctx.req.current_body_length;
 		size_t available = std::min(remaining, ctx.input_buffer.size());
 
@@ -229,7 +220,6 @@ void Server::parseChunkedBody(Context& ctx)
 			ctx.req.current_body_length += available;
 			ctx.input_buffer.erase(0, available);
 		}
-		// Check for chunk end
 		if (ctx.req.current_body_length == ctx.req.expected_body_length)
 		{
 			if (ctx.input_buffer.size() >= 2 && ctx.input_buffer.substr(0, 2) == "\r\n")
@@ -238,7 +228,7 @@ void Server::parseChunkedBody(Context& ctx)
 				ctx.req.chunked_state.processing = false;
 			}
 			else
-				return; // Need more data
+				return;
 		}
 	}
 }

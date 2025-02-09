@@ -109,9 +109,9 @@ bool ConfigHandler::sanitizeConfData(void)
 				--i;
 				continue;
 			}
-        } else {
+		} else {
 			return confErr("Port number is not in system range on server block " + std::to_string(i + 1));
-        }
+		}
 
 		// Validate root, server name, and index directives
 		if (!Sanitizer::sanitize_root(registeredServerConfs[i].root, expandEnvironmentVariables("$PWD", env)) ||

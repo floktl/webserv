@@ -212,7 +212,7 @@ bool Sanitizer::sanitize_errorPage(std::string &errorPage, const std::string &pw
 
 
 bool Sanitizer::sanitize_clMaxBodSize(long size) {
-    return (size > 0 && size <= 2147483648L);
+	return (size > 0 && size <= 2147483648L);
 }
 
 bool Sanitizer::sanitize_locationPath(std::string& locationPath, const std::string& pwd) {
@@ -425,25 +425,24 @@ bool Sanitizer::sanitize_locationRedirect(std::string& locationRedirect) {
 }
 
 bool Sanitizer::checkUploadStorePermissions(const std::string& path) {
-    Logger::errorLog("dada: " + path);
 
-    struct stat path_stat;
-    if (stat(path.c_str(), &path_stat) != 0) {
-        Logger::error("Cannot access path: " + path);
-        return false;
-    }
+	struct stat path_stat;
+	if (stat(path.c_str(), &path_stat) != 0) {
+		Logger::error("Cannot access path: " + path);
+		return false;
+	}
 
-    if (!S_ISDIR(path_stat.st_mode)) {
-        Logger::error("Path exists but is not a directory: " + path);
-        return false;
-    }
+	if (!S_ISDIR(path_stat.st_mode)) {
+		Logger::error("Path exists but is not a directory: " + path);
+		return false;
+	}
 
-    if (access(path.c_str(), W_OK) != 0) {
-        Logger::error("No write permission for directory: " + path);
-        return false;
-    }
+	if (access(path.c_str(), W_OK) != 0) {
+		Logger::error("No write permission for directory: " + path);
+		return false;
+	}
 
-    return true;
+	return true;
 }
 
 bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context) {

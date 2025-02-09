@@ -18,11 +18,9 @@ bool Server::handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& co
 			break;
 
 		case RequestBody::PARSING_BODY:
-			Logger::file("in PARSING_BODY");
 			return processParsingBody(ctx);
 
 		case RequestBody::PARSING_COMPLETE:
-			Logger::file("in PARSING_COMPLETE");
 			break;
 	}
 	return true;
@@ -41,14 +39,12 @@ void Server::parseRequest(Context& ctx)
 	std::istringstream stream(request);
 	std::string line;
 
-	// Parse request line
 	if (std::getline(stream, line))
 	{
 		std::istringstream request_line(line);
 		request_line >> ctx.method >> ctx.path >> ctx.version;
 	}
 
-	// Parse headers
 	while (std::getline(stream, line) && !line.empty() && line != "\r")
 	{
 		size_t colon = line.find(':');

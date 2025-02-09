@@ -112,7 +112,11 @@ class Server
 		bool handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs);
 		bool finalizeRequest(Context& ctx, const std::vector<ServerBlock>& configs);
 		bool handleRead(Context& ctx, std::vector<ServerBlock>& configs);
+
+
 		void parseCookies(Context& ctx, std::string value);
+		std::string generateSetCookieHeader(const Cookie& cookie);
+
 
 		std::vector<DirEntry> getDirectoryEntries(Context& ctx);
 		void generateAutoIndexBody(const std::vector<DirEntry>& entries, std::stringstream& content);
@@ -120,6 +124,8 @@ class Server
 		bool parseHeaderFields(Context& ctx, std::istringstream& stream);
 		bool parseRequestLine(Context& ctx, std::istringstream& stream);
 		std::vector<std::string> splitPathLoc(const std::string& path);
+		std::vector<std::string> getBlocksLocsPath(const std::vector<Location>& locations);
+
 };
 
 std::string extractHostname(const std::string& header);

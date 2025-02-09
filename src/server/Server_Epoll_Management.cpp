@@ -5,9 +5,9 @@ void Server::modEpoll(int epoll_fd, int fd, uint32_t events)
 {
 	if (fd <= 0)
 	{
-        Logger::errorLog("WARNING: Attempt to modify epoll for invalid fd: " + std::to_string(fd));
-        return;
-    }
+		Logger::errorLog("WARNING: Attempt to modify epoll for invalid fd: " + std::to_string(fd));
+		return;
+	}
 	struct epoll_event ev;
 	ev.events = events;
 	ev.data.fd = fd;
@@ -26,26 +26,26 @@ void Server::modEpoll(int epoll_fd, int fd, uint32_t events)
 // Removes a client file descriptor from the epoll instance and closes it
 void Server::delFromEpoll(int epfd, int client_fd)
 {
-    if (epfd <= 0 || client_fd <= 0)
+	if (epfd <= 0 || client_fd <= 0)
 	{
-        Logger::errorLog("WARNING: Attempt to delete invalid fd: " + std::to_string(client_fd));
-        return;
-    }
-    if (findServerBlock(configData, client_fd))
+		Logger::errorLog("WARNING: Attempt to delete invalid fd: " + std::to_string(client_fd));
+		return;
+	}
+	if (findServerBlock(configData, client_fd))
 	{
-        Logger::errorLog("Prevented removal of server socket: " + std::to_string(client_fd));
-        return;
-    }
-    auto ctx_it = globalFDS.context_map.find(client_fd);
-    if (ctx_it != globalFDS.context_map.end())
-    {
+		Logger::errorLog("Prevented removal of server socket: " + std::to_string(client_fd));
+		return;
+	}
+	auto ctx_it = globalFDS.context_map.find(client_fd);
+	if (ctx_it != globalFDS.context_map.end())
+	{
 		epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, NULL);
 		globalFDS.clFD_to_svFD_map.erase(client_fd);
 		close(client_fd);
 		client_fd =-1;
-        globalFDS.context_map.erase(client_fd);
-    }
-    else
+		globalFDS.context_map.erase(client_fd);
+	}
+	else
 		globalFDS.clFD_to_svFD_map.erase(client_fd);
 }
 
@@ -72,23 +72,23 @@ int Server::setNonBlocking(int fd)
 // Checks and removes inactive connections that exceed the timeout threshold
 void Server::checkAndCleanupTimeouts()
 {
-    auto now = std::chrono::steady_clock::now();
+	auto now = std::chrono::steady_clock::now();
 
-    auto it = globalFDS.context_map.begin();
-    while (it != globalFDS.context_map.end())
+	auto it = globalFDS.context_map.begin();
+	while (it != globalFDS.context_map.end())
 	{
-        Context& ctx = it->second;
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(
-            now - ctx.last_activity).count();
+		Context& ctx = it->second;
+		auto duration = std::chrono::duration_cast<std::chrono::seconds>(
+			now - ctx.last_activity).count();
 
-        if (duration > Context::TIMEOUT_DURATION.count())
+		if (duration > Context::TIMEOUT_DURATION.count())
 		{
-            delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-            it = globalFDS.context_map.erase(it);
-        }
-        else
-            ++it;
-    }
+			delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+			it = globalFDS.context_map.erase(it);
+		}
+		else
+			++it;
+	}
 }
 
 // Terminates CGI processes that exceed their allowed execution time
