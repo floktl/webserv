@@ -184,6 +184,7 @@ struct Context
 	long long body_received = 0;
 	bool keepAlive = false;
 	bool is_multipart;
+	bool had_seq_parse = false;
 	std::vector<std::pair<std::string, std::string>> setCookies;
 	std::vector<std::pair<std::string, std::string>> cookies;
 	std::vector<std::string> blocks_location_paths;

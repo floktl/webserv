@@ -161,6 +161,21 @@ std::string Server::concatenatePath(const std::string& root, const std::string& 
 		return root + path;
 }
 
+std::string Server::subtractLocationPath(const std::string& path, const Location& location) {
+	if (location.root.empty()) {
+		return path;
+	}
+	size_t pos = path.find(location.path);
+	if (pos == std::string::npos) {
+		return path;
+	}
+	std::string remainingPath = path.substr(pos + location.path.length());
+	if (remainingPath.empty() || remainingPath[0] != '/') {
+		remainingPath = "/" + remainingPath;
+	}
+	return remainingPath;
+}
+
 // Extracts the directory part of a given file path
 std::string Server::getDirectory(const std::string& path)
 {
@@ -298,6 +313,9 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 
 	size_t dot_pos = path_to_check.find_last_of('.');
 
+	Logger::errorLog(path_to_check);
+	Logger::errorLog(ctx.path);
+	Logger::errorLog(ctx.location.path);
 	if (dot_pos != std::string::npos)
 	{
 		std::string extension = path_to_check.substr(dot_pos + 1);
@@ -322,7 +340,6 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 						ctx.blocks_location_paths.end(),
 						ctx.location.return_url);
 		if (it != ctx.blocks_location_paths.end()) {
-	Logger::errorLog("hadnled as redirect");
 			ctx.type = REDIRECT;
 		}
 		return path_to_check;
@@ -333,7 +350,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 	}
 	else
 	{
-		updateErrorStatus(ctx, 404, "Not found sd sd");
+		updateErrorStatus(ctx, 404, "Not found");
 		return "";
 	}
 	return approvedIndex;
@@ -403,7 +420,6 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 		else
 			ctx.type = STATIC;
 		parseAccessRights(ctx);
-		logContext(ctx);
 		return true;
 	}
 	return (updateErrorStatus(ctx, 500, "Internal Server Error"));

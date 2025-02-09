@@ -36,6 +36,7 @@ class Logger
 		static bool error(const std::string &message, bool newline = true);
 		static void file(const std::string &message);
 		static bool errorLog(const std::string& message);
+		static void progress(long long current, long long total, const std::string& prefix);
 
 		static void log(const std::string &message, const std::string &color, bool newline = true);
 
