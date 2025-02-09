@@ -106,11 +106,24 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 // Parses and sets access rights for a request based on server configuration
 void Server::parseAccessRights(Context& ctx)
 {
-	std::string requestedPath = concatenatePath(ctx.root, ctx.path);
+	bool useLocRoot = false;
+	std::string req_root = ctx.location.root;
+	if (req_root.empty())
+	{
+		useLocRoot = true;
+		req_root = ctx.root;
+	}
+	std::string requestedPath = concatenatePath(req_root, ctx.path);
 	if (ctx.index.empty())
 		ctx.index = "index.html";
 	if (ctx.location.default_file.empty())
 		ctx.location.default_file = ctx.index;
+
+	std::string adjustedPath = ctx.path;
+	if (!useLocRoot) {
+		adjustedPath = subtractLocationPath(ctx.path, ctx.location);
+	}
+	requestedPath = concatenatePath(req_root, adjustedPath);
 	if (!requestedPath.empty() && requestedPath.back() == '/')
 		requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
 	if (ctx.location_inited && requestedPath == ctx.location.upload_store && dirWritable(requestedPath))

@@ -91,6 +91,7 @@ class Server
 		bool matchLoc(const std::vector<Location>& locations, const std::string& rawPath, Location& bestMatch);
 		std::string normalizePath(const std::string& raw);
 		std::string concatenatePath(const std::string& root, const std::string& path);
+		std::string subtractLocationPath(const std::string& path, const Location& location);
 		std::string getDirectory(const std::string& path);
 		bool buildAutoIndexResponse(Context& ctx, std::stringstream* response);
 		//bool handleRead(Context& ctx, std::vector<ServerBlock> &configs);

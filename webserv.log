@@ -1,17 +1,6 @@
-[2025-02-09 20:52:16] Context []:
-FDs: epoll=3 server=5 client=10
-Type: STATIC
-Method: GET
-Path: /
-Version: HTTP/1.1
-Headers:
-Accept: */*
-Host: schaaf:9090
-User-Agent: curl/7.81.0
-Body: [empty]
-Location Path: [empty]
-Requested Path: [empty]
-Location: Defined
-Last Activity: 12152 seconds since epoch
-[2025-02-09 20:52:27] 8===D  [ERROR] No matching server block found - Closing connection
-[2025-02-09 20:52:50] 8===D  [ERROR] No matching server block found - Closing connection
+[2025-02-09 22:00:48]  [ERROR] /app/var/www/html/team/florian.html
+[2025-02-09 22:00:48]  [ERROR] /team/
+[2025-02-09 22:00:48]  [ERROR] /
+[2025-02-09 22:00:48]  [ERROR] /app/var/www/html/favicon.ico
+[2025-02-09 22:00:48]  [ERROR] /favicon.ico
+[2025-02-09 22:00:48]  [ERROR] /
