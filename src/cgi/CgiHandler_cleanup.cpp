@@ -11,7 +11,6 @@
 //		if (wait_result == 0)
 //		{
 //			kill(req.cgi_pid, SIGTERM);
-//			usleep(100000);
 //			wait_result = waitpid(req.cgi_pid, &status, WNOHANG);
 
 //			if (wait_result == 0) {

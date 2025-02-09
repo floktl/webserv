@@ -10,8 +10,10 @@ ErrorHandler::ErrorHandler(Server& _server)
 	: server(_server)
 {}
 
+// Destructor
 ErrorHandler::~ErrorHandler() {}
 
+// Reads and returns the content of an error page file if found, otherwise returns an empty string
 std::string ErrorHandler::loadErrorPage(const std::string& filePath) const
 {
 	std::ifstream errorFile(filePath);
@@ -24,6 +26,7 @@ std::string ErrorHandler::loadErrorPage(const std::string& filePath) const
 	return "";
 }
 
+// Generates an HTTP error response based on the error code and sends it via the server
 bool ErrorHandler::generateErrorResponse(Context& ctx) const
 {
 	std::ostringstream response;
@@ -46,3 +49,11 @@ bool ErrorHandler::generateErrorResponse(Context& ctx) const
 	return (server.sendHandler(ctx, response.str()));
 }
 
+// Updates the context with an error type, error code, and error message, returning false
+bool	updateErrorStatus(Context &ctx, int error_code, std::string error_string)
+{
+	ctx.type = ERROR;
+	ctx.error_code = error_code;
+	ctx.error_message = error_string;
+	return false;
+}

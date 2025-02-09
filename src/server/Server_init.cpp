@@ -1,45 +1,57 @@
 #include "Server.hpp"
 
+// Constructor initializing the Server with a reference to GlobalFDS and setting default values
 Server::Server(GlobalFDS &_globalFDS) : globalFDS(_globalFDS),
-										// clientHandler(new ClientHandler(*this)),
 										// cgiHandler(new CgiHandler(*this)),
-										// requestHandler(new RequestHandler(*this)),
 										errorHandler(new ErrorHandler(*this)),
-										// taskManager(new TaskManager(*this)),
 										timeout(30)
-
 {
 }
 
+// Destructor cleaning up allocated resources and logging server shutdown
 Server::~Server()
 {
-	// delete clientHandler;
 	// delete cgiHandler;
-	// delete requestHandler;
 	delete errorHandler;
-	// delete taskManager;
 	Logger::yellow() << "\nCleaning up server resources...";
 }
 
+// Sets the server timeout value
 void Server::setTimeout(int t)
 {
 	timeout = t;
 }
 
+// Retrieves the current server timeout value
 int Server::getTimeout() const
 {
 	return timeout;
 }
 
+// Performs cleanup operations such as removing added server names from /etc/hosts
 void Server::cleanup()
 {
 	removeAddedServerNamesFromHosts();
 }
 
-// CgiHandler* Server::getCgiHandler(void) { return cgiHandler; }
-ErrorHandler *Server::getErrorHandler(void) { return errorHandler; }
-GlobalFDS &Server::getGlobalFds(void) { return globalFDS; }
+// CgiHandler* Server::getCgiHandler(void)
+//{
+//	return cgiHandler;
+//}
 
+// Returns a pointer to the error handler instance
+ErrorHandler *Server::getErrorHandler(void)
+{
+	return errorHandler;
+}
+
+// Returns a reference to the global file descriptor structure
+GlobalFDS &Server::getGlobalFds(void)
+{
+	return globalFDS;
+}
+
+// Initializes the server by setting up epoll and server sockets, then starts the event loop
 int Server::server_init(std::vector<ServerBlock> configs)
 {
 	int epoll_fd = initEpoll();
@@ -52,6 +64,7 @@ int Server::server_init(std::vector<ServerBlock> configs)
 	return runEventLoop(epoll_fd, configs);
 }
 
+// Creates an epoll instance and stores its file descriptor in GlobalFDS
 int Server::initEpoll()
 {
 	int epoll_fd = epoll_create1(0);
@@ -64,6 +77,7 @@ int Server::initEpoll()
 	return epoll_fd;
 }
 
+// Initializes server sockets based on configuration, binds them, and adds them to epoll
 bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 {
 	Logger::green("Server listening on the ports:");

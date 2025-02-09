@@ -1,71 +1,6 @@
 #include "Server.hpp"
 
-void Server::modEpoll(int epoll_fd, int fd, uint32_t events)
-{
-	if (fd <= 0)
-	{
-        Logger::errorLog("WARNING: Attempt to modify epoll for invalid fd: " + std::to_string(fd));
-        return;
-    }
-	struct epoll_event ev;
-	ev.events = events;
-	ev.data.fd = fd;
-
-	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0)
-	{
-		if (errno != EEXIST)
-		{
-			return;
-		}
-		if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0)
-			return;
-	}
-}
-
-void Server::delFromEpoll(int epfd, int client_fd)
-{
-    if (epfd <= 0 || client_fd <= 0)
-	{
-        Logger::errorLog("WARNING: Attempt to delete invalid fd: " + std::to_string(client_fd));
-        return;
-    }
-    if (findServerBlock(configData, client_fd))
-	{
-        Logger::errorLog("Prevented removal of server socket: " + std::to_string(client_fd));
-        return;
-    }
-    auto ctx_it = globalFDS.context_map.find(client_fd);
-    if (ctx_it != globalFDS.context_map.end())
-    {
-		epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, NULL);
-		globalFDS.clFD_to_svFD_map.erase(client_fd);
-		close(client_fd);
-		client_fd =-1;
-        globalFDS.context_map.erase(client_fd);
-    }
-    else
-		globalFDS.clFD_to_svFD_map.erase(client_fd);
-
-}
-
-bool Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd)
-{
-	for (const auto &conf : configs)
-	{
-		if (conf.server_fd == fd)
-			return true;
-	}
-	return false;
-}
-
-int Server::setNonBlocking(int fd)
-{
-	int flags = fcntl(fd, F_GETFL, 0);
-	if (flags < 0)
-		return -1;
-	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-}
-
+// Adds a server name entry to the /etc/hosts file
 bool Server::addServerNameToHosts(const std::string &server_name)
 {
 	const std::string hosts_file = "/etc/hosts";
@@ -90,6 +25,7 @@ bool Server::addServerNameToHosts(const std::string &server_name)
 	return true;
 }
 
+// Removes previously added server names from the /etc/hosts file
 void Server::removeAddedServerNamesFromHosts()
 {
 	const std::string hosts_file = "/etc/hosts";
@@ -116,7 +52,6 @@ void Server::removeAddedServerNamesFromHosts()
 			lines.push_back(line);
 	}
 	infile.close();
-
 	std::ofstream outfile(hosts_file, std::ios::trunc);
 	if (!outfile.is_open())
 		throw std::runtime_error("Failed to open /etc/hosts for writing");
@@ -126,6 +61,7 @@ void Server::removeAddedServerNamesFromHosts()
 	added_server_names.clear();
 }
 
+// Normalizes a given path, ensuring it starts with '/' and removing trailing slashes
 std::string Server::normalizePath(const std::string& raw)
 {
 	if (raw.empty()) return "/";
@@ -135,6 +71,7 @@ std::string Server::normalizePath(const std::string& raw)
 	return path;
 }
 
+// Matches a request path to a location block
 bool Server::matchLoc(Location& loc, std::string rawPath)
 {
     if (rawPath.empty())
@@ -160,10 +97,8 @@ bool Server::matchLoc(Location& loc, std::string rawPath)
             lastWasSlash = false;
         }
     }
-
     if (normalizedPath == loc.path)
         return true;
-
     if (loc.path.length() <= normalizedPath.length() &&
         normalizedPath.substr(0, loc.path.length()) == loc.path)
 	{
@@ -171,10 +106,10 @@ bool Server::matchLoc(Location& loc, std::string rawPath)
             return normalizedPath[loc.path.length()] == '/';
         return true;
     }
-
     return false;
 }
 
+// Concatenates a root path with a sub-path, ensuring correct path separators
 std::string Server::concatenatePath(const std::string& root, const std::string& path)
 {
 	if (root.empty())
@@ -190,6 +125,7 @@ std::string Server::concatenatePath(const std::string& root, const std::string& 
 		return root + path;
 }
 
+// Extracts the directory part of a given file path
 std::string Server::getDirectory(const std::string& path)
 {
 	size_t lastSlash = path.find_last_of("/\\");
@@ -198,67 +134,11 @@ std::string Server::getDirectory(const std::string& path)
 	return "";
 }
 
-void Server::checkAndCleanupTimeouts()
-{
-    auto now = std::chrono::steady_clock::now();
-
-    auto it = globalFDS.context_map.begin();
-    while (it != globalFDS.context_map.end())
-	{
-        Context& ctx = it->second;
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(
-            now - ctx.last_activity).count();
-
-        if (duration > Context::TIMEOUT_DURATION.count())
-		{
-            delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-            it = globalFDS.context_map.erase(it);
-        }
-        else
-            ++it;
-    }
-}
-
-void Server::killTimeoutedCGI(RequestBody &req)
-{
-	if (req.cgi_pid > 0)
-	{
-		kill(req.cgi_pid, SIGTERM);
-		std::this_thread::sleep_for(std::chrono::microseconds(req.associated_conf->timeout));
-		int status;
-		pid_t result = waitpid(req.cgi_pid, &status, WNOHANG);
-		if (result == 0)
-		{
-			kill(req.cgi_pid, SIGKILL);
-			waitpid(req.cgi_pid, &status, 0);
-		}
-		req.cgi_pid = -1;
-	}
-	if (req.cgi_in_fd != -1)
-	{
-		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
-		close(req.cgi_in_fd);
-		globalFDS.clFD_to_svFD_map.erase(req.cgi_in_fd);
-		req.cgi_in_fd = -1;
-	}
-	if (req.cgi_out_fd != -1)
-	{
-		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
-		close(req.cgi_out_fd);
-		globalFDS.clFD_to_svFD_map.erase(req.cgi_out_fd);
-		req.cgi_out_fd = -1;
-	}
-	if (req.pipe_fd != -1)
-	{
-		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.pipe_fd, NULL);
-		close(req.pipe_fd);
-		req.pipe_fd = -1;
-	}
-}
-
+// Converts a request type enum to a string representation
 std::string Server::requestTypeToString(RequestType type)
 {
-	switch(type) {
+	switch(type)
+	{
 		case RequestType::INITIAL: return "INITIAL";
 		case RequestType::STATIC: return "STATIC";
 		case RequestType::CGI: return "CGI";
@@ -267,30 +147,35 @@ std::string Server::requestTypeToString(RequestType type)
 	}
 }
 
+// Checks if a file is readable
 bool Server::fileReadable(const std::string& path)
 {
 	struct stat st;
 	return (stat(path.c_str(), &st) == 0 && (st.st_mode & S_IRUSR));
 }
 
+// Checks if a file is executable
 bool Server::fileExecutable(const std::string& path)
 {
 	struct stat st;
 	return (stat(path.c_str(), &st) == 0 && (st.st_mode & S_IXUSR));
 }
 
+// Checks if a directory is readable
 bool Server::dirReadable(const std::string& path)
 {
 	struct stat st;
 	return (stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode) && (st.st_mode & S_IRUSR));
 }
 
+// Checks if a directory is writable
 bool Server::dirWritable(const std::string& path)
 {
 	struct stat st;
 	return (stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode) && (st.st_mode & S_IWUSR));
 }
 
+// Verifies access permissions for a given path based on the request context
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
     struct stat path_stat;
@@ -330,6 +215,7 @@ bool Server::checkAccessRights(Context &ctx, std::string path)
     return true;
 }
 
+// Determines whether the requested HTTP method is allowed in the location block
 bool isMethodAllowed(Context& ctx)
 {
 
@@ -361,7 +247,77 @@ bool isMethodAllowed(Context& ctx)
 	return isAllowed;
 }
 
-// Bestimmt Request-Typ aus Konfiguration
+// Detects if the request contains multipart/form-data content
+bool detectMultipartFormData(Context &ctx)
+{
+	if (ctx.headers["Content-Type"] == "Content-Type: multipart/form-data")
+	{
+		ctx.is_multipart = true;
+		return true;
+	}
+	ctx.is_multipart = false;
+	return false;
+}
+
+// Approves a file extension based on CGI configuration or static file handling rules
+std::string Server::approveExtention(Context& ctx, std::string path_to_check)
+{
+    std::string approvedIndex;
+
+    size_t dot_pos = path_to_check.find_last_of('.');
+
+    if (dot_pos != std::string::npos)
+    {
+        std::string extension = path_to_check.substr(dot_pos + 1);
+        if (ctx.type != CGI || (extension == ctx.location.cgi_filetype && ctx.type == CGI))
+        {
+            approvedIndex = path_to_check;
+        }
+        else
+        {
+			updateErrorStatus(ctx, 500, "Internal Server Error");
+            return "";
+        }
+    }
+    else if (ctx.type == CGI && ctx.method != "POST")
+    {
+        updateErrorStatus(ctx, 400, "Bad Request: No file extension found");
+        return "";
+    }
+    else if (!ctx.location.return_url.empty())
+	{
+        return path_to_check;
+    }
+    else
+	{
+        updateErrorStatus(ctx, 404, "Not found");
+        return "";
+    }
+    return approvedIndex;
+}
+
+// Resets the context, clearing request data and restoring initial values
+bool Server::resetContext(Context& ctx)
+{
+	ctx.input_buffer.clear();
+	ctx.headers.clear();
+	ctx.method.clear();
+	ctx.path.clear();
+	ctx.version.clear();
+	ctx.headers_complete = false;
+	ctx.content_length = 0;
+	ctx.error_code = 0;
+	ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
+	ctx.req.current_body_length = 0;
+	ctx.req.expected_body_length = 0;
+	ctx.req.received_body.clear();
+	ctx.req.chunked_state.processing = false;
+	ctx.req.is_upload_complete = false;
+	ctx.type = RequestType::INITIAL;
+	return true;
+}
+
+// Determines the request type based on the server configuration and updates the context
 bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 {
 	ServerBlock* conf = nullptr;
@@ -389,7 +345,6 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 			ctx.timeout = conf->timeout;
 			ctx.location = loc;
 			ctx.location_inited = true;
-			logContext(ctx);
 			Logger::file(ctx.location.methods);
 			Logger::file(std::to_string(ctx.location.allowDelete));
 			if (!isMethodAllowed(ctx))
@@ -399,13 +354,14 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 			else
 				ctx.type = STATIC;
 			parseAccessRights(ctx);
+			logContext(ctx);
 			return true;;
 		}
 	}
 	return (updateErrorStatus(ctx, 500, "Internal Server Error"));
 }
 
-// Bestimmt Request-Typ aus Konfiguration
+// Retrieves the maximum allowed body size for a request from the server configuration
 void Server::getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs)
 {
 	ServerBlock* conf = nullptr;
@@ -432,70 +388,4 @@ void Server::getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> con
 			return;
 		}
 	}
-}
-
-bool detectMultipartFormData(Context &ctx)
-{
-	if (ctx.headers["Content-Type"] == "Content-Type: multipart/form-data")
-	{
-		ctx.is_multipart = true;
-		return true;
-	}
-	ctx.is_multipart = false;
-	return false;
-}
-
-std::string Server::approveExtention(Context& ctx, std::string path_to_check)
-{
-    std::string approvedIndex;
-
-    size_t dot_pos = path_to_check.find_last_of('.');
-
-    if (dot_pos != std::string::npos)
-    {
-        std::string extension = path_to_check.substr(dot_pos + 1);
-        if (ctx.type != CGI || (extension == ctx.location.cgi_filetype && ctx.type == CGI))
-        {
-            approvedIndex = path_to_check;
-        }
-        else
-        {
-			updateErrorStatus(ctx, 500, "Internal Server Error");
-            return "";
-        }
-    }
-    else if (ctx.type == CGI && ctx.method != "POST")
-    {
-        updateErrorStatus(ctx, 400, "Bad Request: No file extension found");
-        return "";
-    }
-    else if (!ctx.location.return_url.empty()) {
-        return path_to_check;
-    }
-    else {
-        updateErrorStatus(ctx, 404, "Not found");
-        return "";
-    }
-    return approvedIndex;
-}
-
-bool Server::resetContext(Context& ctx)
-{
-	Logger::file("resetContext");
-	ctx.input_buffer.clear();
-	ctx.headers.clear();
-	ctx.method.clear();
-	ctx.path.clear();
-	ctx.version.clear();
-	ctx.headers_complete = false;
-	ctx.content_length = 0;
-	ctx.error_code = 0;
-	ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
-	ctx.req.current_body_length = 0;
-	ctx.req.expected_body_length = 0;
-	ctx.req.received_body.clear();
-	ctx.req.chunked_state.processing = false;
-	ctx.req.is_upload_complete = false;
-	ctx.type = RequestType::INITIAL;
-	return true;
 }
