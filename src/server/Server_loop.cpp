@@ -91,6 +91,7 @@ bool Server::acceptNewConnection(int epoll_fd, int server_fd, std::vector<Server
 		ctx.doAutoIndex = "";
 		ctx.keepAlive = true;
 		ctx.error_code = 0;
+		ctx.had_seq_parse = false;
 		globalFDS.context_map[client_fd] = ctx;
 		getMaxBodySizeFromConfig(ctx, configs);
 	}
@@ -174,12 +175,17 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		}
 	}
 
-
-	if (ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
-		ctx.req.current_body_length < ctx.req.expected_body_length)
+	if (ctx.req.parsing_phase == RequestBody::PARSING_BODY && ctx.req.current_body_length < ctx.req.expected_body_length)
 	{
+		ctx.had_seq_parse = true;
+		Logger::progress(ctx.req.current_body_length, ctx.req.expected_body_length, "Upload: 8");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
 		return true;
+	}
+
+	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.had_seq_parse) {
+		Logger::progress(ctx.req.expected_body_length, ctx.req.expected_body_length, "Upload: 8");
+		std::cout << std::endl;
 	}
 	return finalizeRequest(ctx, configs);
 }
