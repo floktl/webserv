@@ -39,7 +39,6 @@ struct Location
 	bool		allowGet{true};
 	bool		allowPost{false};
 	bool		allowDelete{false};
-	bool		allowCookie{false};
 };
 
 // struct to save the nginx serverblocks
@@ -188,9 +187,8 @@ struct Context
 	long long body_received = 0;
 	bool keepAlive = false;
 	bool is_multipart;
-
-	std::string cookies = "";
-	std::string setCookie = "";
+    std::vector<std::pair<std::string, std::string>> setCookies;
+    std::vector<std::pair<std::string, std::string>> cookies;
 };
 
 struct CgiTunnel

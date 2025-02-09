@@ -62,51 +62,93 @@ void Server::removeAddedServerNamesFromHosts()
 }
 
 // Normalizes a given path, ensuring it starts with '/' and removing trailing slashes
-std::string Server::normalizePath(const std::string& raw)
-{
-	if (raw.empty()) return "/";
-	std::string path = (raw[0] == '/') ? raw : "/" + raw;
-	if (path.size() > 1 && path.back() == '/')
-		path.pop_back();
-	return path;
-}
+std::string Server::normalizePath(const std::string& path) {
+    std::string normalized;
+    if (path.empty()) {
+        return "/";
+    }
 
-// Matches a request path to a location block
-bool Server::matchLoc(Location& loc, std::string rawPath)
-{
-    if (rawPath.empty())
-        rawPath = "/";
+    if (path[0] != '/') {
+        normalized = "/" + path;
+    } else {
+        normalized = path;
+    }
 
-    if (rawPath[0] != '/')
-        rawPath = "/" + rawPath;
-
-    std::string normalizedPath;
+    std::string result;
     bool lastWasSlash = false;
 
-    for (size_t i = 0; i < rawPath.length(); ++i)
-	{
-        if (rawPath[i] == '/')
-		{
-            if (!lastWasSlash)
-                normalizedPath += '/';
+    for (char c : normalized) {
+        if (c == '/') {
+            if (!lastWasSlash) {
+                result += c;
+            }
             lastWasSlash = true;
-        }
-		else
-		{
-            normalizedPath += rawPath[i];
+        } else {
+            result += c;
             lastWasSlash = false;
         }
     }
-    if (normalizedPath == loc.path)
-        return true;
-    if (loc.path.length() <= normalizedPath.length() &&
-        normalizedPath.substr(0, loc.path.length()) == loc.path)
-	{
-        if (loc.path[loc.path.length()-1] != '/')
-            return normalizedPath[loc.path.length()] == '/';
-        return true;
+
+    return result;
+}
+
+bool isPathMatch(const std::vector<std::string>& requestSegments,
+                        const std::vector<std::string>& locationSegments) {
+    // Location path cannot be longer than request path
+    if (locationSegments.size() > requestSegments.size()) {
+        return false;
     }
-    return false;
+
+    // Compare each segment
+    for (size_t i = 0; i < locationSegments.size(); ++i) {
+        if (locationSegments[i] != requestSegments[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+// Matches a request path to a location block
+bool Server::matchLoc(const std::vector<Location>& locations, const std::string& rawPath, Location& bestMatch) {
+    // Normalize the request path
+	Logger::errorLog("rawPath: " + rawPath);
+    std::string normalizedPath = normalizePath(rawPath);
+	Logger::errorLog("normalizedPath: " + normalizedPath);
+
+    // Split path into segments
+    std::vector<std::string> requestSegments = splitPathLoc(normalizedPath);
+
+    size_t bestMatchLength = 0;
+    bool foundMatch = false;
+
+    // Iterate through all locations to find best match
+    for (const Location& loc : locations) {
+        std::vector<std::string> locationSegments = splitPathLoc(loc.path);
+
+		for (auto it : locationSegments)
+		{
+			Logger::errorLog("locationSegment: " + it);
+		}
+		for (auto blub : requestSegments)
+		{
+			Logger::errorLog("requestSegment: " + blub);
+		}
+        // Check if this location is a potential match
+        if (isPathMatch(requestSegments, locationSegments)) {
+            // If we found a match that's longer than our current best match
+            if (locationSegments.size() > bestMatchLength) {
+                bestMatchLength = locationSegments.size();
+                bestMatch = loc;
+                foundMatch = true;
+            }
+        }
+    }
+
+	if (foundMatch == false )
+	{
+		Logger::errorLog("mamamamam: ");
+	}
+    return foundMatch;
 }
 
 // Concatenates a root path with a sub-path, ensuring correct path separators
@@ -179,6 +221,7 @@ bool Server::dirWritable(const std::string& path)
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
     struct stat path_stat;
+        Logger::errorLog("checkAccessRights");
     if (stat(path.c_str(), &path_stat) != 0)
         return updateErrorStatus(ctx, 404, "Not found");
 
@@ -237,11 +280,6 @@ bool isMethodAllowed(Context& ctx)
 		isAllowed = true;
 		reason = "DELETE method allowed for this location";
 	}
-	else if (ctx.method == "COOKIE" && ctx.location.allowCookie)
-	{
-		isAllowed = true;
-		reason = "COOKIE method allowed for this location";
-	}
 	else
 		reason = ctx.method + " method not allowed for this location";
 	return isAllowed;
@@ -290,6 +328,12 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
     }
     else
 	{
+		for (const auto &conf : configData)
+		{
+			if (conf.server_fd == ctx.server_fd)
+				printServerBlock((ServerBlock&)conf);
+		}
+		Logger::errorLog("approveExtention " + ctx.method + " " + path_to_check + " " + ctx.location.return_url);
         updateErrorStatus(ctx, 404, "Not found");
         return "";
     }
@@ -299,6 +343,8 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 // Resets the context, clearing request data and restoring initial values
 bool Server::resetContext(Context& ctx)
 {
+    ctx.cookies.clear();
+    ctx.setCookies.clear();
 	ctx.input_buffer.clear();
 	ctx.headers.clear();
 	ctx.method.clear();
@@ -323,6 +369,7 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 	ServerBlock* conf = nullptr;
 	for (auto& config : configs)
 	{
+			Logger::errorLog("asdasdadada ");
 		if (config.server_fd == ctx.server_fd)
 		{
 			conf = &config;
@@ -332,31 +379,29 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 
 	if (!conf)
 		return updateErrorStatus(ctx, 500, "Internal Server Error");
-
-	for (auto loc : conf->locations)
-	{
-		if (matchLoc(loc, ctx.path))
-		{
-			ctx.port = conf->port;
-			ctx.name = conf->name;
-			ctx.root = conf->root;
-			ctx.index = conf->index;
-			ctx.errorPages = conf->errorPages;
-			ctx.timeout = conf->timeout;
-			ctx.location = loc;
-			ctx.location_inited = true;
-			Logger::file(ctx.location.methods);
-			Logger::file(std::to_string(ctx.location.allowDelete));
-			if (!isMethodAllowed(ctx))
-				return updateErrorStatus(ctx, 405, "Method (" + ctx.method + ") not allowed");
-			if (loc.cgi != "")
-				ctx.type = CGI;
-			else
-				ctx.type = STATIC;
-			parseAccessRights(ctx);
-			logContext(ctx);
-			return true;;
-		}
+	Logger::errorLog(ctx.path);
+	Location bestMatch;
+	if (matchLoc(conf->locations, ctx.path, bestMatch)) {
+		Logger::errorLog("in match: ");
+		Logger::errorLog(bestMatch.return_url);
+		Logger::errorLog(bestMatch.return_code);
+		ctx.port = conf->port;
+		ctx.name = conf->name;
+		ctx.root = conf->root;
+		ctx.index = conf->index;
+		ctx.errorPages = conf->errorPages;
+		ctx.timeout = conf->timeout;
+		ctx.location = bestMatch;
+		ctx.location_inited = true;
+		if (!isMethodAllowed(ctx))
+			return updateErrorStatus(ctx, 405, "Method (" + ctx.method + ") not allowed");
+		if (bestMatch.cgi != "")
+			ctx.type = CGI;
+		else
+			ctx.type = STATIC;
+		parseAccessRights(ctx);
+		logContext(ctx);
+		return true;
 	}
 	return (updateErrorStatus(ctx, 500, "Internal Server Error"));
 }
@@ -380,10 +425,11 @@ void Server::getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> con
 
 	for (auto loc : conf->locations)
 	{
-		if (matchLoc(loc, ctx.path))
+		Location bestMatch;
+		if (matchLoc(conf->locations, ctx.path, bestMatch))
 		{
 			ctx.client_max_body_size = loc.client_max_body_size;
-			if (ctx.client_max_body_size != -1 && ctx.location.client_max_body_size == -1)
+			if (ctx.client_max_body_size != -1 && bestMatch.client_max_body_size == -1)
 				ctx.location.client_max_body_size = ctx.client_max_body_size;
 			return;
 		}
