@@ -1,5 +1,6 @@
 #include "Server.hpp"
 
+// Runs the main event loop, handling incoming connections and processing events via epoll
 int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 {
 	const int			max_events = 64;
@@ -53,6 +54,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 	return EXIT_SUCCESS;
 }
 
+// Runs the main event loop, handling incoming connections and processing events via epoll
 bool Server::acceptNewConnection(int epoll_fd, int server_fd, std::vector<ServerBlock> &configs)
 {
 	struct sockaddr_in client_addr;
@@ -95,6 +97,7 @@ bool Server::acceptNewConnection(int epoll_fd, int server_fd, std::vector<Server
 	return true;
 }
 
+// Handles an existing client connection by processing read/write events and error handling
 bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, std::vector<ServerBlock> &configs)
 {
 	std::map<int, Context>::iterator contextIter = globalFDS.context_map.find(client_fd);
@@ -129,6 +132,38 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 	return true;
 }
 
+// Handles reading request data from the client and processing it accordingly
+bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
+{
+	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
+	if (bytes <= 0)
+	{
+		if (errno != EAGAIN && errno != EWOULDBLOCK)
+			return (Logger::errorLog("Read error: " + std::string(strerror(errno))));
+		return false;
+	}
+	ctx.last_activity = std::chrono::steady_clock::now();
+
+	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE)
+		resetContext(ctx);
+
+	ctx.input_buffer.append(buffer, bytes);
+
+	if (!handleParsingPhase(ctx, configs))
+		return false;
+
+	if (ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
+		ctx.req.current_body_length < ctx.req.expected_body_length)
+	{
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+		return true;
+	}
+	return finalizeRequest(ctx, configs);
+}
+
+
+// Handles writing response data to the client based on the request type
 bool Server::handleWrite(Context& ctx)
 {
 	bool result = false;
@@ -136,33 +171,23 @@ bool Server::handleWrite(Context& ctx)
 	switch (ctx.type)
 	{
 		case INITIAL:
+			result = true;
 			break;
 		case STATIC:
 			result = staticHandler(ctx);
-			if (ctx.error_code != 0)
-				result = getErrorHandler()->generateErrorResponse(ctx);
 			break;
 		case CGI:
 			result = true;
-			if (ctx.error_code != 0)
-				result = getErrorHandler()->generateErrorResponse(ctx);
 			break;
 		case ERROR:
-			result = getErrorHandler()->generateErrorResponse(ctx);
-			break;
-		default:
-			break;
+			return getErrorHandler()->generateErrorResponse(ctx);
 	}
+	if (ctx.error_code != 0)
+		return getErrorHandler()->generateErrorResponse(ctx);
 
 	if (result)
 	{
-		ctx.input_buffer.clear();
-		ctx.body.clear();
-		ctx.headers_complete = false;
-		ctx.content_length = 0;
-		ctx.body_received = 0;
-		ctx.headers.clear();
-		ctx.error_code = 0;
+		resetContext(ctx);
 		if (ctx.keepAlive)
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
 		else
@@ -171,41 +196,4 @@ bool Server::handleWrite(Context& ctx)
 	if (result == false)
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 	return result;
-}
-
-bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
-{
-    char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-    ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
-
-    if (bytes < 0)
-	{
-        if (errno != EAGAIN && errno != EWOULDBLOCK)
-		{
-            Logger::errorLog("Read error: " + std::string(strerror(errno)));
-            return false;
-        }
-        return true;
-    }
-
-    if (bytes == 0)
-        return true;
-
-    ctx.last_activity = std::chrono::steady_clock::now();
-
-    if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE)
-        resetContext(ctx);
-
-    ctx.input_buffer.append(buffer, bytes);
-
-    if (!handleParsingPhase(ctx, configs))
-        return false;
-
-    if (ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
-        ctx.req.current_body_length < ctx.req.expected_body_length)
-	{
-        modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
-        return true;
-    }
-    return finalizeRequest(ctx, configs);
 }

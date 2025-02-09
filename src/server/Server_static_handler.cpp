@@ -1,5 +1,6 @@
 #include "Server.hpp"
 
+
 bool Server::staticHandler(Context& ctx)
 {
 	if (ctx.method == "POST")
@@ -36,6 +37,7 @@ bool Server::staticHandler(Context& ctx)
 	return (false);
 }
 
+// Sends an HTTP response to the client and handles connection cleanup if necessary
 bool Server::sendHandler(Context& ctx, std::string http_response)
 {
 	ssize_t bytes_sent = send(ctx.client_fd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL);

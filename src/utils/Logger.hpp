@@ -35,7 +35,7 @@ class Logger
 		static void black(const std::string &message, bool newline = true, size_t length = 0);
 		static bool error(const std::string &message, bool newline = true);
 		static void file(const std::string &message);
-		static void errorLog(const std::string& message);
+		static bool errorLog(const std::string& message);
 
 		static void log(const std::string &message, const std::string &color, bool newline = true);
 
