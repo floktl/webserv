@@ -313,9 +313,9 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 
 	size_t dot_pos = path_to_check.find_last_of('.');
 
-	Logger::errorLog(path_to_check);
-	Logger::errorLog(ctx.path);
-	Logger::errorLog(ctx.location.path);
+	// Logger::errorLog(path_to_check);
+	// Logger::errorLog(ctx.path);
+	// Logger::errorLog(ctx.location.path);
 	if (dot_pos != std::string::npos)
 	{
 		std::string extension = path_to_check.substr(dot_pos + 1);
