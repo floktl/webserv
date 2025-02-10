@@ -3,23 +3,37 @@
 // Runs the main event loop, handling incoming connections and processing events via epoll
 int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 {
-	const int			max_events = 64;
-	struct epoll_event	events[max_events];
-	const int			timeout_ms = 1000;
-	int					incoming_fd = -1;
-	int					server_fd = -1;
-	int					client_fd = -1;
-	uint32_t			ev;
-	int					eventNum;
+
+	const int max_events = 64;
+	struct epoll_event* events = new struct epoll_event[max_events];
+	std::memset(events, 0, sizeof(struct epoll_event) * max_events);
+
+	const int timeout_ms = 1000;
+	int incoming_fd = -1;
+	int server_fd = -1;
+	int client_fd = -1;
+	uint32_t ev;
+	int eventNum;
 
 	while (true)
 	{
-		eventNum = epoll_wait(epoll_fd, events, max_events, timeout_ms);
+		if (globalFDS.epoll_fd < 0) {
+			Logger::errorLog("Invalid globalFDS.epoll_fd");
+			delete[] events;
+			return EXIT_FAILURE;
+		}
+
+		eventNum = epoll_wait(globalFDS.epoll_fd, events, max_events, timeout_ms);
+
 		if (eventNum < 0)
 		{
-			Logger::errorLog("Epoll error: " + std::string(strerror(errno)));
-			if (errno == EINTR)
+			Logger::errorLog("Epoll error: " + std::string(strerror(errno)) +
+						" (errno: " + std::to_string(errno) + ")");
+			if (errno == EINTR) {
+				Logger::errorLog("EINTR received, continuing...");
 				continue;
+			}
+			Logger::errorLog("Fatal epoll error, breaking event loop");
 			break;
 		}
 		else if (eventNum == 0)
@@ -28,6 +42,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 			continue;
 		}
 
+		// Process events...
 		for (int eventIter = 0; eventIter < eventNum; eventIter++)
 		{
 			incoming_fd = events[eventIter].data.fd;
@@ -49,6 +64,9 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 			}
 		}
 	}
+
+	// Cleanup
+	delete[] events;
 	close(epoll_fd);
 	epoll_fd = -1;
 	return EXIT_SUCCESS;
@@ -171,20 +189,22 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 					<< "t" << std::chrono::duration_cast<std::chrono::milliseconds>(
 							ctx.last_activity.time_since_epoch()).count();
 
-			ctx.setCookies.emplace_back("WEBSERV_SESSION", sessionId.str());
+			ctx.setCookies.push_back(std::pair<std::string, std::string>("WEBSERV_SESSION", sessionId.str()));
+			ctx.setCookies.push_back(std::make_pair("WEBSERV_SESSION", sessionId.str()));
+			ctx.setCookies.push_back(std::pair<std::string, std::string>("WEBSERV_SESSION", sessionId.str()));
 		}
 	}
 
 	if (ctx.req.parsing_phase == RequestBody::PARSING_BODY && ctx.req.current_body_length < ctx.req.expected_body_length)
 	{
 		ctx.had_seq_parse = true;
-		Logger::progress(ctx.req.current_body_length, ctx.req.expected_body_length, "Upload: 8");
+		Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "Upload: 8");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
 		return true;
 	}
 
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.had_seq_parse) {
-		Logger::progress(ctx.req.expected_body_length, ctx.req.expected_body_length, "Upload: 8");
+		Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "Upload: 8");
 		std::cout << std::endl;
 	}
 	return finalizeRequest(ctx, configs);

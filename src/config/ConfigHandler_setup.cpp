@@ -21,7 +21,6 @@ bool ConfigHandler::parseConfigContent(std::string filename)
 	std::ifstream configFile(filename);
 	if (!configFile.is_open())
 	{
-		Logger::error("Could not open config file");
 		return false;
 	}
 	std::string line;

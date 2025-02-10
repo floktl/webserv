@@ -176,7 +176,8 @@ Logger::StreamLogger& Logger::file() {
 	return logger;
 }
 
-void Logger::progress(long long current, long long total, const std::string& prefix) {
+void Logger::progressBar(long long current, long long total, const std::string& prefix) {
+
 	if (current > 0) {
 		const int barWidth = 20;
 		float progress = total > 0 ? (float)current / total : 0.0f;
@@ -186,7 +187,7 @@ void Logger::progress(long long current, long long total, const std::string& pre
 		std::cout << "";
 
 		for (int i = 0; i < barWidth; ++i) {
-			if (i < barWidth - 1) {  // Für alle Positionen außer der letzten
+			if (i < barWidth - 1) {
 				if (i < pos) {
 					std::cout << "=";
 				}
@@ -197,7 +198,7 @@ void Logger::progress(long long current, long long total, const std::string& pre
 					std::cout << " ";
 				}
 			}
-			else {  // Für die letzte Position (i == barWidth - 1)
+			else {
 				if (progress >= 1.0f) {
 					std::cout << "D";
 				}

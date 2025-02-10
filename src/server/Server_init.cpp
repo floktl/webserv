@@ -6,6 +6,7 @@ Server::Server(GlobalFDS &_globalFDS) : globalFDS(_globalFDS),
 										errorHandler(new ErrorHandler(*this)),
 										timeout(30)
 {
+	has_gate = false;
 }
 
 // Destructor cleaning up allocated resources and logging server shutdown
@@ -58,21 +59,42 @@ int Server::server_init(std::vector<ServerBlock> configs)
 	if (epoll_fd < 0)
 		return EXIT_FAILURE;
 
-	if (!initServerSockets(epoll_fd, configs))
+	// Store it in globalFDS
+	globalFDS.epoll_fd = epoll_fd;
+
+	if (!initServerSockets(globalFDS.epoll_fd, configs))
 		return EXIT_FAILURE;
+
 	configData = configs;
-	return runEventLoop(epoll_fd, configs);
+	return globalFDS.epoll_fd;  // Return the stored value
 }
 
+
 // Creates an epoll instance and stores its file descriptor in GlobalFDS
-int Server::initEpoll()
-{
-	int epoll_fd = epoll_create1(0);
-	if (epoll_fd < 0)
-	{
+int Server::initEpoll() {
+	int epoll_fd = epoll_create(1);
+	if (epoll_fd < 0) {
 		Logger::red() << "Failed to create epoll\n";
 		return -1;
 	}
+
+	int flags = fcntl(epoll_fd, F_GETFD);
+	if (flags != -1) {
+		flags |= FD_CLOEXEC;
+		if (fcntl(epoll_fd, F_SETFD, flags) == -1) {
+			Logger::errorLog("Failed to set FD_CLOEXEC");
+			close(epoll_fd);
+			return -1;
+		}
+	}
+
+	// Verify epoll_fd is valid before storing
+	if (fcntl(epoll_fd, F_GETFD) == -1) {
+		Logger::errorLog("epoll_fd invalid after creation");
+		close(epoll_fd);
+		return -1;
+	}
+
 	globalFDS.epoll_fd = epoll_fd;
 	return epoll_fd;
 }
@@ -83,6 +105,7 @@ bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 	Logger::green("Server listening on the ports:");
 	for (auto &conf : configs)
 	{
+		Logger::green("    " +  conf.name + ":" + std::to_string( conf.port));
 		conf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
 		if (conf.server_fd < 0)
 			return false;
@@ -117,7 +140,7 @@ bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 		modEpoll(epoll_fd, conf.server_fd, EPOLLIN | EPOLLET);
 		setTimeout(conf.timeout);
 		addServerNameToHosts(conf.name);
-		if ((conf.port == 80 && serverInstance->has_gate) || conf.port != 80)
+		if ((conf.port == 80 && this->has_gate) || conf.port != 80)
 			Logger::green("Port: " + std::to_string(conf.port) + ", Servername: " + conf.name);
 	}
 	return true;

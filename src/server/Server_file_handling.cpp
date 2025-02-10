@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include <filesystem>
 
 // Handles file uploads by extracting filename, validating content boundaries, and saving the file
 bool Server::handleStaticUpload(Context& ctx)
@@ -41,24 +42,30 @@ bool Server::handleStaticUpload(Context& ctx)
 }
 
 // Handles DELETE requests by verifying file permissions and removing the requested file
-bool Server::deleteHandler(Context &ctx)
-{
-
+bool Server::deleteHandler(Context &ctx) {
+	Logger::errorLog(ctx.path);
+	Logger::errorLog(ctx.path);
 	std::string filename = mergePathsToFilename(ctx.path, ctx.location.upload_store);
-
+	Logger::errorLog(filename);
 	if (filename.empty())
 		return updateErrorStatus(ctx, 404, "Not found");
+
 	filename = concatenatePath(ctx.location.upload_store, filename);
 
-	if (dirReadable(ctx.location.upload_store) && dirWritable(ctx.location.upload_store))
-	{
-		if (geteuid() == 0)
-			Logger::blue("[WARNING] Running as root - access() will not reflect real permissions!");
-		else if (access(filename.c_str(), W_OK) != 0)
+	if (dirReadable(ctx.location.upload_store) && dirWritable(ctx.location.upload_store)) {
+		std::ifstream testFile(filename);
+		if (!testFile) {
+			return updateErrorStatus(ctx, 404, "Not found");
+		}
+		std::ofstream writeTest(filename, std::ios::app);
+		if (!writeTest) {
 			return updateErrorStatus(ctx, 403, "Forbidden");
+		}
 	}
-	if (unlink(filename.c_str()) != 0)
+	std::filesystem::remove(filename);
+	if (std::filesystem::exists(filename)) {
 		return updateErrorStatus(ctx, 500, "Internal Server Error");
+	}
 	return true;
 }
 
