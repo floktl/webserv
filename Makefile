@@ -28,7 +28,6 @@ $(X) 🐑 Stress test shell script das de kiste fickt!!!!!!!!!\n\
 $(X) 🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
 $(X) 🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
 $(X) 🐑 Über CGI-Scripts mit deren eigener Upload-Logik\n\
-$(X) 🐑 check how to redirect vhosts_gate into services\n\
 $(X) 🐑 wildacrad und pre header compilation checken....\n\
 $(X) 🐑 acheck autoindex\n\\n\
 $(X) 🐑????????? location paths.... root!!! \n\
@@ -39,7 +38,7 @@ $(X) 🐑 	if (conf.errorPages.find(errorCode) == conf.errorPages.end()) {\n\
 $(X) 🐑 		conf.errorPages[errorCode] = "/50x.html";\n\
 $(X) 🐑 	}\n\
 $(X) 🐑 }\n\
-$(X) 🇫🇷 Forbidden functions.\n\
+$(X) 🐑 Forbidden functions.\n\
 
 # helper command to search for fucntions with more than 40 lines
 #find . -type f -name "*.cpp" | xargs awk '
