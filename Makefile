@@ -18,13 +18,13 @@ SUCCESS := \n\
 🐑  🐑       🐑  🐑            🐑          🐑  🐑            🐑            🐑       🐑    🐑    🐑      🐑$(X)\n\
 🐑  🐑   🐑  🐑  🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑      🐑  🐑      🐑 $(X)\n\
 🐑  🐑 🐑 🐑 🐑  🐑            🐑          🐑            🐑  🐑            🐑   🐑          🐑🐑        🐑$(X)\n\
-$(BLACK)🐑    $(X)🐑   🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑  🐑    🐑🐑        🐑           🐑 $(X)\n\
+🐑    🐑   🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑  🐑    🐑🐑        🐑           🐑 $(X)\n\
 🐑                                                                                                          🐑\n\
 🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\
 $(X) 🐑 Wir muessen noch alle config werte im req handler abfangen!!!!!!\n\
 $(X) 🐑 Checking the value of errno is strictly forbidden after a read or a write operation\n\
 $(X) 🐑 You can use every macro and define like FD_SET, FD_CLR, FD_ISSET, FD_ZERO (understanding what and how they do it is very useful).\n\
-$(X) 🐑 Stress test shell script das de kiste fickt!!!!!!!!!\n\
+$(X) 🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks) no restarts on siege usage\n\
 $(X) 🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
 $(X) 🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
 $(X) 🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
@@ -38,8 +38,12 @@ $(X) 🐖 	if (conf.errorPages.find(errorCode) == conf.errorPages.end()) {\n\
 $(X) 🐖 		conf.errorPages[errorCode] = "/50x.html";\n\
 $(X) 🐖 	}\n\
 $(X) 🐖 }\n\
-$(X) 🐑 Delete parsing.\n\
-$(X) 🐑 Forbidden functions .\n\
+$(X) 🐑 Forbidden functions . signal issue\n\
+$(X) 🐑 Parallel usage .\n\
+$(X) 🐑 Single READ and WRITE .\n\
+$(X) 🐑 FILE Upload write chunked .\n\
+$(X) 🐑 FILE Download .\n\
+$(X) 🐑 Das thema permissions.... .\n\
 
 # helper command to search for fucntions with more than 40 lines
 #find . -type f -name "*.cpp" | xargs awk '
