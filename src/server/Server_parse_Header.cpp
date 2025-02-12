@@ -120,15 +120,18 @@ void Server::parseAccessRights(Context& ctx)
 		ctx.location.default_file = ctx.index;
 
 	std::string adjustedPath = ctx.path;
-	if (!useLocRoot) {
-		adjustedPath = subtractLocationPath(ctx.path, ctx.location);
+	if (ctx.method != "DELETE")
+	{
+		if (!useLocRoot) {
+			adjustedPath = subtractLocationPath(ctx.path, ctx.location);
+		}
+		requestedPath = concatenatePath(req_root, adjustedPath);
+		if (!requestedPath.empty() && requestedPath.back() == '/')
+			requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
+		if (ctx.location_inited && requestedPath == ctx.location.upload_store && dirWritable(requestedPath))
+			return;
+		requestedPath = approveExtention(ctx, requestedPath);
 	}
-	requestedPath = concatenatePath(req_root, adjustedPath);
-	if (!requestedPath.empty() && requestedPath.back() == '/')
-		requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
-	if (ctx.location_inited && requestedPath == ctx.location.upload_store && dirWritable(requestedPath))
-		return;
-	requestedPath = approveExtention(ctx, requestedPath);
 	if (ctx.type == ERROR)
 		return;
 	if (ctx.type != REDIRECT)

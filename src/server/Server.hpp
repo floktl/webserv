@@ -139,7 +139,6 @@ std::string expandEnvironmentVariables(const std::string& value, char** env);
 void log_global_fds(const GlobalFDS& fds);
 void log_server_configs(const std::vector<ServerBlock>& configs);
 bool	updateErrorStatus(Context &ctx, int error_code, std::string error_string);
-std::string mergePathsToFilename(const std::string& requestPath, const std::string& basePath);
 int extractPort(const std::string& header);
 
 #endif

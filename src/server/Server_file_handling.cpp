@@ -43,27 +43,34 @@ bool Server::handleStaticUpload(Context& ctx)
 
 // Handles DELETE requests by verifying file permissions and removing the requested file
 bool Server::deleteHandler(Context &ctx) {
-	Logger::errorLog(ctx.path);
-	Logger::errorLog(ctx.path);
-	std::string filename = mergePathsToFilename(ctx.path, ctx.location.upload_store);
-	Logger::errorLog(filename);
-	if (filename.empty())
-		return updateErrorStatus(ctx, 404, "Not found");
-
-	filename = concatenatePath(ctx.location.upload_store, filename);
-
-	if (dirReadable(ctx.location.upload_store) && dirWritable(ctx.location.upload_store)) {
-		std::ifstream testFile(filename);
-		if (!testFile) {
-			return updateErrorStatus(ctx, 404, "Not found");
-		}
-		std::ofstream writeTest(filename, std::ios::app);
-		if (!writeTest) {
-			return updateErrorStatus(ctx, 403, "Forbidden");
-		}
+		bool useLocRoot = false;
+	std::string req_root = ctx.location.root;
+	if (req_root.empty())
+	{
+		useLocRoot = true;
+		req_root = ctx.root;
 	}
-	std::filesystem::remove(filename);
-	if (std::filesystem::exists(filename)) {
+	std::string requestedPath = concatenatePath(req_root, ctx.path);
+	if (ctx.index.empty())
+		ctx.index = "index.html";
+	if (ctx.location.default_file.empty())
+		ctx.location.default_file = ctx.index;
+
+	if (ctx.method != "DELETE")
+	{
+		std::string adjustedPath = ctx.path;
+		if (!useLocRoot) {
+			adjustedPath = subtractLocationPath(ctx.path, ctx.location);
+		}
+		requestedPath = concatenatePath(req_root, adjustedPath);
+	}
+	if (!requestedPath.empty() && requestedPath.back() == '/')
+		requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
+	if (ctx.location_inited && requestedPath == ctx.location.upload_store && dirWritable(requestedPath))
+		return false;
+
+	std::filesystem::remove(requestedPath);
+	if (std::filesystem::exists(requestedPath)) {
 		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	}
 	return true;
@@ -103,39 +110,4 @@ std::vector<std::string> Server::splitPathLoc(const std::string& path) {
 	}
 
 	return segments;
-}
-
-// Merges request and base paths, extracting the relative filename for further processing
-std::string mergePathsToFilename(const std::string& requestPath, const std::string& basePath)
-{
-	auto requestComponents = splitPath(requestPath);
-	auto baseComponents = splitPath(basePath);
-
-	// Find common segment (e.g., "upload")
-	size_t matchIndex = 0;
-	bool found = false;
-	for (size_t i = 0; i < requestComponents.size(); i++)
-	{
-		for (size_t j = 0; j < baseComponents.size(); j++)
-		{
-			if (requestComponents[i] == baseComponents[j])
-			{
-				matchIndex = i;
-				found = true;
-				break;
-			}
-		}
-		if (found)
-			break;
-	}
-	if (!found)
-		return "";  // No common path found
-	std::string result;
-	for (size_t i = matchIndex + 1; i < requestComponents.size(); i++)
-	{
-		result += requestComponents[i];
-		if (i < requestComponents.size() - 1)
-			result += "/";
-	}
-	return result;
 }

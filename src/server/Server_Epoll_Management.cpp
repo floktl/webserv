@@ -8,25 +8,18 @@ void Server::modEpoll(int epoll_fd, int fd, uint32_t events)
 		Logger::errorLog("WARNING: Attempt to modify epoll for invalid fd: " + std::to_string(fd));
 		return;
 	}
-
 	struct epoll_event ev;
-	std::memset(&ev, 0, sizeof(ev));  // Zero out the structure
 	ev.events = events;
 	ev.data.fd = fd;
-	ev.data.ptr = nullptr;  // Make sure any unused fields are explicitly zeroed
 
 	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0)
 	{
 		if (errno != EEXIST)
 		{
-			Logger::errorLog("epoll_ctl ADD failed: " + std::string(strerror(errno)));
 			return;
 		}
 		if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0)
-		{
-			Logger::errorLog("epoll_ctl MOD failed: " + std::string(strerror(errno)));
 			return;
-		}
 	}
 }
 
