@@ -22,7 +22,7 @@ void Server::buildStaticResponse(Context &ctx) {
 	std::string fullPath = ctx.approved_req_path;
 	std::ifstream file(fullPath, std::ios::binary);
 	if (!file) {
-		updateErrorStatus(ctx, 404, "Not found");
+		updateErrorStatus(ctx, 404, "Not found asasas");
 		return;
 	}
 

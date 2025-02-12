@@ -232,7 +232,7 @@ bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	struct stat path_stat;
 	if (stat(path.c_str(), &path_stat) != 0)
-		return updateErrorStatus(ctx, 404, "Not found");
+		return updateErrorStatus(ctx, 404, "Not found sdfsdf");
 
 	if (S_ISDIR(path_stat.st_mode))
 	{
@@ -313,9 +313,6 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 
 	size_t dot_pos = path_to_check.find_last_of('.');
 
-	// Logger::errorLog(path_to_check);
-	// Logger::errorLog(ctx.path);
-	// Logger::errorLog(ctx.location.path);
 	if (dot_pos != std::string::npos)
 	{
 		std::string extension = path_to_check.substr(dot_pos + 1);
@@ -350,7 +347,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 	}
 	else
 	{
-		updateErrorStatus(ctx, 404, "Not found");
+		updateErrorStatus(ctx, 404, "Not found weww");
 		return "";
 	}
 	return approvedIndex;

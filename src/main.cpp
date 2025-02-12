@@ -17,13 +17,6 @@ void handle_sigint(int sig)
 	exit(EXIT_SUCCESS);
 }
 
-// Die wichtigsten Änderungen:
-
-// Entfernung von _exit
-// Einführung einer globalen sig_atomic_t Variable für den Signalstatus
-// Signal Handler setzt nur den Status
-// Hauptschleife prüft auf den Signalstatus und beendet sich entsprechend
-// Verwendet normale return Statements für Programmbeendigung
 int main(int argc, char **argv, char **envp)
 {
 	ConfigHandler utils;
@@ -60,6 +53,8 @@ int main(int argc, char **argv, char **envp)
 		}
 		int epoll_fd = serverInstance->server_init(configs);
 		serverInstance->environment = envp;
+		if (epoll_fd == EXIT_FAILURE)
+			return EXIT_FAILURE;
 
 		if (serverInstance->runEventLoop(epoll_fd, configs) == EXIT_FAILURE)
 			return EXIT_FAILURE;

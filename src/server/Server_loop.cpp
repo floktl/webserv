@@ -3,37 +3,23 @@
 // Runs the main event loop, handling incoming connections and processing events via epoll
 int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 {
-
-	const int max_events = 64;
-	struct epoll_event* events = new struct epoll_event[max_events];
-	std::memset(events, 0, sizeof(struct epoll_event) * max_events);
-
-	const int timeout_ms = 1000;
-	int incoming_fd = -1;
-	int server_fd = -1;
-	int client_fd = -1;
-	uint32_t ev;
-	int eventNum;
+	const int			max_events = 64;
+	struct epoll_event	events[max_events];
+	const int			timeout_ms = 1000;
+	int					incoming_fd = -1;
+	int					server_fd = -1;
+	int					client_fd = -1;
+	uint32_t			ev;
+	int					eventNum;
 
 	while (true)
 	{
-		if (globalFDS.epoll_fd < 0) {
-			Logger::errorLog("Invalid globalFDS.epoll_fd");
-			delete[] events;
-			return EXIT_FAILURE;
-		}
-
-		eventNum = epoll_wait(globalFDS.epoll_fd, events, max_events, timeout_ms);
-
+		eventNum = epoll_wait(epoll_fd, events, max_events, timeout_ms);
 		if (eventNum < 0)
 		{
-			Logger::errorLog("Epoll error: " + std::string(strerror(errno)) +
-						" (errno: " + std::to_string(errno) + ")");
-			if (errno == EINTR) {
-				Logger::errorLog("EINTR received, continuing...");
+			Logger::errorLog("Epoll error: " + std::string(strerror(errno)));
+			if (errno == EINTR)
 				continue;
-			}
-			Logger::errorLog("Fatal epoll error, breaking event loop");
 			break;
 		}
 		else if (eventNum == 0)
@@ -42,7 +28,6 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 			continue;
 		}
 
-		// Process events...
 		for (int eventIter = 0; eventIter < eventNum; eventIter++)
 		{
 			incoming_fd = events[eventIter].data.fd;
@@ -64,9 +49,6 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 			}
 		}
 	}
-
-	// Cleanup
-	delete[] events;
 	close(epoll_fd);
 	epoll_fd = -1;
 	return EXIT_SUCCESS;
