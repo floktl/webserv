@@ -4,6 +4,13 @@
 // Extracts and validates HTTP headers from the request, updating the request context
 bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 {
+	if (!ctx.input_buffer.empty())
+	{
+		Logger::errorLog("penismArvin");
+		ctx.tmp_buffer = std::string(ctx.input_buffer.begin(), ctx.input_buffer.end());
+		//Logger::cyan(ctx.tmp_buffer);
+
+	}
 	size_t header_end = ctx.input_buffer.find("\r\n\r\n");
 	if (header_end == std::string::npos)
 		return true;
@@ -41,7 +48,6 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 		return false;
 	}
-
 	ctx.input_buffer.erase(0, header_end + 4);
 	ctx.headers_complete = true;
 
@@ -53,30 +59,54 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 
 // New function to handle multipart form data headers
 void Server::parseMultipartHeaders(Context& ctx) {
-	std::string boundary;
-	auto content_type_it = ctx.headers.find("Content-Type");
-	if (content_type_it != ctx.headers.end()) {
-		size_t boundary_pos = content_type_it->second.find("boundary=");
-		if (boundary_pos != std::string::npos) {
-			boundary = content_type_it->second.substr(boundary_pos + 9);
-			ctx.headers["Content-Boundary"] = boundary;
+    std::string boundary;
+    auto content_type_it = ctx.headers.find("Content-Type");
+	//Logger::yellow(ctx.headers.find("Content-Length"));
+	auto it = ctx.headers.find("Content-Length");
+	if (it != ctx.headers.end()) {
+		try {
+			ctx.req.expected_body_length = std::stoull(it->second);
+		} catch (const std::invalid_argument& e) {
+			ctx.req.expected_body_length = 0;
+			std::cerr << "Invalid Content-Length value" << std::endl;
 		}
 	}
+    if (content_type_it != ctx.headers.end()) {
+        size_t boundary_pos = content_type_it->second.find("boundary=");
+        if (boundary_pos != std::string::npos) {
+            boundary = content_type_it->second.substr(boundary_pos + 9);
+            ctx.headers["Content-Boundary"] = boundary;
+        }
+    }
 
-	size_t disp_pos = ctx.input_buffer.find("Content-Disposition: form-data");
-	if (disp_pos != std::string::npos) {
-		size_t filename_pos = ctx.input_buffer.find("filename=\"", disp_pos);
-		if (filename_pos != std::string::npos) {
-			filename_pos += 10;
-			size_t filename_end = ctx.input_buffer.find("\"", filename_pos);
-			if (filename_end != std::string::npos) {
-				std::string filename = ctx.input_buffer.substr(filename_pos,
-															filename_end - filename_pos);
-				ctx.headers["Content-Disposition-Filename"] = filename;
-				ctx.uploaded_file_path = concatenatePath(ctx.location.upload_store, filename);
-			}
-		}
-	}
+    size_t boundary_start = ctx.input_buffer.find("--" + boundary);
+    if (boundary_start == std::string::npos) {
+        return;
+    }
+
+    size_t disp_pos = ctx.input_buffer.find("Content-Disposition: form-data", boundary_start);
+    if (disp_pos == std::string::npos) {
+        return;
+    }
+
+    size_t filename_pos = ctx.input_buffer.find("filename=\"", disp_pos);
+    if (filename_pos != std::string::npos) {
+        filename_pos += 10;
+        size_t filename_end = ctx.input_buffer.find("\"", filename_pos);
+        if (filename_end != std::string::npos) {
+            std::string filename = ctx.input_buffer.substr(filename_pos, filename_end - filename_pos);
+            ctx.headers["Content-Disposition-Filename"] = filename;
+            ctx.uploaded_file_path = concatenatePath(ctx.location.upload_store, filename);
+        }
+    }
+
+    size_t headers_end = ctx.input_buffer.find("\r\n\r\n", disp_pos);
+    if (headers_end != std::string::npos) {
+        ctx.header_offset = headers_end + 4;
+    } else {
+        ctx.header_offset = 0;
+    }
+	Logger::magenta(std::to_string(ctx.header_offset));
 }
 
 // Parses and stores individual header fields in the request context
@@ -193,15 +223,9 @@ void Server::prepareUploadPingPong(Context& ctx)
 // Parses and sets access rights for a request based on server configuration
 void Server::parseAccessRights(Context& ctx)
 {
-	bool useLocRoot = false;
-	std::string req_root = ctx.location.root;
-	if (req_root.empty())
-	{
-		useLocRoot = true;
-		req_root = ctx.root;
-	}
+	std::string req_root = retreiveReqRoot(ctx);
 	std::string requestedPath = concatenatePath(req_root, ctx.path);
-	if (ctx.index.empty())
+	if (ctx.index.empty() && ctx.method != "DELETE")
 		ctx.index = "index.html";
 	if (ctx.location.default_file.empty())
 		ctx.location.default_file = ctx.index;
@@ -209,7 +233,7 @@ void Server::parseAccessRights(Context& ctx)
 	std::string adjustedPath = ctx.path;
 	if (ctx.method != "DELETE")
 	{
-		if (!useLocRoot) {
+		if (!ctx.useLocRoot) {
 			adjustedPath = subtractLocationPath(ctx.path, ctx.location);
 		}
 		requestedPath = concatenatePath(req_root, adjustedPath);
@@ -352,19 +376,4 @@ bool Server::handleContentLength(Context& ctx, const std::vector<ServerBlock>& c
 			return updateErrorStatus(ctx, 413, "Payload too large");
 	}
 	return true;
-}
-
-// Checks and processes Transfer-Encoding headers, enabling chunked transfer decoding
-bool Server::handleTransferEncoding(Context& ctx)
-{
-	auto it = ctx.headers.find("Transfer-Encoding");
-	if (it != ctx.headers.end() && it->second == "chunked")
-	{
-		ctx.req.parsing_phase = RequestBody::PARSING_BODY;
-		ctx.req.chunked_state.processing = true;
-		if (!ctx.input_buffer.empty())
-			parseChunkedBody(ctx);
-		return true;
-	}
-	return false;
 }

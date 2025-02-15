@@ -177,6 +177,7 @@ struct Context
 
 	std::string input_buffer = "";
 	std::string output_buffer = "";
+	std::string tmp_buffer = "";
 	bool headers_complete = false;
 	size_t header_length = 0;
 	long long content_length = 0;
@@ -193,6 +194,8 @@ struct Context
 	std::vector<char> write_buffer;
 	size_t write_pos;
 	size_t write_len;
+	bool useLocRoot;
+	size_t header_offset = 0;
 };
 
 struct CgiTunnel
