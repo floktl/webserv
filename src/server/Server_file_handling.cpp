@@ -1,18 +1,23 @@
 #include "Server.hpp"
 #include <filesystem>
 
-// Handles DELETE requests by verifying file permissions and removing the requested file
-bool Server::deleteHandler(Context &ctx) {
-	Logger::errorLog("deleteHandler");
-		bool useLocRoot = false;
+std::string Server::retreiveReqRoot(Context &ctx)
+{
+	ctx.useLocRoot = false;
 	std::string req_root = ctx.location.root;
 	if (req_root.empty())
 	{
-		useLocRoot = true;
+		ctx.useLocRoot = true;
 		req_root = ctx.root;
 	}
+	return req_root;
+}
+
+// Handles DELETE requests by verifying file permissions and removing the requested file
+bool Server::deleteHandler(Context &ctx) {
+	std::string req_root = retreiveReqRoot(ctx);
 	std::string requestedPath = concatenatePath(req_root, ctx.path);
-	if (ctx.index.empty())
+	if (ctx.index.empty() && ctx.method != "DELETE")
 		ctx.index = "index.html";
 	if (ctx.location.default_file.empty())
 		ctx.location.default_file = ctx.index;
@@ -20,7 +25,7 @@ bool Server::deleteHandler(Context &ctx) {
 	if (ctx.method != "DELETE")
 	{
 		std::string adjustedPath = ctx.path;
-		if (!useLocRoot) {
+		if (!ctx.useLocRoot) {
 			adjustedPath = subtractLocationPath(ctx.path, ctx.location);
 		}
 		requestedPath = concatenatePath(req_root, adjustedPath);

@@ -231,7 +231,8 @@ bool Server::dirWritable(const std::string& path)
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	struct stat path_stat;
-
+	Logger::errorLog("notdurft ");
+	Logger::errorLog(path);
 	if (stat(path.c_str(), &path_stat) != 0)
 		return updateErrorStatus(ctx, 404, "Not found sdfsdf");
 
@@ -295,17 +296,7 @@ bool isMethodAllowed(Context& ctx)
 	return isAllowed;
 }
 
-// Detects if the request contains multipart/form-data content
-bool detectMultipartFormData(Context &ctx)
-{
-	if (ctx.headers["Content-Type"] == "Content-Type: multipart/form-data")
-	{
-		ctx.is_multipart = true;
-		return true;
-	}
-	ctx.is_multipart = false;
-	return false;
-}
+
 
 // Approves a file extension based on CGI configuration or static file handling rules
 std::string Server::approveExtention(Context& ctx, std::string path_to_check)
@@ -357,6 +348,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 // Resets the context, clearing request data and restoring initial values
 bool Server::resetContext(Context& ctx)
 {
+	Logger::yellow("ChristainLindner");
 	ctx.cookies.clear();
 	ctx.setCookies.clear();
 	ctx.input_buffer.clear();

@@ -107,8 +107,6 @@ class Server
 		void getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs);
 		bool resetContext(Context& ctx);
 		bool handleContentLength(Context& ctx, const std::vector<ServerBlock>& configs);
-		bool handleTransferEncoding(Context& ctx);
-		bool handleStandardBody(Context& ctx);
 		bool processParsingBody(Context& ctx);
 		bool handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs);
 		bool finalizeRequest(Context& ctx);
@@ -129,6 +127,14 @@ class Server
 		std::vector<std::string> getBlocksLocsPath(const std::vector<Location>& locations);
 		void prepareUploadPingPong(Context& ctx);
 		void handleSessionCookies(Context& ctx);
+		std::string retreiveReqRoot(Context &ctx);
+		bool isMultipartUpload(Context& ctx);
+		bool prepareMultipartUpload(Context& ctx, std::vector<ServerBlock> configs);
+		bool doMultipartWriting(Context& ctx);
+		void initializeWritingActions(Context& ctx);
+		size_t findBodyStart(const std::string& buffer, Context& ctx);
+		std::string extractBodyContent(const char* buffer, ssize_t bytes, Context& ctx);
+		bool readingTheBody(Context& ctx, const char* buffer, ssize_t bytes);
 };
 
 std::string extractHostname(const std::string& header);

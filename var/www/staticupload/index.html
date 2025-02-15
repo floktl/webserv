@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-50">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>File Operations</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<style>
+		@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+		body {
+			font-family: 'Inter', sans-serif;
+		}
+
+		.file-input::file-selector-button {
+			border: none;
+			background: #4F46E5;
+			padding: 8px 16px;
+			border-radius: 6px;
+			color: white;
+			cursor: pointer;
+			margin-right: 16px;
+			transition: background-color 0.3s ease;
+		}
+
+		.file-input::file-selector-button:hover {
+			background: #4338CA;
+		}
+
+		.fade-out {
+			animation: fadeOut 0.5s ease-out forwards;
+		}
+
+		@keyframes fadeOut {
+			from {
+				opacity: 1;
+			}
+
+			to {
+				opacity: 0;
+			}
+		}
+	</style>
+</head>
+
+<body class="min-h-screen p-4 md:p-8">
+	<div class="max-w-4xl mx-auto">
+		<h1 class="text-3xl font-bold text-gray-900 mb-8">File Operations</h1>
+
+		<div class="space-y-6">
+			<!-- Standard Upload Section -->
+			<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+				<h2 class="text-xl font-semibold text-gray-900 mb-4">Standard File Upload</h2>
+				<form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data" class="space-y-4">
+					<div>
+						<label for="myFile" class="block text-sm font-medium text-gray-700 mb-2">Choose a file:</label>
+						<input type="file" id="myFile" name="myFile" class="file-input block w-full text-sm text-gray-500
+							file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold
+							file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+					</div>
+					<button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700
+						transition-colors duration-200 text-sm font-medium">Upload File</button>
+				</form>
+			</div>
+
+			<!-- Delete Section -->
+			<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+				<h2 class="text-xl font-semibold text-gray-900 mb-4">Delete File</h2>
+				<div class="space-y-4">
+					<div>
+						<label for="deletePath" class="block text-sm font-medium text-gray-700 mb-2">File path to
+							delete:</label>
+						<input type="text" id="deletePath" placeholder="Enter path to delete" class="block w-full rounded-lg border-gray-300 border px-4 py-2 text-gray-900
+							focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+					</div>
+					<button id="deleteBtn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700
+						transition-colors duration-200 text-sm font-medium">Delete File</button>
+				</div>
+			</div>
+			<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+				<h2 class="text-xl font-semibold text-gray-900 mb-6">Cookie Operations</h2>
+
+				<!-- Cookie Set/Get Form -->
+				<div class="space-y-6">
+					<div class="grid grid-cols-1 gap-6">
+						<!-- Set Cookie -->
+						<div class="space-y-4">
+							<h3 class="text-lg font-medium text-gray-900">Set Cookie</h3>
+							<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<input type="text" id="jsCookieName" placeholder="Cookie name"
+									class="block w-full rounded-lg border-gray-300 border px-4 py-2" />
+								<input type="text" id="jsCookieValue" placeholder="Cookie value"
+									class="block w-full rounded-lg border-gray-300 border px-4 py-2" />
+							</div>
+							<button onclick="setJSCookie()"
+								class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+								Set Cookie
+							</button>
+						</div>
+
+						<!-- Current Cookies Display -->
+						<div class="space-y-4">
+							<h3 class="text-lg font-medium text-gray-900">Current Cookies</h3>
+							<div id="cookieDisplay" class="bg-gray-50 p-4 rounded-lg">
+								Loading cookies...
+							</div>
+							<button onclick="refreshCookies()"
+								class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+								Refresh Cookies
+							</button>
+						</div>
+
+						<div class="space-y-4">
+							<button onclick="deleteAllCookies()"
+								class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 ml-2">
+								Delete All Cookies
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+	<script>
+		// Helper function for showing alerts
+		const showAlert = (message, type) => {
+			const alertBox = document.getElementById('alertBox');
+			alertBox.className = `rounded-lg p-4 mb-4 ${type === 'success'
+				? 'bg-green-50 text-green-800 border border-green-200'
+				: 'bg-red-50 text-red-800 border border-red-200'
+				}`;
+			alertBox.textContent = message;
+			alertBox.style.display = 'block';
+
+			setTimeout(() => {
+				alertBox.classList.add('fade-out');
+				setTimeout(() => {
+					alertBox.style.display = 'none';
+					alertBox.classList.remove('fade-out');
+				}, 500);
+			}, 3000);
+		};
+
+		// Delete functionality
+		document.getElementById('deleteBtn').addEventListener('click', async () => {
+			const deletePath = document.getElementById('deletePath').value;
+			if (!deletePath) {
+				showAlert('Please enter a path to delete', 'error');
+				return;
+			}
+
+			try {
+				const response = await fetch(`http://localhost:8050/${deletePath}`, {
+					method: 'DELETE',
+				});
+
+				if (response.ok) {
+					showAlert('File successfully deleted', 'success');
+					document.getElementById('deletePath').value = '';
+				} else {
+					showAlert(`Delete failed: ${response.status}`, 'error');
+				}
+			} catch (err) {
+				console.error('Error during delete:', err);
+				showAlert(`Delete error: ${err.message}`, 'error');
+			}
+		});
+
+		// Function to update cookie display
+		function refreshCookies() {
+			const cookieDisplay = document.getElementById('cookieDisplay');
+			const cookies = document.cookie.split(';').map(cookie => cookie.trim());
+
+			if (cookies.length === 0 || (cookies.length === 1 && cookies[0] === '')) {
+				cookieDisplay.innerHTML = '<p class="text-gray-500 italic">No cookies found</p>';
+				return;
+			}
+
+			cookieDisplay.innerHTML = cookies
+				.map(cookie => `<div class="bg-white p-2 rounded-lg shadow-sm mb-2">${cookie}</div>`)
+				.join('');
+		}
+
+		// Set cookie via JavaScript
+		function setJSCookie() {
+			const name = document.getElementById('jsCookieName').value;
+			const value = document.getElementById('jsCookieValue').value;
+
+			if (!name || !value) {
+				alert('Please enter both name and value');
+				return;
+			}
+
+			document.cookie = `${name}=${value};path=/`;
+			refreshCookies();
+		}
+
+		// Set cookie via Fetch API
+		async function setFetchCookie() {
+			console.log("setFetchCookie");
+			const name = document.getElementById('fetchCookieName').value;
+			const value = document.getElementById('fetchCookieValue').value;
+
+			if (!name || !value) {
+				alert('Please enter both name and value');
+				return;
+			}
+
+			try {
+				const response = await fetch('/cookie', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/x-www-form-urlencoded',
+					},
+					body: `cookie_name=${name}&cookie_value=${value}`
+				});
+
+				if (response.ok) {
+					refreshCookies();
+				} else {
+					alert('Failed to set cookie via fetch');
+				}
+			} catch (error) {
+				console.error('Error:', error);
+				alert('Error setting cookie');
+			}
+		}
+
+		// Test secure cookie
+		async function testSecureCookie() {
+			try {
+				const response = await fetch('/cookie', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/x-www-form-urlencoded',
+					},
+					body: 'cookie_name=secureCookie&cookie_value=secureValue&secure=true'
+				});
+
+				if (response.ok) {
+					refreshCookies();
+					alert('Secure cookie test sent - check server logs');
+				}
+			} catch (error) {
+				console.error('Error:', error);
+				alert('Error testing secure cookie');
+			}
+		}
+
+		// Test HttpOnly cookie
+		async function testHttpOnlyCookie() {
+			try {
+				const response = await fetch('/cookie', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/x-www-form-urlencoded',
+					},
+					body: 'cookie_name=httpOnlyCookie&cookie_value=httpOnlyValue&httpOnly=true'
+				});
+
+				if (response.ok) {
+					refreshCookies();
+					alert('HttpOnly cookie test sent - check server logs');
+				}
+			} catch (error) {
+				console.error('Error:', error);
+				alert('Error testing HttpOnly cookie');
+			}
+		}
+
+		// Delete all cookies
+		function deleteAllCookies() {
+			const cookies = document.cookie.split(';');
+
+			for (let cookie of cookies) {
+				const eqPos = cookie.indexOf('=');
+				const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+				document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+			}
+
+			refreshCookies();
+		}
+
+		// Initial cookie refresh
+		refreshCookies();
+	</script>
+</body>
+
+</html>
