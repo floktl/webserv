@@ -15,12 +15,18 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 		return false;
 	if (!parseHeaderFields(ctx, stream))
 		return false;
+
+	auto content_type_it = ctx.headers.find("Content-Type");
+	if (content_type_it != ctx.headers.end() &&
+		content_type_it->second.find("multipart/form-data") != std::string::npos) {
+		parseMultipartHeaders(ctx);
+	}
+
 	std::string requested_host = extractHostname(ctx.input_buffer);
 	int requested_port = extractPort(ctx.input_buffer);
 	bool server_match_found = false;
 
-	for (const auto& config : configs)
-	{
+	for (const auto& config : configs) {
 		if (((config.name == requested_host && config.port == requested_port) ||
 			(config.name == "localhost" && (requested_host == "localhost" || requested_host == "127.0.0.1")) ||
 			(requested_host.empty() && config.port == requested_port)))
@@ -29,12 +35,13 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 			break;
 		}
 	}
-	if (!server_match_found)
-	{
+
+	if (!server_match_found) {
 		Logger::errorLog("No matching server block found - Closing connection");
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 		return false;
 	}
+
 	ctx.input_buffer.erase(0, header_end + 4);
 	ctx.headers_complete = true;
 
@@ -42,6 +49,34 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 		ctx.headers.find("Transfer-Encoding") == ctx.headers.end())
 		return updateErrorStatus(ctx, 411, "Length Required");
 	return true;
+}
+
+// New function to handle multipart form data headers
+void Server::parseMultipartHeaders(Context& ctx) {
+	std::string boundary;
+	auto content_type_it = ctx.headers.find("Content-Type");
+	if (content_type_it != ctx.headers.end()) {
+		size_t boundary_pos = content_type_it->second.find("boundary=");
+		if (boundary_pos != std::string::npos) {
+			boundary = content_type_it->second.substr(boundary_pos + 9);
+			ctx.headers["Content-Boundary"] = boundary;
+		}
+	}
+
+	size_t disp_pos = ctx.input_buffer.find("Content-Disposition: form-data");
+	if (disp_pos != std::string::npos) {
+		size_t filename_pos = ctx.input_buffer.find("filename=\"", disp_pos);
+		if (filename_pos != std::string::npos) {
+			filename_pos += 10;
+			size_t filename_end = ctx.input_buffer.find("\"", filename_pos);
+			if (filename_end != std::string::npos) {
+				std::string filename = ctx.input_buffer.substr(filename_pos,
+															filename_end - filename_pos);
+				ctx.headers["Content-Disposition-Filename"] = filename;
+				ctx.uploaded_file_path = concatenatePath(ctx.location.upload_store, filename);
+			}
+		}
+	}
 }
 
 // Parses and stores individual header fields in the request context
@@ -102,6 +137,58 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 	return true;
 }
 
+void Server::prepareUploadPingPong(Context& ctx)
+{
+	std::string upload_dir = ctx.uploaded_file_path.substr(0, ctx.uploaded_file_path.find_last_of("/"));
+
+	struct stat dir_stat;
+	if (stat(upload_dir.c_str(), &dir_stat) < 0) {
+		Logger::errorLog("Upload directory does not exist: " + upload_dir + " - " + std::string(strerror(errno)));
+		updateErrorStatus(ctx, 404, "Upload directory not found");
+		return;
+	}
+
+	if (!S_ISDIR(dir_stat.st_mode)) {
+		Logger::errorLog("Upload path is not a directory: " + upload_dir);
+		updateErrorStatus(ctx, 400, "Invalid upload directory");
+		return;
+	}
+
+	if (access(upload_dir.c_str(), W_OK) < 0) {
+		Logger::errorLog("Upload directory not writable: " + upload_dir + " - " + std::string(strerror(errno)));
+		updateErrorStatus(ctx, 403, "Upload directory not writable");
+		return;
+	}
+
+	// Check if file already exists
+	if (access(ctx.uploaded_file_path.c_str(), F_OK) == 0) {
+		Logger::errorLog("File already exists: " + ctx.uploaded_file_path);
+		updateErrorStatus(ctx, 409, "File already exists");
+		return;
+	}
+
+	ctx.upload_fd = open(ctx.uploaded_file_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+
+	if (ctx.upload_fd < 0) {
+		std::string error = std::string(strerror(errno));
+		Logger::errorLog("Failed to create upload file: " + ctx.uploaded_file_path);
+		Logger::errorLog("Error details: " + error);
+
+		if (errno == EACCES) {
+			updateErrorStatus(ctx, 403, "Permission denied creating file");
+		} else if (errno == ENOENT) {
+			updateErrorStatus(ctx, 404, "Path not found");
+		} else if (errno == ENOSPC) {
+			updateErrorStatus(ctx, 507, "Insufficient storage");
+		} else {
+			updateErrorStatus(ctx, 500, "Failed to create upload file: " + error);
+		}
+		return;
+	}
+
+	Logger::errorLog("Successfully opened file for upload: " + ctx.uploaded_file_path);
+	Logger::errorLog("File descriptor: " + std::to_string(ctx.upload_fd));
+}
 
 // Parses and sets access rights for a request based on server configuration
 void Server::parseAccessRights(Context& ctx)
@@ -132,6 +219,8 @@ void Server::parseAccessRights(Context& ctx)
 			return;
 		requestedPath = approveExtention(ctx, requestedPath);
 	}
+		Logger::errorLog(ctx.uploaded_file_path);
+
 	if (ctx.type == ERROR)
 		return;
 	if (ctx.type != REDIRECT)

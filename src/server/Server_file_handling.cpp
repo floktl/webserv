@@ -1,48 +1,9 @@
 #include "Server.hpp"
 #include <filesystem>
 
-// Handles file uploads by extracting filename, validating content boundaries, and saving the file
-bool Server::handleStaticUpload(Context& ctx)
-{
-	std::regex filenameRegex(R"(Content-Disposition:.*filename=\"([^\"]+)\")");
-	std::smatch matches;
-	std::string filename;
-
-	if (std::regex_search(ctx.req.received_body, matches, filenameRegex) && matches.size() > 1)
-		filename = matches[1].str();
-	else
-		return updateErrorStatus(ctx, 422, "Unprocessable Entity");
-
-	size_t contentStart = ctx.req.received_body.find("\r\n\r\n");
-	if (contentStart == std::string::npos)
-	{
-		Logger::errorLog("[Upload] ERROR: Failed to find content start boundary");
-		return updateErrorStatus(ctx, 422, "Unprocessable Entity");
-	}
-	contentStart += 4;
-
-	size_t contentEnd = ctx.req.received_body.rfind("\r\n--");
-	if (contentEnd == std::string::npos)
-		return (Logger::errorLog("[Upload] ERROR: Failed to find content end boundary"));
-
-	std::string fileContent = ctx.req.received_body.substr(contentStart, contentEnd - contentStart);
-	std::string uploadPath = concatenatePath(ctx.location_path, ctx.location.upload_store);
-	if (!dirWritable(uploadPath))
-		return updateErrorStatus(ctx, 403, "Forbidden");
-	std::string filePath = uploadPath + "/" + filename;
-
-	std::ofstream outputFile(filePath, std::ios::binary);
-	if (!outputFile)
-		return (Logger::errorLog("[Upload] ERROR: Failed to open output file: " + filePath));
-	outputFile.write(fileContent.c_str(), fileContent.size());
-	outputFile.close();
-	if (outputFile)
-		return redirectAction(ctx);
-	return false;
-}
-
 // Handles DELETE requests by verifying file permissions and removing the requested file
 bool Server::deleteHandler(Context &ctx) {
+	Logger::errorLog("deleteHandler");
 		bool useLocRoot = false;
 	std::string req_root = ctx.location.root;
 	if (req_root.empty())
@@ -71,7 +32,7 @@ bool Server::deleteHandler(Context &ctx) {
 
 	std::filesystem::remove(requestedPath);
 	if (std::filesystem::exists(requestedPath)) {
-		return updateErrorStatus(ctx, 500, "Internal Server Error");
+		return updateErrorStatus(ctx, 500, "Internal Server Error delete");
 	}
 	return true;
 }

@@ -57,7 +57,7 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 {
 	std::vector<DirEntry> entries = getDirectoryEntries(ctx);
 	if (entries.empty())
-		return updateErrorStatus(ctx, 500, "Internal Server Error");
+		return updateErrorStatus(ctx, 500, "Internal Server Error auto");
 
 	std::stringstream content;
 	generateAutoIndexHeader(ctx, content);

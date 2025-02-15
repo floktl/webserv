@@ -132,7 +132,6 @@ struct RequestBody
 	size_t		expected_body_length;
 	size_t		current_body_length;
 	bool		is_upload_complete;
-	std::string	uploaded_file_path;
 	bool	keep_alive;
 
 	ParsingPhase parsing_phase { PARSING_HEADER };
@@ -188,6 +187,12 @@ struct Context
 	std::vector<std::pair<std::string, std::string>> setCookies;
 	std::vector<std::pair<std::string, std::string>> cookies;
 	std::vector<std::string> blocks_location_paths;
+
+	int upload_fd = -1;
+	std::string uploaded_file_path = "";
+	std::vector<char> write_buffer;
+	size_t write_pos;
+	size_t write_len;
 };
 
 struct CgiTunnel
