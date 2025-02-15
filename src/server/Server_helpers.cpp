@@ -231,6 +231,7 @@ bool Server::dirWritable(const std::string& path)
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	struct stat path_stat;
+
 	if (stat(path.c_str(), &path_stat) != 0)
 		return updateErrorStatus(ctx, 404, "Not found sdfsdf");
 
@@ -322,7 +323,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 		}
 		else
 		{
-			updateErrorStatus(ctx, 500, "Internal Server Error");
+			updateErrorStatus(ctx, 500, "Internal Server Error ext");
 			return "";
 		}
 	}
@@ -398,7 +399,7 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 	}
 
 	if (!conf)
-		return updateErrorStatus(ctx, 500, "Internal Server Error");
+		return updateErrorStatus(ctx, 500, "Internal Server Error type");
 	Location bestMatch;
 	if (matchLoc(conf->locations, ctx.path, bestMatch)) {
 		ctx.port = conf->port;
@@ -419,7 +420,7 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 		parseAccessRights(ctx);
 		return true;
 	}
-	return (updateErrorStatus(ctx, 500, "Internal Server Error"));
+	return (updateErrorStatus(ctx, 500, "Internal Server Error type 2"));
 }
 
 // Retrieves the maximum allowed body size for a request from the server configuration

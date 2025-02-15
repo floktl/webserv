@@ -41,9 +41,26 @@ $(X) 🐖 }\n\
 $(X) 🐑 Forbidden functions . signal issue\n\
 $(X) 🐑 Parallel usage .\n\
 $(X) 🐑 Single READ and WRITE .\n\
-$(X) 🐑 FILE Upload write chunked .\n\
-$(X) 🐑 FILE Download .\n\
+$(X) 🐖 FILE Upload write chunked .\n\
+$(X) 🐖 FILE Download .\n\
 $(X) 🐑 Das thema permissions.... .\n\
+$(X) 🐑 Infinte redirect....  508 Error Page....  Loop locations redirect anaylsis in Configs .....\n\
+$(X) 🐑 server {\n\
+$(X) 🐑 	listen 8800;\n\
+$(X) 🐑 	server_name localhost;\n\
+$(X) 🐑 \n\
+$(X) 🐑 	root ./var/www/html;\n\
+$(X) 🐑 	index index.html;\n\
+$(X) 🐑 \n\
+$(X) 🐑 	location / {\n\
+$(X) 🐑 		return 301 /team;\n\
+$(X) 🐑 	}\n\
+$(X) 🐑 \n\
+$(X) 🐑 	location /team {\n\
+$(X) 🐑 		return 301 /;\n\
+$(X) 🐑 	}\n\
+$(X) 🐑 }\n\
+$(X) 🐑 leere DELETE Request (einpaar checks noch einbauen bitte)\n\
 
 # helper command to search for fucntions with more than 40 lines
 #find . -type f -name "*.cpp" | xargs awk '

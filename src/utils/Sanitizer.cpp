@@ -280,7 +280,6 @@ bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore,
 										const std::string& serverRoot,
 										const std::string& locationRoot) {
 
-	// Determine the base path (location root or server root)
 	std::string basePath;
 	if (!locationRoot.empty()) {
 		basePath = locationRoot;
@@ -290,12 +289,10 @@ bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore,
 		basePath = pwd;
 	}
 
-	// Remove trailing slash from basePath if it exists
 	if (!basePath.empty() && basePath.back() == '/') {
 		basePath.pop_back();
 	}
 
-	// Build the full path
 	std::string fullPath;
 	if (locationUploadStore[0] == '/') {
 		fullPath = pwd + locationUploadStore;
@@ -303,12 +300,10 @@ bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore,
 		fullPath = basePath + "/" + locationUploadStore;
 	}
 
-	// Validate and normalize the path
 	std::vector<std::string> segments;
 	std::stringstream ss(fullPath);
 	std::string segment;
 
-	// Split and check for directory traversal
 	while (std::getline(ss, segment, '/')) {
 		if (segment.empty() || segment == ".") continue;
 		if (segment == "..") {
@@ -320,16 +315,14 @@ bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore,
 		segments.push_back(segment);
 	}
 
-	// Rebuild normalized path
 	fullPath = "/";
 	for (const auto& seg : segments) {
 		fullPath += seg + "/";
 	}
 	if (!segments.empty()) {
-		fullPath.pop_back();  // Remove trailing slash
+		fullPath.pop_back();
 	}
 
-	// Validate characters in path
 	for (char c : fullPath) {
 		if (!std::isalnum(static_cast<unsigned char>(c)) &&
 			c != '/' && c != '_' && c != '-' && c != '.') {
@@ -338,7 +331,6 @@ bool Sanitizer::sanitize_locationUploadStore(std::string& locationUploadStore,
 		}
 	}
 
-	// Create the directory structure
 	if (!checkUploadStorePermissions(fullPath)) {
 		return false;
 	}

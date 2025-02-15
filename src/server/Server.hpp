@@ -101,7 +101,7 @@ class Server
 		bool isRequestComplete(Context& ctx);
 		std::string approveExtention(Context& ctx, std::string path_to_check);
 		void parseChunkedBody(Context& ctx);
-		bool handleStaticUpload(Context& ctx);
+		// bool handleStaticUpload(Context& ctx);
 		bool redirectAction(Context& ctx);
 		bool deleteHandler(Context &ctx);
 		void getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs);
@@ -111,12 +111,13 @@ class Server
 		bool handleStandardBody(Context& ctx);
 		bool processParsingBody(Context& ctx);
 		bool handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs);
-		bool finalizeRequest(Context& ctx, const std::vector<ServerBlock>& configs);
+		bool finalizeRequest(Context& ctx);
 		bool handleRead(Context& ctx, std::vector<ServerBlock>& configs);
 
 
 		void parseCookies(Context& ctx, std::string value);
 		std::string generateSetCookieHeader(const Cookie& cookie);
+		void parseMultipartHeaders(Context& ctx);
 
 
 		std::vector<DirEntry> getDirectoryEntries(Context& ctx);
@@ -126,7 +127,8 @@ class Server
 		bool parseRequestLine(Context& ctx, std::istringstream& stream);
 		std::vector<std::string> splitPathLoc(const std::string& path);
 		std::vector<std::string> getBlocksLocsPath(const std::vector<Location>& locations);
-
+		void prepareUploadPingPong(Context& ctx);
+		void handleSessionCookies(Context& ctx);
 };
 
 std::string extractHostname(const std::string& header);

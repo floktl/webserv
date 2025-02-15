@@ -56,11 +56,10 @@ void Server::parseRequest(Context& ctx)
 
 
 // Finalizes request parsing by determining the request type and updating epoll events
-bool Server::finalizeRequest(Context& ctx, const std::vector<ServerBlock>& configs)
+bool Server::finalizeRequest(Context& ctx)
 {
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE)
 	{
-		determineType(ctx, configs);
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
 	}
 	else if (ctx.error_code != 0)
