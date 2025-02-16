@@ -231,8 +231,6 @@ bool Server::dirWritable(const std::string& path)
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	struct stat path_stat;
-	Logger::errorLog("notdurft ");
-	Logger::errorLog(path);
 	if (stat(path.c_str(), &path_stat) != 0)
 		return updateErrorStatus(ctx, 404, "Not found sdfsdf");
 
@@ -351,7 +349,7 @@ bool Server::resetContext(Context& ctx)
 	Logger::yellow("ChristainLindner");
 	ctx.cookies.clear();
 	ctx.setCookies.clear();
-	ctx.input_buffer.clear();
+	ctx.read_buffer.clear();
 	ctx.headers.clear();
 	ctx.method.clear();
 	ctx.path.clear();

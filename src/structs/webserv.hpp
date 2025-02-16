@@ -9,7 +9,7 @@
 #include <vector>
 
 #define BUFFER_SIZE 17000
-#define DEFAULT_REQUESTBUFFER_SIZE 8192
+#define DEFAULT_REQUESTBUFFER_SIZE 16000
 #define DEFAULT_MAXBODYSIZE 1048576
 
 struct ChunkedState
@@ -175,7 +175,7 @@ struct Context
 	int							timeout;
 	std::string doAutoIndex = "";
 
-	std::string input_buffer = "";
+	std::string read_buffer = "";
 	std::string output_buffer = "";
 	std::string tmp_buffer = "";
 	bool headers_complete = false;
@@ -196,6 +196,7 @@ struct Context
 	size_t write_len;
 	bool useLocRoot;
 	size_t header_offset = 0;
+	std::string boundary = "";
 };
 
 struct CgiTunnel

@@ -4,18 +4,16 @@
 // Extracts and validates HTTP headers from the request, updating the request context
 bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 {
-	if (!ctx.input_buffer.empty())
+	if (!ctx.read_buffer.empty())
 	{
-		Logger::errorLog("penismArvin");
-		ctx.tmp_buffer = std::string(ctx.input_buffer.begin(), ctx.input_buffer.end());
-		//Logger::cyan(ctx.tmp_buffer);
+		ctx.tmp_buffer = std::string(ctx.read_buffer.begin(), ctx.read_buffer.end());
 
 	}
-	size_t header_end = ctx.input_buffer.find("\r\n\r\n");
+	size_t header_end = ctx.read_buffer.find("\r\n\r\n");
 	if (header_end == std::string::npos)
 		return true;
 
-	std::string headers = ctx.input_buffer.substr(0, header_end);
+	std::string headers = ctx.read_buffer.substr(0, header_end);
 	std::istringstream stream(headers);
 
 	if (!parseRequestLine(ctx, stream))
@@ -29,8 +27,8 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 		parseMultipartHeaders(ctx);
 	}
 
-	std::string requested_host = extractHostname(ctx.input_buffer);
-	int requested_port = extractPort(ctx.input_buffer);
+	std::string requested_host = extractHostname(ctx.read_buffer);
+	int requested_port = extractPort(ctx.read_buffer);
 	bool server_match_found = false;
 
 	for (const auto& config : configs) {
@@ -48,7 +46,7 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 		return false;
 	}
-	ctx.input_buffer.erase(0, header_end + 4);
+	ctx.read_buffer.erase(0, header_end + 4);
 	ctx.headers_complete = true;
 
 	if (ctx.method == "POST" && ctx.headers.find("Content-Length") == ctx.headers.end() &&
@@ -61,7 +59,6 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 void Server::parseMultipartHeaders(Context& ctx) {
     std::string boundary;
     auto content_type_it = ctx.headers.find("Content-Type");
-	//Logger::yellow(ctx.headers.find("Content-Length"));
 	auto it = ctx.headers.find("Content-Length");
 	if (it != ctx.headers.end()) {
 		try {
@@ -79,34 +76,33 @@ void Server::parseMultipartHeaders(Context& ctx) {
         }
     }
 
-    size_t boundary_start = ctx.input_buffer.find("--" + boundary);
+    size_t boundary_start = ctx.read_buffer.find("--" + boundary);
     if (boundary_start == std::string::npos) {
         return;
     }
 
-    size_t disp_pos = ctx.input_buffer.find("Content-Disposition: form-data", boundary_start);
+    size_t disp_pos = ctx.read_buffer.find("Content-Disposition: form-data", boundary_start);
     if (disp_pos == std::string::npos) {
         return;
     }
 
-    size_t filename_pos = ctx.input_buffer.find("filename=\"", disp_pos);
+    size_t filename_pos = ctx.read_buffer.find("filename=\"", disp_pos);
     if (filename_pos != std::string::npos) {
         filename_pos += 10;
-        size_t filename_end = ctx.input_buffer.find("\"", filename_pos);
+        size_t filename_end = ctx.read_buffer.find("\"", filename_pos);
         if (filename_end != std::string::npos) {
-            std::string filename = ctx.input_buffer.substr(filename_pos, filename_end - filename_pos);
+            std::string filename = ctx.read_buffer.substr(filename_pos, filename_end - filename_pos);
             ctx.headers["Content-Disposition-Filename"] = filename;
             ctx.uploaded_file_path = concatenatePath(ctx.location.upload_store, filename);
         }
     }
 
-    size_t headers_end = ctx.input_buffer.find("\r\n\r\n", disp_pos);
+    size_t headers_end = ctx.read_buffer.find("\r\n\r\n", disp_pos);
     if (headers_end != std::string::npos) {
         ctx.header_offset = headers_end + 4;
     } else {
         ctx.header_offset = 0;
     }
-	Logger::magenta(std::to_string(ctx.header_offset));
 }
 
 // Parses and stores individual header fields in the request context
@@ -198,11 +194,8 @@ void Server::prepareUploadPingPong(Context& ctx)
 	}
 
 	ctx.upload_fd = open(ctx.uploaded_file_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
-
 	if (ctx.upload_fd < 0) {
 		std::string error = std::string(strerror(errno));
-		Logger::errorLog("Failed to create upload file: " + ctx.uploaded_file_path);
-		Logger::errorLog("Error details: " + error);
 
 		if (errno == EACCES) {
 			updateErrorStatus(ctx, 403, "Permission denied creating file");
@@ -216,8 +209,6 @@ void Server::prepareUploadPingPong(Context& ctx)
 		return;
 	}
 
-	Logger::errorLog("Successfully opened file for upload: " + ctx.uploaded_file_path);
-	Logger::errorLog("File descriptor: " + std::to_string(ctx.upload_fd));
 }
 
 // Parses and sets access rights for a request based on server configuration
@@ -243,7 +234,6 @@ void Server::parseAccessRights(Context& ctx)
 			return;
 		requestedPath = approveExtention(ctx, requestedPath);
 	}
-		Logger::errorLog(ctx.uploaded_file_path);
 
 	if (ctx.type == ERROR)
 		return;
@@ -314,15 +304,15 @@ std::string extractHostname(const std::string& header)
 // Processes chunked transfer encoding, extracting and assembling request body chunks
 void Server::parseChunkedBody(Context& ctx)
 {
-	while (!ctx.input_buffer.empty())
+	while (!ctx.read_buffer.empty())
 	{
 		if (!ctx.req.chunked_state.processing)
 		{
-			size_t pos = ctx.input_buffer.find("\r\n");
+			size_t pos = ctx.read_buffer.find("\r\n");
 			if (pos == std::string::npos)
 				return;
 
-			std::string chunk_size_str = ctx.input_buffer.substr(0, pos);
+			std::string chunk_size_str = ctx.read_buffer.substr(0, pos);
 			size_t chunk_size;
 			std::stringstream ss;
 			ss << std::hex << chunk_size_str;
@@ -332,28 +322,28 @@ void Server::parseChunkedBody(Context& ctx)
 			{
 				ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
 				ctx.req.is_upload_complete = true;
-				ctx.input_buffer.clear();
+				ctx.read_buffer.clear();
 				return;
 			}
-			ctx.input_buffer.erase(0, pos + 2);
+			ctx.read_buffer.erase(0, pos + 2);
 			ctx.req.chunked_state.buffer = "";
 			ctx.req.chunked_state.processing = true;
 			ctx.req.expected_body_length += chunk_size;
 		}
 
 		size_t remaining = ctx.req.expected_body_length - ctx.req.current_body_length;
-		size_t available = std::min(remaining, ctx.input_buffer.size());
+		size_t available = std::min(remaining, ctx.read_buffer.size());
 
 		if (available > 0) {
-			ctx.req.received_body += ctx.input_buffer.substr(0, available);
+			ctx.req.received_body += ctx.read_buffer.substr(0, available);
 			ctx.req.current_body_length += available;
-			ctx.input_buffer.erase(0, available);
+			ctx.read_buffer.erase(0, available);
 		}
 		if (ctx.req.current_body_length == ctx.req.expected_body_length)
 		{
-			if (ctx.input_buffer.size() >= 2 && ctx.input_buffer.substr(0, 2) == "\r\n")
+			if (ctx.read_buffer.size() >= 2 && ctx.read_buffer.substr(0, 2) == "\r\n")
 			{
-				ctx.input_buffer.erase(0, 2);
+				ctx.read_buffer.erase(0, 2);
 				ctx.req.chunked_state.processing = false;
 			}
 			else

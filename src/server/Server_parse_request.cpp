@@ -7,10 +7,8 @@ bool Server::handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& co
 	{
 		if (!parseHeaders(ctx, configs))
 			return true;
-		Logger::red("marvins contentlength");
 		if (!handleContentLength(ctx, configs))
 			return false;
-		Logger::red("marvins encoding");
 	}
 	return true;
 }
@@ -61,16 +59,16 @@ bool Server::finalizeRequest(Context& ctx)
 // Processes request body parsing, handling chunked and standard bodies
 bool Server::processParsingBody(Context& ctx)
 {
-	Logger::yellow("processParsingBody");
+	Logger::green("processParsingBody");
 	if (ctx.req.chunked_state.processing)
 	{
 		parseChunkedBody(ctx);
 	}
 	else
 	{
-		ctx.req.received_body += ctx.input_buffer;
-		ctx.req.current_body_length += ctx.input_buffer.length();
-		ctx.input_buffer.clear();
+		ctx.req.received_body += ctx.read_buffer;
+		ctx.req.current_body_length += ctx.read_buffer.length();
+		ctx.read_buffer.clear();
 		if (ctx.req.current_body_length >= ctx.req.expected_body_length)
 		{
 			ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
@@ -82,8 +80,6 @@ bool Server::processParsingBody(Context& ctx)
 			}
 		}
 	}
-	Logger::red("after marvins glatze");
-	Logger::red("after marvins glatze" + std::to_string(ctx.tmp_buffer.size()));
 	return true;
 }
 

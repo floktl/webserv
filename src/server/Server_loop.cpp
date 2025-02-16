@@ -7,11 +7,10 @@ size_t Server::findBodyStart(const std::string& buffer, Context& ctx) {
 
     if (pos != std::string::npos) {
         if (isMultipartUpload(ctx)) {
-	Logger::green("actually doing shit");
             std::string contentType = ctx.headers["Content-Type"];
-	Logger::green(contentType);
+			Logger::yellow(contentType);
             size_t boundaryPos = contentType.find("boundary=");
-	Logger::green(std::to_string(boundaryPos));
+			Logger::yellow(std::to_string(boundaryPos));
             if (boundaryPos != std::string::npos) {
                 size_t boundaryStart = boundaryPos + 9;
                 size_t boundaryEnd = contentType.find(';', boundaryStart);
@@ -20,14 +19,14 @@ size_t Server::findBodyStart(const std::string& buffer, Context& ctx) {
                 }
 
                 std::string boundary = "--" + contentType.substr(boundaryStart, boundaryEnd - boundaryStart);
-
+				ctx.boundary = boundary;
                 size_t boundaryInBuffer = buffer.find(boundary);
                 if (boundaryInBuffer != std::string::npos) {
                     return boundaryInBuffer + boundary.length() + 2;
                 }
             }
         }
-	Logger::green(std::to_string(pos + boundaryMarker.length()));
+		Logger::yellow(std::to_string(pos + boundaryMarker.length()));
         return pos + boundaryMarker.length();
     }
 
@@ -86,7 +85,6 @@ bool Server::isMultipartUpload(Context& ctx) {
 		ctx.headers.find("Content-Type") != ctx.headers.end() &&
 		ctx.headers["Content-Type"].find("multipart/form-data") != std::string::npos;
 
-	//Logger::errorLog("Is multipart upload: " + std::to_string(isMultipartUpload));
 	return isMultipartUpload;
 }
 
@@ -95,16 +93,11 @@ bool Server::prepareMultipartUpload(Context& ctx, std::vector<ServerBlock> confi
 		Logger::errorLog("Failed to determine request type");
 		return false;
 	}
-	//Logger::errorLog("after determineType");
 	std::string req_root = retreiveReqRoot(ctx);
-	//Logger::errorLog("after determineType root defaulter");
 
 	ctx.uploaded_file_path = concatenatePath(req_root, ctx.uploaded_file_path);
-	//Logger::errorLog("Preparing upload - Path: " + ctx.uploaded_file_path);
 
-	//Logger::errorLog("in prepareUploadPingPong");
 	prepareUploadPingPong(ctx);
-	//Logger::errorLog("after prepareUploadPingPong");
 
 	if (ctx.error_code != 0) {
 		Logger::errorLog("Upload preparation failed");
@@ -114,26 +107,13 @@ bool Server::prepareMultipartUpload(Context& ctx, std::vector<ServerBlock> confi
 }
 
 bool Server::readingTheBody(Context& ctx, const char* buffer, ssize_t bytes) {
-    //Logger::blue("readingTheBody");
 
     ctx.had_seq_parse = true;
     std::string bodyContent = extractBodyContent(buffer, bytes, ctx);
 
     if (ctx.upload_fd > 0) {
-        Logger::errorLog("Processing " + std::to_string(bodyContent.size()) +
-                        " bytes for upload. Progress: " +
-                        std::to_string(ctx.req.current_body_length) + "/" +
-                        std::to_string(ctx.req.expected_body_length));
-		//Logger::cyan("start" + std::to_string(ctx.header_offset));
-		//ctx.write_buffer.assign(ctx.tmp_buffer.begin(), ctx.tmp_buffer.end());
-		//ctx.write_buffer.insert(ctx.write_buffer.end(), bodyContent.begin() + static_cast<std::ptrdiff_t>(ctx.tmp_buffer.size()), bodyContent.end());
-        ctx.write_buffer.insert(ctx.write_buffer.end(), bodyContent.begin(), bodyContent.end());
-
-		//Logger::blue(bodyContent);
+		ctx.write_buffer.insert(ctx.write_buffer.end(), bodyContent.begin(), bodyContent.end());
 		ctx.tmp_buffer.clear();
-
-		//Logger::cyan(std::string(ctx.input_buffer.begin(), ctx.input_buffer.end()));
-		//Logger::yellow(std::string(ctx.write_buffer.begin(), ctx.write_buffer.end()));
 
 		ctx.header_offset = 0;
         ctx.write_pos = 0;
@@ -177,7 +157,6 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs) {
 				continue;
 			}
 			ev = events[eventIter].events;
-			Logger::errorLog("Processing event type: " + std::to_string(ev) + " for fd: " + std::to_string(incoming_fd));
 
 			if (findServerBlock(configs, incoming_fd)) {
 				server_fd = incoming_fd;
@@ -279,12 +258,11 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 // Handles reading request data from the client and processing it accordingly
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 {
-	Logger::errorLog("handleRead START - FD: " + std::to_string(ctx.client_fd) +
-					" Upload FD: " + std::to_string(ctx.upload_fd) +
-					" Headers Complete: " + std::to_string(ctx.headers_complete) +
-					" Phase: " + std::to_string(ctx.req.parsing_phase));
+	Logger::green("handleRead " + std::to_string(ctx.client_fd));
 
+	ctx.read_buffer.clear();
 	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+	std::memset(buffer, 0, sizeof(buffer));
 	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
 
 	if (bytes <= 0) {
@@ -300,18 +278,15 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		}
 		return false;
 	}
+	//Logger::red(std::string(buffer));
 
-	Logger::errorLog("Read " + std::to_string(bytes) + " bytes");
 	ctx.last_activity = std::chrono::steady_clock::now();
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.upload_fd < 0)
 		resetContext(ctx);
 
-	Logger::blue("READ: " + std::to_string(ctx.req.current_body_length));
-	Logger::red("READ: " + std::to_string(ctx.req.expected_body_length));
+	ctx.read_buffer.append(buffer, bytes);
+	Logger::cyan(ctx.read_buffer);
 	if (!ctx.headers_complete) {
-		Logger::errorLog("Parsing headers...");
-		ctx.input_buffer.append(buffer, bytes);
-		Logger::errorLog("\n" + ctx.input_buffer);
 		if (!handleParsingPhase(ctx, configs)) {
 			Logger::errorLog("Header parsing failed");
 			return false;
@@ -330,6 +305,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 			}
 
 			if (isMultipartUpload(ctx)) {
+	Logger::yellow("Do inital boy stuff");
 				if (ctx.uploaded_file_path.empty()) {
 					parseMultipartHeaders(ctx);
 				}
@@ -338,13 +314,13 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 						return false;
 					}
 				}
-				Logger::green("afterranussssssss");
+				if (readingTheBody(ctx, buffer, bytes))
+					return true;
 			}
 		}
 	}
-	if (readingTheBody(ctx, buffer, bytes))
-		return true;
 
+	Logger::magenta(std::string(ctx.write_buffer.begin(), ctx.write_buffer.end()));
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.had_seq_parse) {
 		Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "Upload: 8");
 		std::cout << std::endl;
@@ -373,19 +349,15 @@ void Server::handleSessionCookies(Context& ctx) {
 
 bool Server::doMultipartWriting(Context& ctx)
 {
+	Logger::green("doMultipartWriting");
 	size_t remaining = ctx.write_len - ctx.write_pos;
 	if (remaining > ctx.write_buffer.size()) {
 		remaining = ctx.write_buffer.size();
 	}
-	Logger::cyan(std::to_string(ctx.write_buffer.size()));
-	Logger::errorLog("Attempting to write " + std::to_string(remaining) + " bytes");
 	int tmp_fd = open(ctx.uploaded_file_path.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
 	ssize_t written = write(tmp_fd,
 						ctx.write_buffer.data() + ctx.write_pos,
 						remaining);
-
-	Logger::errorLog("Write result: " + std::to_string(written) +
-					" errno: " + std::to_string(errno));
 
 	if (written < 0) {
 		Logger::errorLog("Write error: " + std::string(strerror(errno)));
@@ -399,17 +371,10 @@ bool Server::doMultipartWriting(Context& ctx)
 
 	ctx.write_pos += written;
 	ctx.req.current_body_length += written;
-	Logger::blue(std::to_string(ctx.req.current_body_length));
-	Logger::red(std::to_string(ctx.req.expected_body_length));
-	Logger::errorLog("After write - Write pos: " + std::to_string(ctx.write_pos) +
-					" Current body length: " + std::to_string(ctx.req.current_body_length));
-
 	Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "Upload: 8");
-
-	if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+	if (ctx.req.current_body_length >= (ctx.req.expected_body_length - (2 * ctx.boundary.size()))) {
 		Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "Upload: 8");
 		std::cout << std::endl;
-		Logger::errorLog("Upload complete - cleaning up");
 
 		// Cleanup resources
 		close(ctx.upload_fd);
@@ -422,11 +387,7 @@ bool Server::doMultipartWriting(Context& ctx)
 	}
 
 	// Ready for next read
-	Logger::errorLog("Setting up epoll for next read - current/expected: " +
-					std::to_string(ctx.req.current_body_length) + "/" +
-					std::to_string(ctx.req.expected_body_length));
 	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
-	Logger::errorLog("Epoll flags updated");
 	return true;
 }
 
@@ -437,51 +398,53 @@ void Server::initializeWritingActions(Context& ctx)
 		ctx.write_len = 0;
 	}
 
-	Logger::errorLog("handleWrite START - FD: " + std::to_string(ctx.client_fd) +
-					" Upload FD: " + std::to_string(ctx.upload_fd) +
-					" Buffer size: " + std::to_string(ctx.write_buffer.size()) +
-					" Write pos: " + std::to_string(ctx.write_pos) +
-					" Write len: " + std::to_string(ctx.write_len));
-
 	if (ctx.write_len > ctx.write_buffer.size()) {
 		ctx.write_len = ctx.write_buffer.size();
 	}
 }
 
 bool Server::handleWrite(Context& ctx) {
-	//Logger::blue("handleWrite");
+	Logger::blue("handleWrite");
 //std::string tmp(ctx.write_buffer.begin(), ctx.write_buffer.end());
 //Logger::blue(tmp);
 
-	initializeWritingActions(ctx);
-	if (ctx.upload_fd > 0 && !ctx.write_buffer.empty()) {
-		return doMultipartWriting(ctx);
-	}
-
-	Logger::errorLog("in normal");
 	bool result = false;
-	switch (ctx.type) {
-		case INITIAL:
-			result = true;
-			break;
-		case STATIC:
-			result = staticHandler(ctx);
-			break;
-		case REDIRECT:
-			result = redirectAction(ctx);
-			break;
-		case CGI:
-			result = true;
-			break;
-		case ERROR:
-			return getErrorHandler()->generateErrorResponse(ctx);
+	initializeWritingActions(ctx);
+	Logger::yellow("initializeWritingActions");
+	Logger::yellow(std::to_string(ctx.upload_fd));
+	Logger::yellow(std::to_string(ctx.write_buffer.size()));
+	if (ctx.upload_fd > 0 && !ctx.write_buffer.empty()) {
+		Logger::yellow("doMultipartWriting");
+		result = doMultipartWriting(ctx);
+	}
+	else
+	{
+		Logger::errorLog("in normal");
+		switch (ctx.type) {
+			case INITIAL:
+				result = true;
+				break;
+			case STATIC:
+				result = staticHandler(ctx);
+				break;
+			case REDIRECT:
+				result = redirectAction(ctx);
+				break;
+			case CGI:
+				result = true;
+				break;
+			case ERROR:
+				return getErrorHandler()->generateErrorResponse(ctx);
+		}
+		if (result)
+			resetContext(ctx);
 	}
 
 	if (ctx.error_code != 0)
 		return getErrorHandler()->generateErrorResponse(ctx);
 
-	if (result) {
-		resetContext(ctx);
+	if (result)
+	{
 		if (ctx.keepAlive)
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
 		else
@@ -490,6 +453,5 @@ bool Server::handleWrite(Context& ctx) {
 
 	if (!result)
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-
 	return result;
 }
