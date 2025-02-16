@@ -135,6 +135,7 @@ class Server
 		size_t findBodyStart(const std::string& buffer, Context& ctx);
 		std::string extractBodyContent(const char* buffer, ssize_t bytes, Context& ctx);
 		bool readingTheBody(Context& ctx, const char* buffer, ssize_t bytes);
+		bool extractFileContent(const std::string& boundary, const std::string& buffer, std::vector<char>& output);
 };
 
 std::string extractHostname(const std::string& header);

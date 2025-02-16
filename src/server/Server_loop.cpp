@@ -255,12 +255,49 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 	return true;
 }
 
+bool Server::extractFileContent(const std::string& boundary, const std::string& buffer, std::vector<char>& output) {
+	// Find the boundary
+	size_t pos = buffer.find(boundary);
+	if (pos == std::string::npos) {
+		// If no boundary found, this is pure file content
+		output.insert(output.end(), buffer.begin(), buffer.end());
+		return true;
+	}
+
+	// Find the end of headers (double CRLF)
+	size_t headers_end = buffer.find("\r\n\r\n", pos);
+	if (headers_end == std::string::npos) {
+		return false;
+	}
+
+	// Skip the headers and the double CRLF
+	size_t content_start = headers_end + 4;
+
+	// Find the next boundary if it exists
+	size_t next_boundary = buffer.find(boundary, content_start);
+
+	// Copy only the file content
+	if (next_boundary == std::string::npos) {
+		output.insert(output.end(),
+					buffer.begin() + content_start,
+					buffer.end());
+	} else {
+		// Don't include the final CRLF before the boundary
+		output.insert(output.end(),
+					buffer.begin() + content_start,
+					buffer.begin() + next_boundary - 2);
+	}
+
+	return true;
+}
+
 // Handles reading request data from the client and processing it accordingly
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 {
 	Logger::green("handleRead " + std::to_string(ctx.client_fd));
 
 	ctx.read_buffer.clear();
+	ctx.write_buffer.clear();
 	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
 	std::memset(buffer, 0, sizeof(buffer));
 	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
@@ -305,7 +342,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 			}
 
 			if (isMultipartUpload(ctx)) {
-	Logger::yellow("Do inital boy stuff");
+				Logger::yellow("Do inital body stuff");
 				if (ctx.uploaded_file_path.empty()) {
 					parseMultipartHeaders(ctx);
 				}
@@ -314,12 +351,14 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 						return false;
 					}
 				}
-				if (readingTheBody(ctx, buffer, bytes))
-					return true;
+				readingTheBody(ctx, buffer, bytes);
 			}
 		}
+	} else if (isMultipartUpload(ctx)) {
+		Logger::yellow("Do seq body stuff");
+		extractFileContent(ctx.boundary, ctx.read_buffer, ctx.write_buffer);
+		ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
 	}
-
 	Logger::magenta(std::string(ctx.write_buffer.begin(), ctx.write_buffer.end()));
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.had_seq_parse) {
 		Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "Upload: 8");
@@ -347,48 +386,44 @@ void Server::handleSessionCookies(Context& ctx) {
 	}
 }
 
-bool Server::doMultipartWriting(Context& ctx)
-{
-	Logger::green("doMultipartWriting");
-	size_t remaining = ctx.write_len - ctx.write_pos;
-	if (remaining > ctx.write_buffer.size()) {
-		remaining = ctx.write_buffer.size();
-	}
-	int tmp_fd = open(ctx.uploaded_file_path.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
-	ssize_t written = write(tmp_fd,
-						ctx.write_buffer.data() + ctx.write_pos,
-						remaining);
+bool Server::doMultipartWriting(Context& ctx) {
+    Logger::green("doMultipartWriting");
 
-	if (written < 0) {
-		Logger::errorLog("Write error: " + std::string(strerror(errno)));
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			return true;
-		}
-		close(ctx.upload_fd);
-		ctx.upload_fd = -1;
-		return updateErrorStatus(ctx, 500, "Failed to write to upload file");
-	}
+    // Da wir O_APPEND nutzen, können wir einfach direkt den ganzen Buffer schreiben
+    int tmp_fd = open(ctx.uploaded_file_path.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+    ssize_t written = write(tmp_fd,
+                           ctx.write_buffer.data(),
+                           ctx.write_buffer.size());
 
-	ctx.write_pos += written;
-	ctx.req.current_body_length += written;
-	Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "Upload: 8");
-	if (ctx.req.current_body_length >= (ctx.req.expected_body_length - (2 * ctx.boundary.size()))) {
-		Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "Upload: 8");
-		std::cout << std::endl;
+    if (written < 0) {
+        Logger::errorLog("Write error: " + std::string(strerror(errno)));
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return true;
+        }
+        close(ctx.upload_fd);
+        ctx.upload_fd = -1;
+        return updateErrorStatus(ctx, 500, "Failed to write to upload file");
+    }
 
-		// Cleanup resources
-		close(ctx.upload_fd);
-		ctx.upload_fd = -1;
-		ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
-		ctx.req.is_upload_complete = true;
-		ctx.uploaded_file_path.clear();
+    ctx.req.current_body_length += written;
+    Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "Upload: 8");
 
-		return redirectAction(ctx);
-	}
+    if (ctx.req.current_body_length >= (ctx.req.expected_body_length - (2 * ctx.boundary.size()))) {
+        Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "Upload: 8");
+        std::cout << std::endl;
 
-	// Ready for next read
-	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
-	return true;
+        close(ctx.upload_fd);
+        ctx.upload_fd = -1;
+        ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+        ctx.req.is_upload_complete = true;
+        ctx.uploaded_file_path.clear();
+
+        return redirectAction(ctx);
+    }
+
+    // Ready for next read
+    modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
+    return true;
 }
 
 void Server::initializeWritingActions(Context& ctx)
