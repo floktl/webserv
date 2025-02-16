@@ -45,8 +45,10 @@ void Server::parseRequest(Context& ctx)
 // Finalizes request parsing by determining the request type and updating epoll events
 bool Server::finalizeRequest(Context& ctx)
 {
+	Logger::blue("finalizeRequest");
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE)
 	{
+		Logger::red("REDIRECT");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
 	}
 	else if (ctx.error_code != 0)

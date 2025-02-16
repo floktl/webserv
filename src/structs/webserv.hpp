@@ -9,7 +9,7 @@
 #include <vector>
 
 #define BUFFER_SIZE 17000
-#define DEFAULT_REQUESTBUFFER_SIZE 16000
+#define DEFAULT_REQUESTBUFFER_SIZE 8192
 #define DEFAULT_MAXBODYSIZE 1048576
 
 struct ChunkedState
