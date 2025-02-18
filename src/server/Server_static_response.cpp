@@ -37,13 +37,11 @@ void Server::buildStaticResponse(Context &ctx) {
 				<< "Content-Length: " << content_str.length() << "\r\n"
 				<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
 
-	// Add Set-Cookie headers for any cookies that need to be set
 	for (const auto& cookiePair : ctx.setCookies) {
 		Cookie cookie;
 		cookie.name = cookiePair.first;
 		cookie.value = cookiePair.second;
-		cookie.path = "/";  // Default path
-		// You can customize other cookie attributes here if needed
+		cookie.path = "/";
 		http_response << generateSetCookieHeader(cookie) << "\r\n";
 	}
 

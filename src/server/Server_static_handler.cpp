@@ -16,8 +16,6 @@ bool Server::staticHandler(Context& ctx)
 	Logger::green("staticHandler " + ctx.method);
 	if (ctx.method == "POST")
 	{
-		// if (!handleStaticUpload(ctx))
-		// 	return (false);
 		return (true);
 	}
 	else if (ctx.method == "GET")

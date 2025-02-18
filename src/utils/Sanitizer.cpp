@@ -463,7 +463,7 @@ bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context)
 		path += seg + "/";
 	}
 	if (!segments.empty()) {
-		path.pop_back();  // Remove trailing slash
+		path.pop_back();
 	}
 
 	// Validate characters

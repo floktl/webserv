@@ -129,9 +129,9 @@ struct RequestBody
 	int status_code;
 
 	std::string	received_body;
-	size_t		expected_body_length;
-	size_t		current_body_length;
-	bool		is_upload_complete;
+	size_t		expected_body_length = 0;
+	size_t		current_body_length = 0;
+	bool		is_upload_complete = false;
 	bool	keep_alive;
 
 	ParsingPhase parsing_phase { PARSING_HEADER };
@@ -197,6 +197,7 @@ struct Context
 	bool useLocRoot;
 	size_t header_offset = 0;
 	std::string boundary = "";
+	bool found_first_boundary = false;
 };
 
 struct CgiTunnel

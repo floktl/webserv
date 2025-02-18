@@ -100,7 +100,6 @@ std::string Server::generateSetCookieHeader(const Cookie& cookie) {
 		time_t total_days = cookie.expires / seconds_per_day;
 		int day_of_week = total_days % 7;
 
-		// Format the date string
 		ss << "; Expires=" << day_names[day_of_week] << ", "
 		<< std::setfill('0') << std::setw(2) << (days + 1) << " "
 		<< month_names[month] << " "

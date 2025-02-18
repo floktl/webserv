@@ -28,7 +28,6 @@ class Server
 
 		int server_init(std::vector<ServerBlock> configs);
 		GlobalFDS& getGlobalFds(void);
-		// CgiHandler* getCgiHandler(void);
 		ErrorHandler* getErrorHandler(void);
 		int has_gate = false;
 		char **environment;
@@ -56,11 +55,7 @@ class Server
 	private:
 		GlobalFDS& globalFDS;
 		std::vector<ServerBlock> configData;
-		// ClientHandler* clientHandler;
-		// CgiHandler* cgiHandler;
-		// RequestHandler* requestHandler;
 		ErrorHandler* errorHandler;
-		//TaskManager* taskManager;
 		int timeout;
 		std::vector<std::string> added_server_names;
 
@@ -94,14 +89,12 @@ class Server
 		std::string subtractLocationPath(const std::string& path, const Location& location);
 		std::string getDirectory(const std::string& path);
 		bool buildAutoIndexResponse(Context& ctx, std::stringstream* response);
-		//bool handleRead(Context& ctx, std::vector<ServerBlock> &configs);
 		bool parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs);
 		bool handleWrite(Context& ctx);
 		bool queueResponse(Context& ctx, const std::string& response);
 		bool isRequestComplete(Context& ctx);
 		std::string approveExtention(Context& ctx, std::string path_to_check);
 		void parseChunkedBody(Context& ctx);
-		// bool handleStaticUpload(Context& ctx);
 		bool redirectAction(Context& ctx);
 		bool deleteHandler(Context &ctx);
 		void getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs);
@@ -135,7 +128,7 @@ class Server
 		size_t findBodyStart(const std::string& buffer, Context& ctx);
 		std::string extractBodyContent(const char* buffer, ssize_t bytes, Context& ctx);
 		bool readingTheBody(Context& ctx, const char* buffer, ssize_t bytes);
-		bool extractFileContent(const std::string& boundary, const std::string& buffer, std::vector<char>& output);
+		bool extractFileContent(const std::string& boundary, const std::string& buffer, std::vector<char>& output, Context& ctx);
 };
 
 std::string extractHostname(const std::string& header);

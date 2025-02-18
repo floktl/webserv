@@ -7,14 +7,12 @@ bool Server::addServerNameToHosts(const std::string &server_name)
 	std::ifstream infile(hosts_file);
 	std::string line;
 
-	// Check if the server_name already exists in /etc/hosts
 	while (std::getline(infile, line))
 	{
 		if (line.find(server_name) != std::string::npos)
 			return true;
 	}
 
-	// Add server_name to /etc/hosts
 	std::ofstream outfile(hosts_file, std::ios::app);
 	if (!outfile.is_open())
 		throw std::runtime_error("Failed to open /etc/hosts");
@@ -83,7 +81,6 @@ std::string Server::normalizePath(const std::string& path) {
 		}
 	}
 
-	// Ensure path ends without trailing slash unless it's root
 	if (result.length() > 1 && result.back() == '/') {
 		result.pop_back();
 	}
