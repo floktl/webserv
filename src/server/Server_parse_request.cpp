@@ -45,12 +45,10 @@ void Server::parseRequest(Context& ctx)
 // Finalizes request parsing by determining the request type and updating epoll events
 bool Server::finalizeRequest(Context& ctx)
 {
-	Logger::blue("finalizeRequest");
+	//Logger::green("finalizeRequest");
 	if (isMultipartUpload(ctx) &&
 		ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
 		!ctx.req.is_upload_complete) {
-
-		Logger::yellow("Skip finalizing - Upload in progress");
 
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
 		return true;
@@ -67,7 +65,7 @@ bool Server::finalizeRequest(Context& ctx)
 // Processes request body parsing, handling chunked and standard bodies
 bool Server::processParsingBody(Context& ctx)
 {
-	Logger::green("processParsingBody");
+	//Logger::green("processParsingBody");
 	if (ctx.req.chunked_state.processing)
 	{
 		parseChunkedBody(ctx);
