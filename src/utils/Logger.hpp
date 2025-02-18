@@ -37,8 +37,9 @@ class Logger
 		static void file(const std::string &message);
 		static bool errorLog(const std::string& message);
 		static void progressBar(long long current, long long total, const std::string& prefix);
-
 		static void log(const std::string &message, const std::string &color, bool newline = true);
+		static std::string logReadBuffer(const std::string& buffer);
+		static std::string logWriteBuffer(const std::vector<char>& buffer);
 
 		class StreamLogger {
 			public:

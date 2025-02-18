@@ -2,7 +2,6 @@
 
 // Constructor initializing the Server with a reference to GlobalFDS and setting default values
 Server::Server(GlobalFDS &_globalFDS) : globalFDS(_globalFDS),
-										// cgiHandler(new CgiHandler(*this)),
 										errorHandler(new ErrorHandler(*this)),
 										timeout(30)
 {
@@ -11,7 +10,6 @@ Server::Server(GlobalFDS &_globalFDS) : globalFDS(_globalFDS),
 // Destructor cleaning up allocated resources and logging server shutdown
 Server::~Server()
 {
-	// delete cgiHandler;
 	delete errorHandler;
 	Logger::yellow() << "\nCleaning up server resources...";
 }

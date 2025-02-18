@@ -57,8 +57,8 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 
 // New function to handle multipart form data headers
 void Server::parseMultipartHeaders(Context& ctx) {
-    std::string boundary;
-    auto content_type_it = ctx.headers.find("Content-Type");
+	std::string boundary;
+	auto content_type_it = ctx.headers.find("Content-Type");
 	auto it = ctx.headers.find("Content-Length");
 	if (it != ctx.headers.end()) {
 		try {
@@ -68,41 +68,41 @@ void Server::parseMultipartHeaders(Context& ctx) {
 			std::cerr << "Invalid Content-Length value" << std::endl;
 		}
 	}
-    if (content_type_it != ctx.headers.end()) {
-        size_t boundary_pos = content_type_it->second.find("boundary=");
-        if (boundary_pos != std::string::npos) {
-            boundary = content_type_it->second.substr(boundary_pos + 9);
-            ctx.headers["Content-Boundary"] = boundary;
-        }
-    }
+	if (content_type_it != ctx.headers.end()) {
+		size_t boundary_pos = content_type_it->second.find("boundary=");
+		if (boundary_pos != std::string::npos) {
+			boundary = content_type_it->second.substr(boundary_pos + 9);
+			ctx.headers["Content-Boundary"] = boundary;
+		}
+	}
 
-    size_t boundary_start = ctx.read_buffer.find("--" + boundary);
-    if (boundary_start == std::string::npos) {
-        return;
-    }
+	size_t boundary_start = ctx.read_buffer.find("--" + boundary);
+	if (boundary_start == std::string::npos) {
+		return;
+	}
 
-    size_t disp_pos = ctx.read_buffer.find("Content-Disposition: form-data", boundary_start);
-    if (disp_pos == std::string::npos) {
-        return;
-    }
+	size_t disp_pos = ctx.read_buffer.find("Content-Disposition: form-data", boundary_start);
+	if (disp_pos == std::string::npos) {
+		return;
+	}
 
-    size_t filename_pos = ctx.read_buffer.find("filename=\"", disp_pos);
-    if (filename_pos != std::string::npos) {
-        filename_pos += 10;
-        size_t filename_end = ctx.read_buffer.find("\"", filename_pos);
-        if (filename_end != std::string::npos) {
-            std::string filename = ctx.read_buffer.substr(filename_pos, filename_end - filename_pos);
-            ctx.headers["Content-Disposition-Filename"] = filename;
-            ctx.uploaded_file_path = concatenatePath(ctx.location.upload_store, filename);
-        }
-    }
+	size_t filename_pos = ctx.read_buffer.find("filename=\"", disp_pos);
+	if (filename_pos != std::string::npos) {
+		filename_pos += 10;
+		size_t filename_end = ctx.read_buffer.find("\"", filename_pos);
+		if (filename_end != std::string::npos) {
+			std::string filename = ctx.read_buffer.substr(filename_pos, filename_end - filename_pos);
+			ctx.headers["Content-Disposition-Filename"] = filename;
+			ctx.uploaded_file_path = concatenatePath(ctx.location.upload_store, filename);
+		}
+	}
 
-    size_t headers_end = ctx.read_buffer.find("\r\n\r\n", disp_pos);
-    if (headers_end != std::string::npos) {
-        ctx.header_offset = headers_end + 4;
-    } else {
-        ctx.header_offset = 0;
-    }
+	size_t headers_end = ctx.read_buffer.find("\r\n\r\n", disp_pos);
+	if (headers_end != std::string::npos) {
+		ctx.header_offset = headers_end + 4;
+	} else {
+		ctx.header_offset = 0;
+	}
 }
 
 // Parses and stores individual header fields in the request context
@@ -298,7 +298,7 @@ std::string extractHostname(const std::string& header)
 				hostname = header.substr(start, end_pos - start);
 		}
 	}
-	return hostname; // Returns empty string if no Host header found
+	return hostname;
 }
 
 // Processes chunked transfer encoding, extracting and assembling request body chunks

@@ -216,3 +216,29 @@ void Logger::progressBar(long long current, long long total, const std::string& 
 		std::cout.flush();
 	}
 }
+
+std::string Logger::logReadBuffer(const std::string& buffer) {
+	const size_t maxDisplayBytes = 100;
+
+	if (buffer.size() <= maxDisplayBytes * 2) {
+		return buffer;
+	} else {
+		std::string result = buffer.substr(0, maxDisplayBytes);
+		result += "\n[... " + std::to_string(buffer.size() - maxDisplayBytes * 2) + " bytes omitted ...]\n";
+		result += buffer.substr(buffer.size() - maxDisplayBytes);
+		return result;
+	}
+}
+
+std::string Logger::logWriteBuffer(const std::vector<char>& buffer) {
+	const size_t maxDisplayBytes = 100;
+
+	if (buffer.size() <= maxDisplayBytes * 2) {
+		return std::string(buffer.begin(), buffer.end());
+	} else {
+		std::string result(buffer.begin(), buffer.begin() + maxDisplayBytes);
+		result += "\n[... " + std::to_string(buffer.size() - maxDisplayBytes * 2) + " bytes omitted ...]\n";
+		result += std::string(buffer.end() - maxDisplayBytes, buffer.end());
+		return result;
+	}
+}
