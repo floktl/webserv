@@ -13,7 +13,7 @@
 //Nach Aktionen (POST/DELETE) wird das Cookie im Redirect gesetzt
 bool Server::staticHandler(Context& ctx)
 {
-	Logger::green("staticHandler " + ctx.method);
+	//Logger::green("staticHandler " + ctx.method);
 	if (ctx.method == "POST")
 	{
 		return (true);
