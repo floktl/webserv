@@ -124,6 +124,7 @@ class Server
 		bool isMultipartUpload(Context& ctx);
 		bool prepareMultipartUpload(Context& ctx, std::vector<ServerBlock> configs);
 		bool doMultipartWriting(Context& ctx);
+		bool completeUpload(Context& ctx);
 		void initializeWritingActions(Context& ctx);
 		size_t findBodyStart(const std::string& buffer, Context& ctx);
 		std::string extractBodyContent(const char* buffer, ssize_t bytes, Context& ctx);

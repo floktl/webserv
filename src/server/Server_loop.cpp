@@ -529,7 +529,13 @@ bool Server::doMultipartWriting(Context& ctx) {
 		final_boundary_found = (ctx.read_buffer.find("--" + ctx.boundary + "--") != std::string::npos);
 	}
 
+	// If we have detected a final boundary but no more data to write,
+	// we should consider the upload complete
 	if (ctx.write_buffer.empty()) {
+		if (final_boundary_found) {
+			Logger::yellow("\nFinal boundary found with empty write buffer - completing upload");
+			return completeUpload(ctx);
+		}
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
 		return true;
 	}
@@ -559,54 +565,73 @@ bool Server::doMultipartWriting(Context& ctx) {
 
 	ctx.req.current_body_length += written;
 	Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "Upload: 8");
-
+	Logger::yellow("\n" + std::to_string(ctx.req.current_body_length) + "/" + std::to_string(ctx.req.expected_body_length));
 	ctx.write_buffer.clear();
 
-	bool size_complete = (ctx.req.current_body_length >= ctx.req.expected_body_length * 0.99);
+	// Only use size calculation as a hint, not as the definitive completion factor
+	// The final boundary must be found to ensure we don't cut off the file
+	bool size_nearly_complete = (ctx.req.expected_body_length > 0 &&
+								ctx.req.current_body_length >= ctx.req.expected_body_length * 0.999);
 
-	if ((final_boundary_found && ctx.found_first_boundary) ||
-		(size_complete && ctx.req.current_body_length > 1000)) {
+	// Add debug information
+	if (size_nearly_complete) {
+		Logger::yellow("\nSize nearly complete: " + std::to_string(ctx.req.current_body_length) +
+					"/" + std::to_string(ctx.req.expected_body_length) +
+					" (" + std::to_string(100.0 * ctx.req.current_body_length / ctx.req.expected_body_length) + "%)");
+	}
 
-
-		Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "Upload: 8");
-		std::cout << std::endl;
-
-		if (ctx.upload_fd >= 0) {
-			close(ctx.upload_fd);
-			ctx.upload_fd = -1;
-		}
-
-		ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
-		ctx.req.is_upload_complete = true;
-		ctx.found_first_boundary = false;
-
-		std::string response;
-		if (!ctx.location.return_code.empty() && !ctx.location.return_url.empty()) {
-			response = "HTTP/1.1 " + ctx.location.return_code + " Redirect\r\n";
-			response += "Location: " + ctx.location.return_url + "\r\n";
-			response += "Content-Length: 0\r\n";
-			response += "Connection: close\r\n\r\n";
-		} else {
-			response = "HTTP/1.1 200 OK\r\n";
-			response += "Content-Type: text/html\r\n";
-			response += "Connection: close\r\n";
-			response += "Content-Length: 135\r\n\r\n";
-			response += "<html><body><h1>Upload successful</h1><script>window.location.href='/';</script></body></html>";
-		}
-
-		ssize_t sent = write(ctx.client_fd, response.c_str(), response.length());
-		if (sent <= 0) {
-			Logger::errorLog("Failed to send completion response");
-		}
-
-		ctx.keepAlive = false;
-		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-
-		return false;
+	if (final_boundary_found) {
+		Logger::yellow("\nFinal boundary found!");
+		return completeUpload(ctx);
+	} else if (size_nearly_complete) {
+		// When we're close to completing but haven't seen a boundary,
+		// we need to wait for more data rather than ending prematurely
+		Logger::yellow("\nWaiting for final boundary...");
 	}
 
 	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
 	return true;
+}
+
+// New helper method to complete the upload process
+bool Server::completeUpload(Context& ctx) {
+	Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "Upload: 8");
+	std::cout << std::endl;
+
+	if (ctx.upload_fd >= 0) {
+		// Sync file to disk before closing
+		fsync(ctx.upload_fd);
+		close(ctx.upload_fd);
+		ctx.upload_fd = -1;
+	}
+
+	ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
+	ctx.req.is_upload_complete = true;
+	ctx.found_first_boundary = false;
+
+	std::string response;
+	if (!ctx.location.return_code.empty() && !ctx.location.return_url.empty()) {
+		response = "HTTP/1.1 " + ctx.location.return_code + " Redirect\r\n";
+		response += "Location: " + ctx.location.return_url + "\r\n";
+		response += "Content-Length: 0\r\n";
+		response += "Connection: close\r\n\r\n";
+	} else {
+		response = "HTTP/1.1 200 OK\r\n";
+		response += "Content-Type: text/html\r\n";
+		response += "Connection: close\r\n";
+		response += "Content-Length: 135\r\n\r\n";
+		response += "<html><body><h1>Upload successful</h1><script>window.location.href='/';</script></body></html>";
+	}
+
+	ssize_t sent = write(ctx.client_fd, response.c_str(), response.length());
+	if (sent <= 0) {
+		Logger::errorLog("Failed to send completion response");
+	}
+
+	ctx.keepAlive = false;
+	delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+
+	return false;
 }
 
 void Server::initializeWritingActions(Context& ctx)
