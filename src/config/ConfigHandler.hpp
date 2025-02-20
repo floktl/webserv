@@ -11,10 +11,12 @@
 
 struct ServerBlock;
 
+class Server;
 class ConfigHandler
 {
 private:
 	// Core configuration variables
+	Server *server;
 	char **env;
 	int linecount;
 	bool configFileValid;
@@ -54,7 +56,7 @@ private:
 
 public:
 	// **Public API**
-	ConfigHandler();
+	ConfigHandler(Server *_server);
 	~ConfigHandler();
 
 	std::vector<ServerBlock> get_registeredServerConfs(void);

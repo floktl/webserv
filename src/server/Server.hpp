@@ -3,14 +3,11 @@
 
 #include "../structs/webserv.hpp"
 #include "../config/ConfigHandler.hpp"
+#include "../error/ErrorHandler.hpp"
 #include "../utils/Logger.hpp"
-#include "../cgi/CgiHandler.hpp"
 # include "../utils/Sanitizer.hpp"
-# include "../error/ErrorHandler.hpp"
 # include "../server/Server.hpp"
 # include "../structs/webserv.hpp"
-
-extern std::unique_ptr<Server> serverInstance;
 
 struct GlobalFDS;
 struct ServerBlock;
@@ -23,7 +20,7 @@ class Server
 	public:
 
 		// server_init
-		Server(GlobalFDS &_globalFDS);
+		Server(GlobalFDS &_globalFDS, int &_g_shutdown_requested);
 		~Server();
 
 		int server_init(std::vector<ServerBlock> configs);
@@ -31,6 +28,8 @@ class Server
 		ErrorHandler* getErrorHandler(void);
 		int has_gate = false;
 		char **environment;
+		bool signal_end;
+		int &g_shutdown_requested;
 
 		//server_helpers
 		void modEpoll(int epfd, int fd, uint32_t events);
@@ -130,6 +129,7 @@ class Server
 		std::string extractBodyContent(const char* buffer, ssize_t bytes, Context& ctx);
 		bool readingTheBody(Context& ctx, const char* buffer, ssize_t bytes);
 		bool extractFileContent(const std::string& boundary, const std::string& buffer, std::vector<char>& output, Context& ctx);
+		void handle_sigint(int sig);
 };
 
 std::string extractHostname(const std::string& header);

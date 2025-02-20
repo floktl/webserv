@@ -1,9 +1,11 @@
 #include "Server.hpp"
 
 // Constructor initializing the Server with a reference to GlobalFDS and setting default values
-Server::Server(GlobalFDS &_globalFDS) : globalFDS(_globalFDS),
-										errorHandler(new ErrorHandler(*this)),
-										timeout(30)
+Server::Server(GlobalFDS &_globalFDS, int &_g_shutdown_requested) :
+											g_shutdown_requested(_g_shutdown_requested),
+											globalFDS(_globalFDS),
+											errorHandler(new ErrorHandler(*this)),
+											timeout(30)
 {
 }
 
@@ -48,6 +50,7 @@ GlobalFDS &Server::getGlobalFds(void)
 {
 	return globalFDS;
 }
+
 
 // Initializes the server by setting up epoll and server sockets, then starts the event loop
 int Server::server_init(std::vector<ServerBlock> configs)
@@ -141,7 +144,7 @@ bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 		modEpoll(epoll_fd, conf.server_fd, EPOLLIN | EPOLLET);
 		setTimeout(conf.timeout);
 		addServerNameToHosts(conf.name);
-		if ((conf.port == 80 && serverInstance->has_gate) || conf.port != 80)
+		if ((conf.port == 80 && this->has_gate) || conf.port != 80)
 			Logger::green("Port: " + std::to_string(conf.port) + ", Servername: " + conf.name);
 	}
 	return true;

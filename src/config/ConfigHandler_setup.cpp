@@ -1,8 +1,9 @@
 #include "./ConfigHandler.hpp"
 
 // Constructor: Initializes configuration-related variables
-ConfigHandler::ConfigHandler()
+ConfigHandler::ConfigHandler(Server *_server)
 {
+	server = _server;
 	configFileValid = false;
 	inServerBlock = false;
 	inLocationBlock = false;
@@ -122,7 +123,7 @@ std::vector<ServerBlock> ConfigHandler::get_registeredServerConfs()
 	for (auto &conf : registeredServerConfs)
 	{
 		if (conf.port == 80)
-			serverInstance->has_gate = true;
+			server->has_gate = true;
 	}
 
 	// Define a default vhosts gate if port 80 is not in use
@@ -133,16 +134,16 @@ std::vector<ServerBlock> ConfigHandler::get_registeredServerConfs()
 	vhosts_gate.root = "/";
 
 	// Minimal required fields for the location
-	vhosts_gate_location.path = "/"; // Match all requests
-	vhosts_gate_location.root = "/"; // Root path
-	vhosts_gate_location.default_file = "index.html"; // Default file
+	vhosts_gate_location.path = "/";
+	vhosts_gate_location.root = "/";
+	vhosts_gate_location.default_file = "index.html";
 
 	// Add the location to the server block
 	vhosts_gate.locations.push_back(vhosts_gate_location);
 	vhosts_gate.locations.push_back(vhosts_gate_location);
 
 	// Register vhosts gate only if no other server is using port 80
-	if (!serverInstance->has_gate)
+	if (!server->has_gate)
 		registeredServerConfs.push_back(vhosts_gate);
 
 	return registeredServerConfs;
