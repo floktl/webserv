@@ -198,6 +198,8 @@ struct Context
 	size_t header_offset = 0;
 	std::string boundary = "";
 	bool found_first_boundary = false;
+	int near_completion_count = 0;
+
 };
 
 struct CgiTunnel

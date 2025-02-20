@@ -150,67 +150,60 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs) {
 	//uint32_t ev;
 	int eventNum;
 
-	while (true) {
+	while (!g_shutdown_requested) {
 		eventNum = epoll_wait(epoll_fd, events, max_events, timeout_ms);
-		log_global_fds(globalFDS);
-		if (eventNum < 0) {
+		if (eventNum < 0 && !g_shutdown_requested) {
 			Logger::errorLog("Epoll error: " + std::string(strerror(errno)));
 			if (errno == EINTR)
 				continue;
 			break;
 		}
-		else if (eventNum == 0) {
+		else if (eventNum == 0 && !g_shutdown_requested) {
 			checkAndCleanupTimeouts();
 			continue;
 		}
-		// for (int eventIter = 0; eventIter < eventNum; eventIter++) {
-		// 	incoming_fd = events[eventIter].data.fd;
-		// 	if (incoming_fd <= 0) {
-		// 		Logger::errorLog("WARNING: Invalid fd " + std::to_string(incoming_fd) + " in epoll event");
-		// 		continue;
-		// 	}
-		// 	ev = events[eventIter].events;
 
-		// 	if (findServerBlock(configs, incoming_fd)) {
-		// 		server_fd = incoming_fd;
-		// 		acceptNewConnection(epoll_fd, server_fd, configs);
-		// 	}
-		// 	else {
-		// 		client_fd = incoming_fd;
-		// 		handleAcceptedConnection(epoll_fd, client_fd, ev, configs);
-		// 	}
-		// }
-		for (int eventIter = 0; eventIter < eventNum; eventIter++) {
-			incoming_fd = events[eventIter].data.fd;
+		if (!g_shutdown_requested)
+		{
+			for (int eventIter = 0; eventIter < eventNum; eventIter++) {
+				incoming_fd = events[eventIter].data.fd;
 
-			auto ctx_iter = globalFDS.context_map.find(incoming_fd);
-			bool is_active_upload = false;
+				auto ctx_iter = globalFDS.context_map.find(incoming_fd);
+				bool is_active_upload = false;
 
-			if (ctx_iter != globalFDS.context_map.end()) {
-				Context& ctx = ctx_iter->second;
-				if (isMultipartUpload(ctx) &&
-					ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
-					!ctx.req.is_upload_complete) {
-					is_active_upload = true;
+				if (ctx_iter != globalFDS.context_map.end()) {
+					Context& ctx = ctx_iter->second;
+					if (isMultipartUpload(ctx) &&
+						ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
+						!ctx.req.is_upload_complete) {
+						is_active_upload = true;
+					}
 				}
-			}
 
-			if (is_active_upload) {
-				handleAcceptedConnection(epoll_fd, incoming_fd, events[eventIter].events, configs);
-				continue;
-			}
+				if (is_active_upload && !g_shutdown_requested) {
+					handleAcceptedConnection(epoll_fd, incoming_fd, events[eventIter].events, configs);
+					continue;
+				}
 
-			if (findServerBlock(configs, incoming_fd)) {
-				server_fd = incoming_fd;
-				acceptNewConnection(epoll_fd, server_fd, configs);
-			}
-			else {
-				client_fd = incoming_fd;
-				handleAcceptedConnection(epoll_fd, client_fd, events[eventIter].events, configs);
+				if (findServerBlock(configs, incoming_fd) && !g_shutdown_requested) {
+					server_fd = incoming_fd;
+					acceptNewConnection(epoll_fd, server_fd, configs);
+				}
+				else if (!g_shutdown_requested) {
+					client_fd = incoming_fd;
+					handleAcceptedConnection(epoll_fd, client_fd, events[eventIter].events, configs);
+				}
 			}
 		}
 	}
-	close(epoll_fd);
+	if (g_shutdown_requested) {
+		this->cleanup();
+	}
+	if (epoll_fd > 0) {
+		close(epoll_fd);
+		epoll_fd = -1;
+		globalFDS.epoll_fd = -1;
+	}
 	epoll_fd = -1;
 	return EXIT_SUCCESS;
 }
@@ -522,20 +515,26 @@ void Server::handleSessionCookies(Context& ctx) {
 }
 
 bool Server::doMultipartWriting(Context& ctx) {
-	//Logger::green("doMultipartWriting");
+	Logger::green("doMultipartWriting");
 
 	bool final_boundary_found = false;
 	if (!ctx.read_buffer.empty()) {
 		final_boundary_found = (ctx.read_buffer.find("--" + ctx.boundary + "--") != std::string::npos);
 	}
+	Logger::red("final_boundary_found " + std::to_string(final_boundary_found));
 
-	// If we have detected a final boundary but no more data to write,
-	// we should consider the upload complete
 	if (ctx.write_buffer.empty()) {
 		if (final_boundary_found) {
 			Logger::yellow("\nFinal boundary found with empty write buffer - completing upload");
 			return completeUpload(ctx);
 		}
+
+		if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+			Logger::yellow("\nReached expected body length - completing upload");
+			return completeUpload(ctx);
+		}
+
+		Logger::red("modEpoll to EPOLLIN");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
 		return true;
 	}
@@ -554,6 +553,7 @@ bool Server::doMultipartWriting(Context& ctx) {
 
 	if (written < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			Logger::red("modEpoll to EPOLLOUT");
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 			return true;
 		}
@@ -568,27 +568,36 @@ bool Server::doMultipartWriting(Context& ctx) {
 	Logger::yellow("\n" + std::to_string(ctx.req.current_body_length) + "/" + std::to_string(ctx.req.expected_body_length));
 	ctx.write_buffer.clear();
 
-	// Only use size calculation as a hint, not as the definitive completion factor
-	// The final boundary must be found to ensure we don't cut off the file
 	bool size_nearly_complete = (ctx.req.expected_body_length > 0 &&
-								ctx.req.current_body_length >= ctx.req.expected_body_length * 0.999);
+								ctx.req.current_body_length >= ctx.req.expected_body_length - DEFAULT_REQUESTBUFFER_SIZE);
 
-	// Add debug information
 	if (size_nearly_complete) {
+		if (!ctx.near_completion_count) {
+			ctx.near_completion_count = 1;
+		} else {
+			ctx.near_completion_count++;
+		}
+
 		Logger::yellow("\nSize nearly complete: " + std::to_string(ctx.req.current_body_length) +
 					"/" + std::to_string(ctx.req.expected_body_length) +
-					" (" + std::to_string(100.0 * ctx.req.current_body_length / ctx.req.expected_body_length) + "%)");
+					" (" + std::to_string(100.0 * ctx.req.current_body_length / ctx.req.expected_body_length) +
+					"%) - Attempt " + std::to_string(ctx.near_completion_count));
 	}
 
 	if (final_boundary_found) {
 		Logger::yellow("\nFinal boundary found!");
 		return completeUpload(ctx);
+	} else if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+		Logger::yellow("\nReceived all expected data - completing upload");
+		return completeUpload(ctx);
+	} else if (size_nearly_complete && ctx.near_completion_count >= 2) {
+		Logger::yellow("\nForced completion after multiple near-complete attempts");
+		return completeUpload(ctx);
 	} else if (size_nearly_complete) {
-		// When we're close to completing but haven't seen a boundary,
-		// we need to wait for more data rather than ending prematurely
 		Logger::yellow("\nWaiting for final boundary...");
 	}
 
+	Logger::red("\nmodEpoll EPOLLIN");
 	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
 	return true;
 }
@@ -599,8 +608,6 @@ bool Server::completeUpload(Context& ctx) {
 	std::cout << std::endl;
 
 	if (ctx.upload_fd >= 0) {
-		// Sync file to disk before closing
-		fsync(ctx.upload_fd);
 		close(ctx.upload_fd);
 		ctx.upload_fd = -1;
 	}
@@ -647,7 +654,6 @@ void Server::initializeWritingActions(Context& ctx)
 }
 
 bool Server::handleWrite(Context& ctx) {
-	//Logger::green("handleWrite");
 
 	bool result = false;
 	initializeWritingActions(ctx);

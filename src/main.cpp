@@ -3,34 +3,25 @@
 #include <iostream>
 #include <memory>
 
-std::unique_ptr<Server> serverInstance;
+static sig_atomic_t g_shutdown_requested = 0;
 
-void handle_sigint(int sig)
-{
-	(void)sig;
-	if (serverInstance)
-	{
-		Logger::cyan("\nCTRL+C received, shutting down gracefully...");
-		serverInstance->cleanup();
-		serverInstance.reset();  // Ensure cleanup
+static void handle_sigint(int sig) {
+	if (sig == SIGINT || sig == SIGTERM) {
+		Logger::cyan("\n\nTerminated Server by signal - shutting down gracefully...");
+		g_shutdown_requested = 1;
 	}
-	exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char **argv, char **envp)
 {
-	ConfigHandler utils;
 	GlobalFDS globalFDS;
-	serverInstance = std::make_unique<Server>(globalFDS);
-	//CgiHandler cgiHandler(*serverInstance);
+	Server serverInstance(globalFDS, g_shutdown_requested);
+	ConfigHandler utils(&serverInstance);
+	g_shutdown_requested = 0;
 
-	// Set up signal handling
-	struct sigaction action;
-	action.sa_handler = handle_sigint;  // Register the function
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;  // No special flags needed
 	Logger::yellow("Server Starting...");
-	if (sigaction(SIGINT, &action, NULL) == -1)
+
+	if (signal(SIGINT, handle_sigint) == SIG_ERR)
 	{
 		Logger::red() << "Failed to set signal handler!";
 		return EXIT_FAILURE;
@@ -51,12 +42,12 @@ int main(int argc, char **argv, char **envp)
 			Logger::red() << "No configurations found!";
 			return EXIT_FAILURE;
 		}
-		int epoll_fd = serverInstance->server_init(configs);
-		serverInstance->environment = envp;
+		int epoll_fd = serverInstance.server_init(configs);
+		serverInstance.environment = envp;
 		if (epoll_fd == EXIT_FAILURE)
 			return EXIT_FAILURE;
 
-		if (serverInstance->runEventLoop(epoll_fd, configs) == EXIT_FAILURE)
+		if (serverInstance.runEventLoop(epoll_fd, configs) == EXIT_FAILURE)
 			return EXIT_FAILURE;
 	}
 	catch (const std::exception &e)
