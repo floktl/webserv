@@ -332,7 +332,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 			}
 			return path_to_check;
 		}
-		if (starts_with_upload_store && ctx.method == "GET")
+		if (starts_with_upload_store && ctx.method == "GET" && ("." + extension) != ctx.location.cgi_filetype)
 		{
 			Logger::yellow(" -- set download");
 			ctx.is_download = true;
