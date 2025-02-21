@@ -136,7 +136,7 @@ std::vector<ServerBlock> ConfigHandler::get_registeredServerConfs()
 	// Minimal required fields for the location
 	vhosts_gate_location.path = "/";
 	vhosts_gate_location.root = "/";
-	vhosts_gate_location.default_file = "index.html";
+	vhosts_gate_location.default_file = DEFAULT_FILE;
 
 	// Add the location to the server block
 	vhosts_gate.locations.push_back(vhosts_gate_location);

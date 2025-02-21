@@ -55,7 +55,6 @@ $(X) 🐑 	location /team {\n\
 $(X) 🐑 		return 301 /;\n\
 $(X) 🐑 	}\n\
 $(X) 🐑 }\n\
-$(X) 🐑 leere DELETE Request (einpaar checks noch einbauen bitte)\n\
 $(X) 🐑 staticHandler onhalt des block comments\n\
 $(X) 🐑 enums to enum classes check all calls...\n\
 

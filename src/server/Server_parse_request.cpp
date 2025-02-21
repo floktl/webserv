@@ -45,7 +45,6 @@ void Server::parseRequest(Context& ctx)
 // Finalizes request parsing by determining the request type and updating epoll events
 bool Server::finalizeRequest(Context& ctx)
 {
-	//Logger::green("finalizeRequest");
 	if (isMultipartUpload(ctx) &&
 		ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
 		!ctx.req.is_upload_complete) {
@@ -65,7 +64,6 @@ bool Server::finalizeRequest(Context& ctx)
 // Processes request body parsing, handling chunked and standard bodies
 bool Server::processParsingBody(Context& ctx)
 {
-	//Logger::green("processParsingBody");
 	if (ctx.req.chunked_state.processing)
 	{
 		parseChunkedBody(ctx);

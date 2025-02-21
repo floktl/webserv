@@ -121,7 +121,7 @@ class Server
 		void handleSessionCookies(Context& ctx);
 		std::string retreiveReqRoot(Context &ctx);
 		bool isMultipartUpload(Context& ctx);
-		bool prepareMultipartUpload(Context& ctx, std::vector<ServerBlock> configs);
+		bool prepareMultipartUpload(Context& ctx);
 		bool doMultipartWriting(Context& ctx);
 		bool completeUpload(Context& ctx);
 		void initializeWritingActions(Context& ctx);
@@ -130,6 +130,9 @@ class Server
 		bool readingTheBody(Context& ctx, const char* buffer, ssize_t bytes);
 		bool extractFileContent(const std::string& boundary, const std::string& buffer, std::vector<char>& output, Context& ctx);
 		void handle_sigint(int sig);
+		bool executeCgi(Context& ctx);
+		std::vector<std::string> prepareCgiEnvironment(const Context& ctx);
+		std::string extractQueryString(const std::string& path);
 };
 
 std::string extractHostname(const std::string& header);
@@ -141,7 +144,7 @@ std::vector<std::string> parseOptionsToVector(const std::string& opts);
 std::string expandEnvironmentVariables(const std::string& value, char** env);
 void log_global_fds(const GlobalFDS& fds);
 void log_server_configs(const std::vector<ServerBlock>& configs);
-bool	updateErrorStatus(Context &ctx, int error_code, std::string error_string);
+bool updateErrorStatus(Context &ctx, int error_code, std::string error_string);
 int extractPort(const std::string& header);
 
 #endif

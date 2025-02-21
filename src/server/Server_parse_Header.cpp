@@ -217,7 +217,7 @@ void Server::parseAccessRights(Context& ctx)
 	std::string req_root = retreiveReqRoot(ctx);
 	std::string requestedPath = concatenatePath(req_root, ctx.path);
 	if (ctx.index.empty() && ctx.method != "DELETE")
-		ctx.index = "index.html";
+		ctx.index = DEFAULT_FILE;
 	if (ctx.location.default_file.empty())
 		ctx.location.default_file = ctx.index;
 

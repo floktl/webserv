@@ -147,10 +147,6 @@
 		// Delete functionality
 		document.getElementById('deleteBtn').addEventListener('click', async () => {
 			const deletePath = document.getElementById('deletePath').value;
-			if (!deletePath) {
-				showAlert('Please enter a path to delete', 'error');
-				return;
-			}
 
 			try {
 				const response = await fetch(`http://localhost:8050/${deletePath}`, {
