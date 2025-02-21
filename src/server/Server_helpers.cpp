@@ -229,7 +229,7 @@ bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	struct stat path_stat;
 	if (stat(path.c_str(), &path_stat) != 0)
-		return updateErrorStatus(ctx, 404, "Not found sdfsdf");
+		return updateErrorStatus(ctx, 404, "Not found");
 
 	if (S_ISDIR(path_stat.st_mode))
 	{
@@ -248,9 +248,6 @@ bool Server::checkAccessRights(Context &ctx, std::string path)
 
 	if (!fileReadable(path))
 		return updateErrorStatus(ctx, 403, "Forbidden");
-
-	if (ctx.type == CGI && !fileExecutable(path))
-		return updateErrorStatus(ctx, 500, "CGI script not executable");
 
 	if (ctx.method == "POST")
 	{
@@ -297,47 +294,78 @@ bool isMethodAllowed(Context& ctx)
 std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 {
 	std::string approvedIndex;
-
 	size_t dot_pos = path_to_check.find_last_of('.');
+	bool starts_with_upload_store = false;
+	// bool ends_with_std_file = false;
+
+	Logger::blue(path_to_check);
+	Logger::blue(ctx.location.upload_store);
+
+	if (path_to_check.length() >= ctx.location.upload_store.length()) {
+		starts_with_upload_store = path_to_check.substr(0, ctx.location.upload_store.length()) == ctx.location.upload_store;
+	}
+	// if (path_to_check.length() >= std::string(DEFAULT_FILE).length()) {
+	// 	ends_with_std_file = path_to_check.substr(path_to_check.length() - std::string(DEFAULT_FILE).length()) == DEFAULT_FILE;
+	// }
+	Logger::yellow("start with upload store: " + std::to_string(starts_with_upload_store));
+	//Logger::yellow("ends with std file: " + std::to_string(ends_with_std_file));
 
 	if (dot_pos != std::string::npos)
 	{
 		std::string extension = path_to_check.substr(dot_pos + 1);
-		if (ctx.type != CGI || (extension == ctx.location.cgi_filetype && ctx.type == CGI))
+		Logger::yellow("extension: " + extension);
+		Logger::yellow("cgi_filetype: " + ctx.location.cgi_filetype);
+		if (("." + extension) == ctx.location.cgi_filetype && ctx.type == CGI)
+			return path_to_check;
+		Logger::yellow(" -- no cgi");
+		if (ctx.method == "GET" && ctx.location.return_url.empty() && extension == "html")
+			return path_to_check;
+		Logger::yellow(" -- no simple get");
+		if (!ctx.location.return_url.empty() && ctx.method == "GET")
 		{
-			approvedIndex = path_to_check;
+			Logger::yellow(" -- evaluating redirect");
+			auto it = std::find(ctx.blocks_location_paths.begin(),
+							ctx.blocks_location_paths.end(),
+							ctx.location.return_url);
+			if (it != ctx.blocks_location_paths.end()) {
+			Logger::yellow(" -- set redirect");
+				ctx.type = REDIRECT;
+			}
+			return path_to_check;
 		}
-		else
+		if (starts_with_upload_store && ctx.method == "GET")
 		{
-			updateErrorStatus(ctx, 500, "Internal Server Error ext");
+			Logger::yellow(" -- set download");
+			ctx.is_download = true;
+			return path_to_check;
+		}
+		if (starts_with_upload_store && ctx.method == "DELETE")
+		{
+			Logger::yellow(" -- set post bad req");
+			updateErrorStatus(ctx, 400, "Bad Request");
 			return "";
 		}
-	}
-	else if (ctx.type == CGI && ctx.method != "POST")
-	{
-		updateErrorStatus(ctx, 400, "Bad Request: No file extension found");
-		return "";
-	}
-	else if (!ctx.location.return_url.empty() && ctx.method == "GET")
-	{
-		auto it = std::find(ctx.blocks_location_paths.begin(),
-						ctx.blocks_location_paths.end(),
-						ctx.location.return_url);
-		if (it != ctx.blocks_location_paths.end()) {
-			ctx.type = REDIRECT;
+		// if (ends_with_std_file && ctx.method == "POST")
+		// {
+		// 	Logger::yellow(" -- set post bad req");
+		// 	updateErrorStatus(ctx, 400, "Bad Request");
+		// 	return "";
+		// }
+		if (starts_with_upload_store && ctx.method == "POST")
+		{
+			Logger::yellow(" -- set post");
+			return path_to_check;
 		}
-		return path_to_check;
-	}
-	else if (path_to_check == ctx.location.upload_store && ctx.method != "POST")
-	{
-		return path_to_check;
-	}
-	else
-	{
-		updateErrorStatus(ctx, 404, "Not found weww");
+		Logger::yellow(" -- approveExtention");
+		updateErrorStatus(ctx, 404, "Not found");
 		return "";
 	}
-	return approvedIndex;
+	if (ctx.method == "GET" && starts_with_upload_store)
+	{
+		Logger::yellow(" -- set download no ext");
+		ctx.is_download = true;
+	}
+	return path_to_check;
 }
 
 // Resets the context, clearing request data and restoring initial values
@@ -406,7 +434,7 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 		parseAccessRights(ctx);
 		return true;
 	}
-	return (updateErrorStatus(ctx, 500, "Internal Server Error type 2"));
+	return (updateErrorStatus(ctx, 500, "Internal Server Error"));
 }
 
 // Retrieves the maximum allowed body size for a request from the server configuration

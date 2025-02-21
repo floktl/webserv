@@ -22,7 +22,7 @@ void Server::buildStaticResponse(Context &ctx) {
 	std::string fullPath = ctx.approved_req_path;
 	std::ifstream file(fullPath, std::ios::binary);
 	if (!file) {
-		updateErrorStatus(ctx, 404, "Not found asasas");
+		updateErrorStatus(ctx, 404, "Not found");
 		return;
 	}
 
@@ -55,7 +55,7 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 {
 	std::vector<DirEntry> entries = getDirectoryEntries(ctx);
 	if (entries.empty())
-		return updateErrorStatus(ctx, 500, "Internal Server Error auto");
+		return updateErrorStatus(ctx, 500, "Internal Server Error");
 
 	std::stringstream content;
 	generateAutoIndexHeader(ctx, content);

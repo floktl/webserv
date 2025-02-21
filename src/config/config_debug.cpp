@@ -154,7 +154,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 		printIntValue(conf.port, "    Port: ", 80);
 		printValue(conf.name, "    Server Name: ", "localhost");
 		printValue(conf.root, "    Root: ", "/usr/share/nginx/html");
-		printValue(conf.index, "    Index: ", "index.html");
+		printValue(conf.index, "    Index: ", DEFAULT_FILE);
 		printSize(conf.client_max_body_size, "    Client Max Body Size: ", "1m");
 		printIntValue(conf.timeout, "    Timeout: ", 30);
 

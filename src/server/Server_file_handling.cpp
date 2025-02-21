@@ -18,7 +18,7 @@ bool Server::deleteHandler(Context &ctx) {
 	std::string req_root = retreiveReqRoot(ctx);
 	std::string requestedPath = concatenatePath(req_root, ctx.path);
 	if (ctx.index.empty() && ctx.method != "DELETE")
-		ctx.index = "index.html";
+		ctx.index = DEFAULT_FILE;
 	if (ctx.location.default_file.empty())
 		ctx.location.default_file = ctx.index;
 
@@ -34,10 +34,14 @@ bool Server::deleteHandler(Context &ctx) {
 		requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
 	if (ctx.location_inited && requestedPath == ctx.location.upload_store && dirWritable(requestedPath))
 		return false;
-
+	Logger::magenta(requestedPath);
+	if (requestedPath.length() >= std::string(DEFAULT_FILE).length() &&
+		requestedPath.substr(requestedPath.length() - std::string(DEFAULT_FILE).length()) == DEFAULT_FILE) {
+		return updateErrorStatus(ctx, 400, "Bad Request");
+	}
 	std::filesystem::remove(requestedPath);
 	if (std::filesystem::exists(requestedPath)) {
-		return updateErrorStatus(ctx, 500, "Internal Server Error delete");
+		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	}
 	return true;
 }

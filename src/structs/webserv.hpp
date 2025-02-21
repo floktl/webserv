@@ -8,6 +8,7 @@
 #include <chrono>
 #include <vector>
 
+#define DEFAULT_FILE "index.html"
 #define BUFFER_SIZE 17000
 #define DEFAULT_REQUESTBUFFER_SIZE 8192
 #define DEFAULT_MAXBODYSIZE 1048576
@@ -199,6 +200,7 @@ struct Context
 	std::string boundary = "";
 	bool found_first_boundary = false;
 	int near_completion_count = 0;
+	bool is_download = false;
 
 };
 
