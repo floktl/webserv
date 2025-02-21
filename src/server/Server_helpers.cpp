@@ -293,7 +293,6 @@ bool isMethodAllowed(Context& ctx)
 // Approves a file extension based on CGI configuration or static file handling rules
 std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 {
-	std::string approvedIndex;
 	size_t dot_pos = path_to_check.find_last_of('.');
 	bool starts_with_upload_store = false;
 	// bool ends_with_std_file = false;

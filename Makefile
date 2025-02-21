@@ -57,6 +57,11 @@ $(X) 🐑 	}\n\
 $(X) 🐑 }\n\
 $(X) 🐑 staticHandler onhalt des block comments\n\
 $(X) 🐑 enums to enum classes check all calls...\n\
+$(X) 🐑 Donwloads and HTML in CGI Locations\n\
+$(X) 🐑 Set download flow ... some cgi call shsow set diownlaod... \n\
+$(X) 🐑 loesche uncompleted uploads bei abbruch oder fehler...  \n\
+$(X) 🐑 bei delete request auf upload file... uplaod abbrechen und loeschen  \n\
+$(X) 🐑 [2025-02-21 15:31:19]  [ERROR] Read error: File exists bei GET manchmal...  \n\
 
 # helper command to search for fucntions with more than 40 lines
 #find . -type f -name "*.cpp" | xargs awk '
