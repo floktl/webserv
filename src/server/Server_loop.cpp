@@ -226,7 +226,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs) {
 	int incoming_fd = -1;
 	int server_fd = -1;
 	int client_fd = -1;
-// uint32_t eV;
+	// uint32_t eV;
 	int eventNum;
 
 	while (!g_shutdown_requested) {
