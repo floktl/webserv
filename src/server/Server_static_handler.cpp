@@ -51,7 +51,7 @@ bool Server::sendHandler(Context& ctx, std::string http_response)
 	ssize_t bytes_sent = send(ctx.client_fd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
 	if (bytes_sent < 0)
 	{
-		Logger::errorLog("Error sending response to client_fd: " + std::to_string(ctx.client_fd) + " - " + std::string(strerror(errno)));
+		Logger::errorLog("Error sending response to client_fd: " + std::to_string(ctx.client_fd));
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 		return false;
 	}

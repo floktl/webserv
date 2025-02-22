@@ -365,16 +365,11 @@ bool Sanitizer::sanitize_locationCgi(std::string& locationCgi, std::string& loca
 			closedir(dirp);
 			Logger::error("[CGI] Path is a directory: " + locationCgi);
 			return false;
-		} else {
-			if (errno != ENOTDIR) {
-				Logger::error("[CGI] Could not open path: " + locationCgi + " (" + strerror(errno) + ")");
-				return false;
-			}
 		}
 	}
 
 	if (access(locationCgi.c_str(), X_OK) == -1) {
-		Logger::error("[CGI] File is not executable: " + locationCgi + " (" + strerror(errno) + ")");
+		Logger::error("[CGI] File is not executable: " + locationCgi);
 		return false;
 	}
 

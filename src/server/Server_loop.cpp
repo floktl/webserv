@@ -39,14 +39,12 @@ std::string Server::extractBodyContent(const char* buffer, ssize_t bytes, Contex
 		if (bodyStart < static_cast<size_t>(bytes)) {
 			cleanBody.assign(buffer + bodyStart, buffer + bytes);
 
-// Now remove the boundary and header
 			const std::string boundaryMarker = "\r\n\r\n";
 			size_t boundaryPos = cleanBody.find(boundaryMarker);
 			if (boundaryPos != std::string::npos) {
 				cleanBody = cleanBody.substr(boundaryPos + boundaryMarker.length());
 			}
 
-// Removing the content disposition header (if available)
 			size_t contentDispositionPos = cleanBody.find("Content-Disposition: form-data;");
 			if (contentDispositionPos != std::string::npos) {
 				size_t endPos = cleanBody.find("\r\n", contentDispositionPos);
@@ -55,7 +53,6 @@ std::string Server::extractBodyContent(const char* buffer, ssize_t bytes, Contex
 				}
 			}
 
-// Removing the content type header (if available)
 			size_t contentTypePos = cleanBody.find("Content-Type:");
 			if (contentTypePos != std::string::npos) {
 				size_t endPos = cleanBody.find("\r\n", contentTypePos);
@@ -64,7 +61,6 @@ std::string Server::extractBodyContent(const char* buffer, ssize_t bytes, Contex
 				}
 			}
 
-// Removing the boundary at the end
 			size_t boundaryEndPos = cleanBody.rfind("--" + ctx.headers["Content-Type"].substr(ctx.headers["Content-Type"].find("boundary=") + 9));
 			if (boundaryEndPos != std::string::npos) {
 				cleanBody.erase(boundaryEndPos);
@@ -439,18 +435,19 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 	std::memset(buffer, 0, sizeof(buffer));
 	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
 
-	if (bytes <= 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
-			if (ctx.upload_fd > 0) {
-				close(ctx.upload_fd);
-				ctx.upload_fd = -1;
-				ctx.write_buffer.clear();
-				ctx.write_pos = 0;
-				ctx.write_len = 0;
-			}
-			return Logger::errorLog("Read error: " + std::string(strerror(errno)));
+	if (bytes < 0) {
+		if (ctx.upload_fd > 0) {
+			close(ctx.upload_fd);
+			ctx.upload_fd = -1;
+			ctx.write_buffer.clear();
+			ctx.write_pos = 0;
+			ctx.write_len = 0;
 		}
-		return false;
+		return Logger::errorLog("Read error");
+	}
+	if (bytes == 0)
+	{
+		return true;
 	}
 
 	ctx.last_activity = std::chrono::steady_clock::now();
@@ -606,7 +603,7 @@ bool Server::doMultipartWriting(Context& ctx) {
 	if (ctx.upload_fd < 0) {
 		ctx.upload_fd = open(ctx.uploaded_file_path.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
 		if (ctx.upload_fd < 0) {
-			Logger::errorLog("Failed to open file: " + std::string(strerror(errno)));
+			Logger::errorLog("Failed to open file");
 			return updateErrorStatus(ctx, 500, "Failed to open upload file");
 		}
 	}
@@ -616,11 +613,7 @@ bool Server::doMultipartWriting(Context& ctx) {
 						ctx.write_buffer.size());
 
 	if (written < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-			return true;
-		}
-		Logger::errorLog("Write error: " + std::string(strerror(errno)));
+		Logger::errorLog("Write error");
 		close(ctx.upload_fd);
 		ctx.upload_fd = -1;
 		return updateErrorStatus(ctx, 500, "Failed to write to upload file");
