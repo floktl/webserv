@@ -1,16 +1,16 @@
 #include "Server.hpp"
 
-//Die wichtigsten Änderungen:
+// The most important changes:
 
-//Bei autoindex KEINE Cookies setzen, da es sich um eine technische Verzeichnisauflistung handelt
-//Bei normalen GET Requests für Dateien Cookies in buildStaticResponse setzen
-//Bei POST/DELETE nach erfolgreicher Aktion Cookie im Redirect setzen
+// Do not set cookies in auto index because it is a technical directory list
+// Set cookies in BuildSTATICRESPONSE at normal gets for files
+// Set Cookie in Redirect at Post/Delete after a successful campaign
 
-//Das ist konsistenter, weil:
+// This is more consistent because:
 
-//Autoindex ist eine technische Funktion und braucht keine Cookies
-//Normale Seiten können Cookies bekommen
-//Nach Aktionen (POST/DELETE) wird das Cookie im Redirect gesetzt
+// Auto index is a technical function and does not need cookies
+// Normal pages can get cookies
+// After actions (Post/Delete), the cookie is set in the redirect
 bool Server::staticHandler(Context& ctx)
 {
 	if (ctx.method == "POST")
@@ -36,7 +36,7 @@ bool Server::staticHandler(Context& ctx)
 			if (ctx.type == ERROR)
 				return (false);
 			if (!ctx.keepAlive)
-				//modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+// Modepoll (ctx.epoll_fd, ctx.client_fd, epollin | epollet);
 			return (true);
 		}
 	}
@@ -45,7 +45,7 @@ bool Server::staticHandler(Context& ctx)
 	return (false);
 }
 
-// Sends an HTTP response to the client and handles connection cleanup if necessary
+// Send to http response to the client and handles Connection Cleanup if necessary
 bool Server::sendHandler(Context& ctx, std::string http_response)
 {
 	ssize_t bytes_sent = send(ctx.client_fd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL);

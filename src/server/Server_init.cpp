@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-// Constructor initializing the Server with a reference to GlobalFDS and setting default values
+// Constructor Initializing The Server With A Reference to Globalfds and Setting Default Values
 Server::Server(GlobalFDS &_globalFDS, int &_g_shutdown_requested) :
 											g_shutdown_requested(_g_shutdown_requested),
 											globalFDS(_globalFDS),
@@ -9,50 +9,50 @@ Server::Server(GlobalFDS &_globalFDS, int &_g_shutdown_requested) :
 {
 }
 
-// Destructor cleaning up allocated resources and logging server shutdown
+// Destructor Cleaning Up Allocated Resources and Logging Server Shutdown
 Server::~Server()
 {
 	delete errorHandler;
 	Logger::yellow() << "\nCleaning up server resources...";
 }
 
-// Sets the server timeout value
+// Sets the Server Timeout Value
 void Server::setTimeout(int t)
 {
 	timeout = t;
 }
 
-// Retrieves the current server timeout value
+// Retrieves the Current Server Timeout Value
 int Server::getTimeout() const
 {
 	return timeout;
 }
 
-// Performs cleanup operations such as removing added server names from /etc/hosts
+// Performs Cleanup Operations Search as Removing Added Server Names from /etc /hosts
 void Server::cleanup()
 {
 	removeAddedServerNamesFromHosts();
 }
 
-// CgiHandler* Server::getCgiHandler(void)
-//{
-//	return cgiHandler;
-//}
+// CGISCHAUSLER* Server :: Getcgihandler (void)
+// None
+// Return Cgihandler;
+// None
 
-// Returns a pointer to the error handler instance
+// Returns a Pointer to the Error Handler Instance
 ErrorHandler *Server::getErrorHandler(void)
 {
 	return errorHandler;
 }
 
-// Returns a reference to the global file descriptor structure
+// Returns a Reference to the Global File Descriptor Structure
 GlobalFDS &Server::getGlobalFds(void)
 {
 	return globalFDS;
 }
 
 
-// Initializes the server by setting up epoll and server sockets, then starts the event loop
+// Initializes the server by Setting Up Epoll and Server Sicke, Then Starts The Event Loop
 int Server::server_init(std::vector<ServerBlock> configs)
 {
 	int epoll_fd = initEpoll();
@@ -65,7 +65,7 @@ int Server::server_init(std::vector<ServerBlock> configs)
 	return runEventLoop(epoll_fd, configs);
 }
 
-// Creates an epoll instance and stores its file descriptor in GlobalFDS
+// Creates to Epoll Instance and Stores Its File Descriptor in Globalfds
 int Server::initEpoll() {
 
 	int epoll_fd = epoll_create(1);
@@ -104,7 +104,7 @@ int Server::initEpoll() {
 	return epoll_fd;
 }
 
-// Initializes server sockets based on configuration, binds them, and adds them to epoll
+// Initializes Server Sickets Based on Configuration, Binds Them, and Adds Them to Epoll
 bool Server::initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs)
 {
 	Logger::green("Server listening on the ports:");

@@ -38,6 +38,7 @@ $(X) 🐖 	if (conf.errorPages.find(errorCode) == conf.errorPages.end()) {\n\
 $(X) 🐖 		conf.errorPages[errorCode] = "/50x.html";\n\
 $(X) 🐖 	}\n\
 $(X) 🐖 }\n\
+$(X) 🐖 adjust Jeberle_warner for upload path\
 $(X) 🐖 FILE Download .\n\
 $(X) 🐑 Infinte redirect....  508 Error Page....  Loop locations redirect anaylsis in Configs .....\n\
 $(X) 🐑 server {\n\
@@ -208,13 +209,20 @@ leak:
 #--------------                   CLEANUP TARGETS                   -------------#
 #------------------------------------------------------------------------------#
 
-clean:
+clean: file
 	@rm -rf $(OBJ_DIR)
 	@echo "$(RED)objects deleted$(X)"
 
-fclean: clean
+fclean:
 	@rm -f $(NAME) $(PCHGCH)
 	@echo "$(RED)binaries deleted$(X)"
+
+CLEAN_DIRS = var/www/staticupload
+
+file:
+	@find var/www/statictester -type f ! -name "index.html" -delete
+	@find var/www/staticupload -type f ! -name "index.html" -delete
+	@echo "$(RED)Deleted all files all non-index.html files in 'staticupload'and 'statictester'.$(X)"
 
 re: fclean all
 

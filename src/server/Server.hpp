@@ -19,7 +19,7 @@ class Server
 {
 	public:
 
-		// server_init
+// server_init
 		Server(GlobalFDS &_globalFDS, int &_g_shutdown_requested);
 		~Server();
 
@@ -31,7 +31,7 @@ class Server
 		bool signal_end;
 		int &g_shutdown_requested;
 
-		//server_helpers
+// server_helpers
 		void modEpoll(int epfd, int fd, uint32_t events);
 		void delFromEpoll(int epfd, int fd);
 		int setNonBlocking(int fd);
@@ -58,21 +58,21 @@ class Server
 		int timeout;
 		std::vector<std::string> added_server_names;
 
-		// server_init
+// server_init
 		int initEpoll();
 		bool initServerSockets(int epoll_fd, std::vector<ServerBlock> &configs);
 
-		// server_helpers
+// server_helpers
 		bool findServerBlock(const std::vector<ServerBlock> &configs, int fd);
 		bool addServerNameToHosts(const std::string &server_name);
 		void removeAddedServerNamesFromHosts();
 
-		// server_event_handlers
+// server_event_handlers
 		bool staticHandler(Context& ctx);
 		bool handleCGIEvent(int epoll_fd, int fd, uint32_t ev);
 		void buildStaticResponse(Context &ctx);
 
-		// Server loop
+// Server Loop
 		bool dispatchEvent(int epoll_fd, int fd, uint32_t ev, std::vector<ServerBlock> &configs);
 		bool acceptNewConnection(int epoll_fd, int server_fd, std::vector<ServerBlock> &configs);
 		void checkAndCleanupTimeouts();
