@@ -13,7 +13,7 @@ std::string Server::retreiveReqRoot(Context &ctx)
 	return req_root;
 }
 
-// Handles DELETE requests by verifying file permissions and removing the requested file
+// Handles Delete Requests by Verifying File Permissions and Removing The Requested File
 bool Server::deleteHandler(Context &ctx) {
 	std::string req_root = retreiveReqRoot(ctx);
 	std::string requestedPath = concatenatePath(req_root, ctx.path);
@@ -46,7 +46,7 @@ bool Server::deleteHandler(Context &ctx) {
 	return true;
 }
 
-// Splits a given path into components, removing empty segments
+// Splits a given path into components, removing empty segment
 std::vector<std::string> splitPath(const std::string& path)
 {
 	std::vector<std::string> components;

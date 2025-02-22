@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-// Handles HTTP redirection by constructing a redirect response with a given status code and location
+// Handles http redirection by constructing a redirect response with a given status code and location
 bool Server::redirectAction(Context& ctx) {
 	int return_code = 301;
 	std::string return_url = "/";

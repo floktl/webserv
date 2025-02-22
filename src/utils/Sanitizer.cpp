@@ -9,13 +9,13 @@ bool Sanitizer::isValidPath(std::string& path, const std::string& context, const
 		return false;
 	}
 
-	// If the path does not start with '/', prepend the current working directory (pwd)
+// If the path does not start with '/', Prepend the Current Working Directory (PWD)
 	std::string normalizedPath = path;
 	if (normalizedPath[0] != '/') {
 		normalizedPath = pwd + "/" + normalizedPath;
 	}
 
-	// Validate the path by splitting and checking for directory traversal attempts
+// Validate the Path by Splitting and Checking for Directory Traversal Attempts
 	std::stringstream ss(normalizedPath);
 	std::string segment;
 	std::vector<std::string> segments;
@@ -29,7 +29,7 @@ bool Sanitizer::isValidPath(std::string& path, const std::string& context, const
 		segments.push_back(segment);
 	}
 
-	// Rebuild the cleaned absolute path
+// Rebuild the Cleaned Absolute Path
 	normalizedPath = "/";
 	for (const auto& seg : segments) {
 		normalizedPath += seg + "/";
@@ -38,7 +38,7 @@ bool Sanitizer::isValidPath(std::string& path, const std::string& context, const
 		normalizedPath.pop_back();
 	}
 
-	// Check for invalid characters in the normalized path
+// Check for invalid characters in the Normalized Path
 	for (char c : normalizedPath) {
 		if (!std::isalnum(static_cast<unsigned char>(c)) && c != '/' && c != '_' && c != '-' && c != '.') {
 			Logger::error("[" + context + "] Invalid character '" + std::string(1, c) + "' found in path: " + normalizedPath);
@@ -46,7 +46,7 @@ bool Sanitizer::isValidPath(std::string& path, const std::string& context, const
 		}
 	}
 
-	// For Root or Error page contexts, verify that the path exists and is of the correct type
+// For root or error page contexts, verify that the path exists and is of the correct type
 	if (context == "Root" || context == "Error page") {
 		struct stat path_stat;
 		if (stat(normalizedPath.c_str(), &path_stat) == -1) {
@@ -64,7 +64,7 @@ bool Sanitizer::isValidPath(std::string& path, const std::string& context, const
 		}
 	}
 
-	// If all checks pass, update the original path to the normalized absolute path
+// If all checks pass, update the original path to the normalized absolute path
 	path = normalizedPath;
 	return true;
 }
@@ -131,7 +131,7 @@ bool Sanitizer::isValidFilename(const std::string& filename, bool allowPath) {
 	return true;
 }
 
-// Public methods - Mandatory checks
+// Public Methods - Mandatory Checks
 bool Sanitizer::sanitize_portNr(int portNr) {
 	return (portNr >= 1 && portNr <= 65535);
 }
@@ -158,7 +158,7 @@ bool Sanitizer::sanitize_root(std::string& root, const std::string& pwd) {
 	return isValidPath(root, "Root", pwd);
 }
 
-// Public methods - Optional checks
+// Public Methods - Optional Checks
 bool Sanitizer::sanitize_index(std::string& index) {
 	return index.empty() || isValidFilename(index, false);
 }
@@ -354,10 +354,10 @@ bool Sanitizer::sanitize_locationCgi(std::string& locationCgi, std::string& loca
 	if (!isValidPath(locationCgi, "CGI", pwd))
 		return false;
 
-	// if (access(locationCgi.c_str(), F_OK) == -1) {
-	// 	Logger::error("[CGI] File does not exist: " + locationCgi + " (" + strerror(errno) + ")");
-	// 	return false;
-	// }
+// if (access (locationcgi.c_str (), f_ok) == -1) {
+// Logger :: Error ("[CGI] File does not exist:" + Locationcgi + "(" + Streror (Errno) + ")");
+// return false;
+// None
 
 	{
 		DIR* dirp = opendir(locationCgi.c_str());
@@ -443,7 +443,7 @@ bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context)
 		return false;
 	}
 
-	// Normalize path by removing consecutive slashes and resolving relative components
+// Normalize Path by Removing Consecutive Slashes and Resolving Relative Components
 	std::vector<std::string> segments;
 	std::stringstream ss(path);
 	std::string segment;
@@ -457,7 +457,7 @@ bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context)
 		segments.push_back(segment);
 	}
 
-	// Rebuild normalized path
+// Rebuild Normalized Path
 	path = "/";
 	for (const auto& seg : segments) {
 		path += seg + "/";
@@ -466,7 +466,7 @@ bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context)
 		path.pop_back();
 	}
 
-	// Validate characters
+// Validate Characters
 	for (char c : path) {
 		if (!std::isalnum(static_cast<unsigned char>(c)) &&
 			c != '/' && c != '_' && c != '-' && c != '.') {
@@ -475,6 +475,6 @@ bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context)
 		}
 	}
 
-	// Create directory with proper permissions
+// Create Directory with Proper Permissions
 	return checkUploadStorePermissions(path);
 }

@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-// Handles the parsing phase of an HTTP request, switching between header and body parsing
+// Handles the parsing phase of an http Request, Switching between Header and Body Parsing
 bool Server::handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs)
 {
 	if (!ctx.headers_complete)
@@ -13,7 +13,7 @@ bool Server::handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& co
 	return true;
 }
 
-// Reads and parses the incoming HTTP request into method, path, version, and headers
+// Reads and Parses the Incoming HTTP Request Into Method, Path, version, and Headers
 void Server::parseRequest(Context& ctx)
 {
 	char buffer[8192];
@@ -42,7 +42,7 @@ void Server::parseRequest(Context& ctx)
 }
 
 
-// Finalizes request parsing by determining the request type and updating epoll events
+// Finalizes Request Parsing by Determining the Request Type and Updating Epoll Events
 bool Server::finalizeRequest(Context& ctx)
 {
 	if (isMultipartUpload(ctx) &&
@@ -61,7 +61,7 @@ bool Server::finalizeRequest(Context& ctx)
 
 
 
-// Processes request body parsing, handling chunked and standard bodies
+// Processes Request Body Parsing, Handling Chunked and Standard Bodies
 bool Server::processParsingBody(Context& ctx)
 {
 	if (ctx.req.chunked_state.processing)
@@ -87,7 +87,7 @@ bool Server::processParsingBody(Context& ctx)
 	return true;
 }
 
-// Checks if the request has been fully received based on headers and body content
+// Checks if the request has been fully receiven Based on Headers and Body Content
 bool Server::isRequestComplete(Context& ctx)
 {
 	if (!ctx.headers_complete)
