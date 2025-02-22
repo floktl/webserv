@@ -2,10 +2,10 @@
 
 void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 {
-	// map to store default error page paths
+// Map to Store Default Error Page Paths
 	std::map<int, std::string> errorPageDefaults;
 
-	// scan the directory for error page files
+// Scan the Directory for Error Page Files
 	std::string errorPageDir = pwd + "/err_page_defaults";
 
 	DIR *dir = opendir(errorPageDir.c_str());
@@ -14,12 +14,12 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 		struct dirent *entry;
 		while ((entry = readdir(dir)) != NULL)
 		{
-			// skip "." and ".."
+// Skip "." and ".."
 			if (std::string(entry->d_name) == "." || std::string(entry->d_name) == "..")
 			{
 				continue;
 			}
-			// check if regular file
+// Check IF Regular File
 			{
 				std::string fileName = entry->d_name;
 				size_t dotPos = fileName.find('.');
@@ -106,7 +106,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 		auto parseSize = [](const std::string& sizeStr) -> long {
 			if (sizeStr.empty()) return 0;
 
-			// Extract numeric part and unit part
+// Extract numeric part and unit part
 			std::string numStr = sizeStr;
 			std::string unit;
 
@@ -125,7 +125,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 				return 0;
 			}
 
-			// Convert unit to uppercase for comparison
+// Convert Unit to Uppercase for Comparison
 			std::transform(unit.begin(), unit.end(), unit.begin(), ::toupper);
 
 			if (unit == "K" || unit == "KB") return size * 1024L;
@@ -158,14 +158,14 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 		printSize(conf.client_max_body_size, "    Client Max Body Size: ", "1m");
 		printIntValue(conf.timeout, "    Timeout: ", 30);
 
-		// combined staged error page logic
+// Combined Stagebed Error Page Logic
 		if (conf.errorPages.empty()) {
-			// add all provided error pages serverside
+// ADD all Provided Error Pages Serverside
 			for (const auto& errorPage : errorPageDefaults) {
 				conf.errorPages[errorPage.first] = errorPage.second;
 			}
 
-			// fallback for common error codes
+// Fallback for Common Error Codes
 			const int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};
 			for (int errorCode : defaultErrorCodes) {
 				if (conf.errorPages.find(errorCode) == conf.errorPages.end()) {
@@ -176,7 +176,7 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 			Logger::yellow("    Using default error pages:");
 		}
 
-		// show error pages
+// Show Error Pages
 		for (std::map<int, std::string>::const_iterator it = conf.errorPages.begin();
 			it != conf.errorPages.end(); ++it) {
 			Logger::white("    Error Page: ", false, 30);

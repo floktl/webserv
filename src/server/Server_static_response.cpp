@@ -17,7 +17,7 @@ std::string determineContentType(const std::string& path) {
 	return contentType;
 }
 
-// Builds an HTTP response for serving static files, setting content type and response headers
+// Builds to HTTP Response for Serving Static Files, Setting Content Type and Response Headers
 void Server::buildStaticResponse(Context &ctx) {
 	std::string fullPath = ctx.approved_req_path;
 	std::ifstream file(fullPath, std::ios::binary);
@@ -50,7 +50,7 @@ void Server::buildStaticResponse(Context &ctx) {
 	resetContext(ctx);
 }
 
-// Builds an auto-index (directory listing) response when no index file is found
+// Builds on Auto-Index (Directory listing) Response When no index file is found
 bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 {
 	std::vector<DirEntry> entries = getDirectoryEntries(ctx);
@@ -73,7 +73,7 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 	return true;
 }
 
-// Queues an HTTP response in the output buffer and updates epoll events for writing
+// Quees to http response in the output buffer and updates epoll events for writing
 bool Server::queueResponse(Context& ctx, const std::string& response)
 {
 	ctx.output_buffer += response;
@@ -81,7 +81,7 @@ bool Server::queueResponse(Context& ctx, const std::string& response)
 	return true;
 }
 
-// Retrieves directory entries, filtering and sorting them for directory listing
+// Retrieves Directory Entries, Filtering and Sorting Them for Directory Listing
 std::vector<DirEntry> Server::getDirectoryEntries(Context& ctx)
 {
 	DIR* dir = opendir(ctx.doAutoIndex.c_str());
@@ -127,7 +127,7 @@ std::vector<DirEntry> Server::getDirectoryEntries(Context& ctx)
 	return entries;
 }
 
-// Generates the HTML header and styling for the auto-index response
+// Generates The HTML Header and Styling for the Auto-Index Response
 void Server::generateAutoIndexHeader(Context& ctx, std::stringstream& content)
 {
 	content << "<!DOCTYPE html>\n"
@@ -188,7 +188,7 @@ void Server::generateAutoIndexHeader(Context& ctx, std::stringstream& content)
 			<< "    <div class=\"listing\">\n";
 }
 
-// Generates the HTML body containing directory entries for the auto-index response
+// Generates The HTML Body Containing Directory Entries for the Auto-Index Response
 void Server::generateAutoIndexBody(const std::vector<DirEntry>& entries, std::stringstream& content)
 {
 	for (const auto& entry : entries)

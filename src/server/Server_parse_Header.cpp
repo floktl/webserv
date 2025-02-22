@@ -1,7 +1,7 @@
 #include "Server.hpp"
 
 
-// Extracts and validates HTTP headers from the request, updating the request context
+// Extracts and Validates http Headers from the Request, Updating the Request Context
 bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 {
 	if (!ctx.read_buffer.empty())
@@ -55,7 +55,7 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 	return true;
 }
 
-// New function to handle multipart form data headers
+// New Function to Handle Multipart Form Data Headers
 void Server::parseMultipartHeaders(Context& ctx) {
 	std::string boundary;
 	auto content_type_it = ctx.headers.find("Content-Type");
@@ -105,7 +105,7 @@ void Server::parseMultipartHeaders(Context& ctx) {
 	}
 }
 
-// Parses and stores individual header fields in the request context
+// Parses and stores individual header Fields in the Request Context
 bool Server::parseHeaderFields(Context& ctx, std::istringstream& stream) {
 	std::string line;
 	while (std::getline(stream, line)) {
@@ -137,7 +137,7 @@ bool Server::parseHeaderFields(Context& ctx, std::istringstream& stream) {
 	return true;
 }
 
-// Parses the request line (method, path, version) from the input buffer
+// Parses the Request Line (Method, Path, version) from the input Buffer
 bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 {
 	std::string line;
@@ -186,7 +186,7 @@ void Server::prepareUploadPingPong(Context& ctx)
 		return;
 	}
 
-	// Check if file already exists
+// Check IF File Already Exists
 	if (access(ctx.uploaded_file_path.c_str(), F_OK) == 0) {
 		Logger::errorLog("File already exists: " + ctx.uploaded_file_path);
 		updateErrorStatus(ctx, 409, "File already exists");
@@ -211,7 +211,7 @@ void Server::prepareUploadPingPong(Context& ctx)
 
 }
 
-// Parses and sets access rights for a request based on server configuration
+// Parses and Sets Access Rights for a Request Based on Server Configuration
 void Server::parseAccessRights(Context& ctx)
 {
 	std::string req_root = retreiveReqRoot(ctx);
@@ -244,7 +244,7 @@ void Server::parseAccessRights(Context& ctx)
 	ctx.approved_req_path = requestedPath;
 }
 
-// Extracts the port number from the HTTP Host header, defaulting to 80 if missing
+// Extracts The Port Number from the Http Host Header, Defaulting to 80 IF Missing
 int extractPort(const std::string& header)
 {
 	size_t host_pos = header.find("Host: ");
@@ -280,7 +280,7 @@ int extractPort(const std::string& header)
 	return -1;
 }
 
-// Extracts the hostname from the HTTP Host header, returning an empty string if missing
+// Extracts the hostname from the http host header, return on emty string if missing
 std::string extractHostname(const std::string& header)
 {
 	std::string hostname;
@@ -301,7 +301,7 @@ std::string extractHostname(const std::string& header)
 	return hostname;
 }
 
-// Processes chunked transfer encoding, extracting and assembling request body chunks
+// Processes Chunked Transfer Encoding, Extracting and Assembling Request Body Chunks
 void Server::parseChunkedBody(Context& ctx)
 {
 	while (!ctx.read_buffer.empty())
@@ -352,7 +352,7 @@ void Server::parseChunkedBody(Context& ctx)
 	}
 }
 
-// Validates Content-Length header and checks against server-configured limits
+// Validates Content-Lengh Header and Checks Against Server-Configureded Limits
 bool Server::handleContentLength(Context& ctx, const std::vector<ServerBlock>& configs)
 {
 	auto headersit = ctx.headers.find("Content-Length");

@@ -15,7 +15,7 @@ class Server;
 class ConfigHandler
 {
 private:
-	// Core configuration variables
+// Core configuration variables
 	Server *server;
 	char **env;
 	int linecount;
@@ -26,12 +26,12 @@ private:
 	std::string locBlockTar;
 	std::vector<ServerBlock> registeredServerConfs;
 
-	// **Setup.cpp: Constructor, Destructor, and Core Config Handling**
+// ** Setup.cpp: Constructor, Destructor, and Core Config Handling **
 	bool parseConfigContent(std::string filename);
 	bool isConfigFile(const std::string& filepath);
 	void printRegisteredConfs(std::string filename, std::string pwd);
 
-	// **ParseLine.cpp: Parsing and Directive Handling**
+// ** Parseline.cpp: Parsing and Directive Handling **
 	bool parseErr(const std::string &str);
 	bool handleServerBlock(void);
 	bool handleLocationBlock(std::istringstream& stream);
@@ -48,14 +48,14 @@ private:
 	bool handleServerDirective(const std::string& keyword, const std::string& value);
 	bool handleLocationDirective(const std::string& keyword, const std::string& value);
 
-	// **Sanitize.cpp: Configuration Validation**
+// ** sanitize.cpp: Configuration Validation **
 	bool confErr(const std::string &str);
 	bool sanitizeConfData(void);
 	bool validateErrorPages();
 	bool validateLocationConfigs(ServerBlock& serverConf, size_t serverIndex);
 
 public:
-	// **Public API**
+// ** public api **
 	ConfigHandler(Server *_server);
 	~ConfigHandler();
 
@@ -64,7 +64,7 @@ public:
 	void parseArgs(int argc, char **argv, char **envp);
 	bool parseLine(std::string line);
 
-	// **Exceptions**
+// ** Exceptions **
 	class InvalidFileNameException : public std::exception {
 	public:
 		const char* what() const throw();

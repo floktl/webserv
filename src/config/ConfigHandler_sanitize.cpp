@@ -1,13 +1,13 @@
 #include "ConfigHandler.hpp"
 
-// Marks the config file as invalid and logs an error if a message is provided
+// Marks The Config File as Invalid and Logs to Error IF A Message is Provided
 bool ConfigHandler::confErr(const std::string &str = "")
 {
 	configFileValid = false;
 	return str.empty() ? false : Logger::error(str);
 }
 
-// Validates error pages in each server block, ensuring correct format and paths
+// Validates Error Pages in Each Server Block, Ensuring Correct Format and Paths
 bool ConfigHandler::validateErrorPages()
 {
 	for (size_t j = 0; j < registeredServerConfs.size(); ++j)
@@ -34,19 +34,19 @@ bool ConfigHandler::validateErrorPages()
 	return true;
 }
 
-// Validates all location blocks within a server block, ensuring correctness of directives
+// Validates All Location Blocks Within A Server Block, Ensuring Correctness of Directives
 bool ConfigHandler::validateLocationConfigs(ServerBlock& serverConf, size_t serverIndex)
 {
 	for (size_t j = 0; j < serverConf.locations.size(); ++j)
 	{
 		Location& loc = serverConf.locations[j];
 
-		// Validate location path and methods
+// Validate Location Path and Methods
 		if ((!Sanitizer::sanitize_locationPath(loc.path, expandEnvironmentVariables("$PWD", env)))
 			|| (!loc.methods.empty() && !Sanitizer::sanitize_locationMethods(loc.methods)))
 			return confErr();
 
-		// Validate return (redirect) directives
+// Validate Return (redirect) Directives
 		if (!loc.return_code.empty())
 		{
 			int code = std::stoi(loc.return_code);
@@ -60,45 +60,45 @@ bool ConfigHandler::validateLocationConfigs(ServerBlock& serverConf, size_t serv
 				return confErr("Invalid return URL format");
 		}
 
-		// Validate location-specific directives
+// Validate Location Specific Directives
 		if ((!loc.root.empty() && !Sanitizer::sanitize_locationRoot(loc.root, expandEnvironmentVariables("$PWD", env)))
 			|| (!Sanitizer::sanitize_locationAutoindex(loc.autoindex, loc.doAutoindex))
 			|| (!loc.default_file.empty() && !Sanitizer::sanitize_locationDefaultFile(loc.default_file))
 			|| (!loc.cgi.empty() && !Sanitizer::sanitize_locationCgi(loc.cgi, loc.cgi_filetype, expandEnvironmentVariables("$PWD", env))))
 			return confErr();
 
-		// Set and validate client_max_body_size
+// Set and validate client_max_body_size
 		if (loc.client_max_body_size == -1)
 			loc.client_max_body_size = serverConf.client_max_body_size;
 		if (!Sanitizer::sanitize_clMaxBodSize(loc.client_max_body_size))
 			return confErr("Invalid client_max_body_size for location in server block " + std::to_string(serverIndex + 1));
 
-		// Validate upload_store directive
+// Validate upload_store directive
 		if (!Sanitizer::sanitize_locationUploadStore(loc.upload_store, expandEnvironmentVariables("$PWD", env), serverConf.root, loc.root))
 			return confErr();
 
-		// Reset upload_store if CGI is enabled
+// Reset upload_store if cgi is enabled
 		if (!loc.cgi.empty())
 			loc.upload_store = "";
 	}
 	return true;
 }
 
-// Sanitizes and validates all server configuration data
+// Sanitities and Validates All Server Configuration Data
 bool ConfigHandler::sanitizeConfData(void)
 {
 	std::set<int> usedPorts;
 
 	for (size_t i = 0; i < registeredServerConfs.size(); ++i)
 	{
-		// Ensure each server block has a valid port
+// Ensure each server block has a valid port
 		if (registeredServerConfs[i].port == 0)
 			return confErr("Port number is mandatory for server block " + std::to_string(i + 1));
 
 		if (registeredServerConfs[i].port == 0)
 			return confErr("Port number is mandatory for server block " + std::to_string(i + 1));
 
-		// Validate ports and ensure they are unique
+// Validate Ports and Ensure They are unique
 		if (Sanitizer::sanitize_portNr(registeredServerConfs[i].port)) {
 			if (usedPorts.find(registeredServerConfs[i].port) == usedPorts.end()) {
 				usedPorts.insert(registeredServerConfs[i].port);
@@ -113,13 +113,13 @@ bool ConfigHandler::sanitizeConfData(void)
 			return confErr("Port number is not in system range on server block " + std::to_string(i + 1));
 		}
 
-		// Validate root, server name, and index directives
+// Validate root, server name, and index directives
 		if (!Sanitizer::sanitize_root(registeredServerConfs[i].root, expandEnvironmentVariables("$PWD", env)) ||
 			(!registeredServerConfs[i].name.empty() && !Sanitizer::sanitize_serverName(registeredServerConfs[i].name)) ||
 			(!registeredServerConfs[i].index.empty() && !Sanitizer::sanitize_index(registeredServerConfs[i].index)))
 			return confErr();
 
-		// Validate and set default client_max_body_size
+// Validate and set default client_max_body_size
 		if (registeredServerConfs[i].client_max_body_size == -1 ||
 			!Sanitizer::sanitize_clMaxBodSize(registeredServerConfs[i].client_max_body_size))
 			registeredServerConfs[i].client_max_body_size = DEFAULT_MAXBODYSIZE;
