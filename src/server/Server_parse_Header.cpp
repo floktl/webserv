@@ -169,7 +169,7 @@ void Server::prepareUploadPingPong(Context& ctx)
 
 	struct stat dir_stat;
 	if (stat(upload_dir.c_str(), &dir_stat) < 0) {
-		Logger::errorLog("Upload directory does not exist: " + upload_dir + " - " + std::string(strerror(errno)));
+		Logger::errorLog("Upload directory does not exist: " + upload_dir);
 		updateErrorStatus(ctx, 404, "Upload directory not found");
 		return;
 	}
@@ -181,7 +181,7 @@ void Server::prepareUploadPingPong(Context& ctx)
 	}
 
 	if (access(upload_dir.c_str(), W_OK) < 0) {
-		Logger::errorLog("Upload directory not writable: " + upload_dir + " - " + std::string(strerror(errno)));
+		Logger::errorLog("Upload directory not writable: " + upload_dir);
 		updateErrorStatus(ctx, 403, "Upload directory not writable");
 		return;
 	}
@@ -195,17 +195,7 @@ void Server::prepareUploadPingPong(Context& ctx)
 
 	ctx.upload_fd = open(ctx.uploaded_file_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (ctx.upload_fd < 0) {
-		std::string error = std::string(strerror(errno));
-
-		if (errno == EACCES) {
-			updateErrorStatus(ctx, 403, "Permission denied creating file");
-		} else if (errno == ENOENT) {
-			updateErrorStatus(ctx, 404, "Path not found");
-		} else if (errno == ENOSPC) {
-			updateErrorStatus(ctx, 507, "Insufficient storage");
-		} else {
-			updateErrorStatus(ctx, 500, "Failed to create upload file: " + error);
-		}
+		updateErrorStatus(ctx, 500, "Failed to create upload file");
 		return;
 	}
 

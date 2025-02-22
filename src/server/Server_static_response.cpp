@@ -106,7 +106,7 @@ std::vector<DirEntry> Server::getDirectoryEntries(Context& ctx)
 		struct stat statbuf;
 		if (stat(fullPath.c_str(), &statbuf) != 0)
 		{
-			Logger::errorLog("stat failed for path: " + fullPath + " with error: " + std::string(strerror(errno)));
+			Logger::errorLog("stat failed for path: " + fullPath + " with error");
 			continue;
 		}
 		entries.push_back({

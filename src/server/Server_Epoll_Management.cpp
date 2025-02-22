@@ -14,10 +14,6 @@ void Server::modEpoll(int epoll_fd, int fd, uint32_t events)
 
 	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0)
 	{
-		if (errno != EEXIST)
-		{
-			return;
-		}
 		if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0)
 			return;
 	}
