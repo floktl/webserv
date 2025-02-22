@@ -216,6 +216,13 @@ fclean: clean
 	@rm -f $(NAME) $(PCHGCH)
 	@echo "$(RED)binaries deleted$(X)"
 
+CLEAN_DIRS = var/www/staticupload
+
+file:
+	@find var/www/statictester -type f ! -name "index.html" -delete
+	@find var/www/staticupload -type f ! -name "index.html" -delete
+	@echo "Deleted all files in 'statictester' and all non-index.html files in 'staticupload'."
+
 re: fclean all
 
 sheep:
