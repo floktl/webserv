@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-// Logs detailed context information, including FDs, request type, headers, and activity timestamp
+// Logs Detail Context Information, Including FDS, Request Type, Headers, and Activity Timestamp
 void Server::logContext(const Context& ctx, const std::string& event)
 {
 	std::string log = "Context [" + event + "]:\n";
@@ -45,7 +45,7 @@ void Server::logContext(const Context& ctx, const std::string& event)
 	Logger::file(log);
 }
 
-// Logs active file descriptors in the request body map
+// Logs Active File Descriptor in the Request Body Map
 void Server::logRequestBodyMapFDs()
 {
 	if (globalFDS.context_map.empty())
@@ -56,7 +56,7 @@ void Server::logRequestBodyMapFDs()
 		log += std::to_string(pair.first) + " ";
 }
 
-// Logs server configuration details, including ports, root paths, timeouts, and error pages
+// Logs Server Configuration Details, Including Ports, Root Paths, Timeouts, and Error Pages
 void log_server_configs(const std::vector<ServerBlock>& configs)
 {
 	Logger::file("Server Configurations:");
@@ -76,35 +76,35 @@ void log_server_configs(const std::vector<ServerBlock>& configs)
 		Logger::file("      timeout: " + std::to_string(server.timeout));
 		Logger::file("      client_max_body_size: " + std::to_string(server.client_max_body_size));
 
-		// Log error pages
+// Log error pages
 		Logger::file("      error_pages: {");
 		for (const auto& error : server.errorPages)
 			Logger::file("         " + std::to_string(error.first) + ": " + error.second);
 		Logger::file("      }");
 
-		// Log locations
-		//Logger::file("      locations: [");
-		//for (const auto& loc : server.locations) {
-		//    Logger::file("         {");
-		//    Logger::file("            port: " + std::to_string(loc.port));
-		//    Logger::file("            path: " + loc.path);
-		//    Logger::file("            methods: " + loc.methods);
-		//    Logger::file("            autoindex: " + loc.autoindex);
-		//    Logger::file("            default_file: " + loc.default_file);
-		//    Logger::file("            upload_store: " + loc.upload_store);
-		//    Logger::file("            client_max_body_size: " + std::to_string(loc.client_max_body_size));
-		//    Logger::file("            root: " + loc.root);
-		//    Logger::file("            cgi: " + loc.cgi);
-		//    Logger::file("            cgi_filetype: " + loc.cgi_filetype);
-		//    Logger::file("            return_code: " + loc.return_code);
-		//    Logger::file("            return_url: " + loc.return_url);
-		//    Logger::file("            doAutoindex: " + std::string(loc.doAutoindex ? "true" : "false"));
-		//    Logger::file("            allowGet: " + std::string(loc.allowGet ? "true" : "false"));
-		//    Logger::file("            allowPost: " + std::string(loc.allowPost ? "true" : "false"));
-		//    Logger::file("            allowDelete: " + std::string(loc.allowDelete ? "true" : "false"));
-		//    Logger::file("            allowCookie: " + std::string(loc.allowCookie ? "true" : "false"));
-		//    Logger::file("         }");
-		//}
+// Log locations
+// Logger :: File ("Locations: [");
+// For (Const Auto & Loc: Server.Locations) {
+// Logger :: File ("{");
+// Logger :: File ("Port:" + Std :: To_String (Loc.Port));
+// Logger :: File ("Path:" + Loc.path);
+// Logger :: File ("Methods:" + Loc.methods);
+// Logger :: File ("Auto Index:" + Loc.Autroindex);
+// Logger :: File ("Default_file:" + Loc.default_file);
+// Logger :: File ("Upload_Store:" + Loc.upload_Store);
+// Logger :: File ("client_max_body_size:" + std :: to_string (loc.client_max_body_size));
+// Logger :: File ("Root:" + Loc.Root);
+// Logger :: File ("CGI:" + Loc.cgi);
+// Logger :: File ("CGI_Filetype:" + Loc.cgi_Filetype);
+// Logger :: File ("Return_code:" + Loc.Return_code);
+// Logger :: File ("Return_url:" + Loc.Return_url);
+// Logger :: File ("Doautoindex:" + Std :: String (loc.doautoindex? "True": "False"));
+// Logger :: File ("Allowget:" + Std :: String (Loc.allowget? "True": "False"));
+// Logger :: File ("Allowpost:" + Std :: String (loc.allowpost? "True": "False"));
+// Logger :: File ("Allowdelete:" + Std :: String (Loc.allowdelete? "True": "False"));
+// Logger :: File ("Allowcookie:" + Std :: String (Loc.allowcookie? "True": "False"));
+// Logger :: File ("}");
+// None
 		Logger::file("      ]");
 		Logger::file("   }");
 	}
@@ -112,7 +112,7 @@ void log_server_configs(const std::vector<ServerBlock>& configs)
 	Logger::file("]\n");
 }
 
-// Returns a string description of an epoll event based on its event flags
+// Returns a String Description of an Epoll Event Based on Its Event Flags
 std::string getEventDescription(uint32_t ev)
 {
 	std::ostringstream description;
@@ -134,7 +134,7 @@ std::string getEventDescription(uint32_t ev)
 	if (ev & EPOLLONESHOT)
 		description << "EPOLLONESHOT ";
 
-	// Remove the trailing space if there's any description
+// Remove the Trailing Space IF There's Any Description
 	std::string result = description.str();
 	if (!result.empty() && result.back() == ' ')
 		result.pop_back();
@@ -142,7 +142,7 @@ std::string getEventDescription(uint32_t ev)
 	return result.empty() ? "UNKNOWN EVENT" : result;
 }
 
-// Logs global file descriptors, including epoll FD and client-to-server FD mappings
+// Logs Global File Descriptor, including Epoll FD and Client-to-Server FD Mappings
 void log_global_fds(const GlobalFDS& fds)
 {
 	Logger::file("GlobalFDS clFD_to_svFD_map:");
@@ -156,7 +156,7 @@ void log_global_fds(const GlobalFDS& fds)
 	Logger::file("]\n");
 }
 
-// Prints server block details such as port, server FD, root, index, and error pages
+// Prints server block details search as port, server FD, root, index, and error pages
 void printServerBlock(ServerBlock& serverBlock)
 {
 	std::cout << "---- ServerBlock Information ----" << std::endl;
@@ -190,7 +190,7 @@ void printServerBlock(ServerBlock& serverBlock)
 	std::cout << "---------------------------------" << std::endl;
 }
 
-// Prints request body information, including client FD, CGI state, request and response buffers
+// Prints Request Body Information, Including Client FD, CGI State, Request and Response Buffers
 void printRequestBody(const Context& ctx)
 {
 	std::cout << "---- RequestBody Information ----" << std::endl;

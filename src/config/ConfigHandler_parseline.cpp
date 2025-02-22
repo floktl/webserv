@@ -1,6 +1,6 @@
 #include "./ConfigHandler.hpp"
 
-// Logs a parsing error and sets the parsingErr flag to true
+// Logs A Parsing Error and Sets the Parsingerr Flag to True
 bool ConfigHandler::parseErr(const std::string &str)
 {
 	parsingErr = true;
@@ -9,7 +9,7 @@ bool ConfigHandler::parseErr(const std::string &str)
 
 
 
-// Handles the start of a server block, ensuring no nesting
+// Handles The Start of A Server Block, Ensuring No Nesting
 bool ConfigHandler::handleServerBlock(void)
 {
 	if (inServerBlock)
@@ -20,7 +20,7 @@ bool ConfigHandler::handleServerBlock(void)
 }
 
 
-// Handles the start of a location block within a server block
+// Handles The Start of A Location Block Within A Server Block
 bool ConfigHandler::handleLocationBlock(std::istringstream& stream)
 {
 	if (!inServerBlock || inLocationBlock)
@@ -43,7 +43,7 @@ bool ConfigHandler::handleLocationBlock(std::istringstream& stream)
 }
 
 
-// Processes the 'listen' directive by converting its value to an integer
+// Processes the 'Liste' Directive by Converting Its Value to an integer
 bool ConfigHandler::handleListenDirective(const std::string& value)
 {
 	try
@@ -58,7 +58,7 @@ bool ConfigHandler::handleListenDirective(const std::string& value)
 }
 
 
-// Parses and validates the 'error_page' directive
+// Parses and Validates the 'Error_Page' Directive
 bool ConfigHandler::handleErrorPage(const std::string& value)
 {
 	std::istringstream iss(value);
@@ -90,7 +90,7 @@ bool ConfigHandler::handleErrorPage(const std::string& value)
 }
 
 
-// Parses and sets the 'client_max_body_size' directive
+// Parses and sets the 'client_max_body_size' Directive
 bool ConfigHandler::handleClientMaxBodySize(const std::string& value)
 {
 	long size = Sanitizer::parseSize(value, "M");
@@ -101,7 +101,7 @@ bool ConfigHandler::handleClientMaxBodySize(const std::string& value)
 }
 
 
-// Parses and sets the 'timeout' directive, ensuring it's within a valid range
+// Parses and sets the 'Timeout' Directive, Ensuring It's Within A Valid Range
 bool ConfigHandler::handleTimeout(const std::string& value)
 {
 	try
@@ -119,7 +119,7 @@ bool ConfigHandler::handleTimeout(const std::string& value)
 }
 
 
-// Parses and sets allowed HTTP methods for a location
+// Parses and Sets Allowed Http Methods for a Location
 bool ConfigHandler::handleLocationMethods(Location& currentLocation, const std::string& value)
 {
 	currentLocation.allowGet = false;
@@ -142,7 +142,7 @@ bool ConfigHandler::handleLocationMethods(Location& currentLocation, const std::
 }
 
 
-// Parses and validates the 'return' directive for location redirection
+// Parses and Validates the 'Return' Directive for Location Redirection
 bool ConfigHandler::handleLocationReturn(Location& currentLocation, const std::string& value)
 {
 	std::istringstream iss(value);
@@ -166,7 +166,7 @@ bool ConfigHandler::handleLocationReturn(Location& currentLocation, const std::s
 }
 
 
-// Parses and sets 'client_max_body_size' specifically for location blocks
+// Parses and sets 'client_max_body_size' Specifically for location blocks
 bool ConfigHandler::handleLocationClientMaxBodySize(Location& currentLocation, const std::string& value)
 {
 	long size = Sanitizer::parseSize(value, "M");
@@ -177,7 +177,7 @@ bool ConfigHandler::handleLocationClientMaxBodySize(Location& currentLocation, c
 }
 
 
-// Ensures correct usage of opening brackets for server and location blocks
+// Ensures Correct Usage of Opening Brackets for Server and Location Blocks
 bool ConfigHandler::handleOpeningBrackets(std::string &keyword, std::istringstream &stream, std::string &line)
 {
 	if (line.find("}") != std::string::npos)
@@ -190,7 +190,7 @@ bool ConfigHandler::handleOpeningBrackets(std::string &keyword, std::istringstre
 	return (true);
 }
 
-// Ensures correct usage of closing brackets for server and location blocks
+// Ensures Correct Usage of Closing Brackets for Server and Location Blocks
 bool ConfigHandler::handleClosingBrackets(void)
 {
 	if (!inServerBlock && !inLocationBlock)
@@ -203,7 +203,7 @@ bool ConfigHandler::handleClosingBrackets(void)
 }
 
 
-// Expands environment variables within a given value
+// Expands Environment Variables Within A Given Value
 bool ConfigHandler::extractAndExpandEnvVar(std::istringstream &stream, std::string &value)
 {
 	std::getline(stream, value);
@@ -217,7 +217,7 @@ bool ConfigHandler::extractAndExpandEnvVar(std::istringstream &stream, std::stri
 }
 
 
-// Processes directives related to the server block configuration
+// Processes Directives Related To The Server Block Configuration
 bool ConfigHandler::handleServerDirective(const std::string& keyword, const std::string& value)
 {
 	static const std::vector<std::string> serverOpts = parseOptionsToVector(CONFIG_OPTS);
@@ -243,7 +243,7 @@ bool ConfigHandler::handleServerDirective(const std::string& keyword, const std:
 }
 
 
-// Processes directives related to the location block configuration
+// Processes Directives Related To The Location Block Configuration
 bool ConfigHandler::handleLocationDirective(const std::string& keyword, const std::string& value)
 {
 	static const std::vector<std::string>	locationOpts = parseOptionsToVector(LOCATION_OPTS);;
@@ -272,7 +272,7 @@ bool ConfigHandler::handleLocationDirective(const std::string& keyword, const st
 	return true;
 }
 
-// Parses a single line from the configuration file and processes its directive
+// Parses A Single Line from the configuration File and Processes Its Directive
 bool ConfigHandler::parseLine(std::string line)
 {
 	std::istringstream stream(line);

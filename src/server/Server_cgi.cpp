@@ -25,12 +25,12 @@ bool Server::executeCgi(Context& ctx) {
 	}
 
 	if (pid == 0) {
-		// Redirect stdin to input_pipe
+// Redirect Stdin to input_pipe
 		dup2(input_pipe[0], STDIN_FILENO);
-		// Redirect stdout to output_pipe
+// Redirect stdout to output_pipe
 		dup2(output_pipe[1], STDOUT_FILENO);
 
-		// Close unused pipe ends
+// Close Unused Pipe Ends
 		close(input_pipe[0]);
 		close(input_pipe[1]);
 		close(output_pipe[0]);
@@ -65,7 +65,7 @@ bool Server::executeCgi(Context& ctx) {
 		exit(1);
 	}
 
-	// Close unused pipe ends
+// Close Unused Pipe Ends
 	close(input_pipe[0]);
 	close(output_pipe[1]);
 
@@ -100,7 +100,7 @@ std::vector<std::string> Server::prepareCgiEnvironment(const Context& ctx) {
 	env.push_back("SCRIPT_NAME=" + ctx.path);
 	env.push_back("SCRIPT_FILENAME=" + ctx.root + ctx.path);
 	env.push_back("QUERY_STRING=" + extractQueryString(ctx.path));
-	//env.push_back("REMOTE_ADDR=127.0.0.1");
+// env.push_Back ("remote_addr = 127.0.0.1");
 
 	for (const auto& header : ctx.headers) {
 		std::string name = "HTTP_" + header.first;

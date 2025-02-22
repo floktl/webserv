@@ -19,7 +19,7 @@ struct ChunkedState
 	std::string buffer;
 };
 
-// struct to save the location from each serverblock
+// Struct to save the location from each server block
 struct Location
 {
 	int			port;
@@ -40,7 +40,7 @@ struct Location
 	bool		allowDelete{false};
 };
 
-// struct to save the nginx serverblocks
+// Struct to save the Nginx server blocks
 struct ServerBlock
 {
 	int port;
@@ -56,7 +56,7 @@ struct ServerBlock
 	int							timeout = 30;
 };
 
-// status from the Request header
+// Status from the Request header
 enum RequestType
 {
 	INITIAL,

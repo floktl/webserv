@@ -1,6 +1,6 @@
 #include "../server/server.hpp"
 
-// internal trimming
+// Internal trimming
 std::string trim(const std::string& str)
 {
 	size_t first = str.find_first_not_of(" \t");
@@ -10,7 +10,7 @@ std::string trim(const std::string& str)
 }
 
 
-// parsing constants
+// Parsing Constants
 std::vector<std::string> parseOptionsToVector(const std::string& opts)
 {
 	std::vector<std::string> result;
@@ -23,7 +23,7 @@ std::vector<std::string> parseOptionsToVector(const std::string& opts)
 	return result;
 }
 
-// expand ENV variables in bash style for config values
+// Expand EnV Variables in Bash Style for Config Values
 std::string expandEnvironmentVariables(const std::string& value, char** env)
 {
 	if (!env) return value;

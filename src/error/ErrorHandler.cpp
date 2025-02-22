@@ -5,7 +5,7 @@
 #include <sstream>
 #include <iostream>
 
-// Constructor with inline initialization of default error pages
+// Constructor with Inline Initialization of Default Error Pages
 ErrorHandler::ErrorHandler(Server& _server)
 	: server(_server)
 {}
@@ -13,7 +13,7 @@ ErrorHandler::ErrorHandler(Server& _server)
 // Destructor
 ErrorHandler::~ErrorHandler() {}
 
-// Reads and returns the content of an error page file if found, otherwise returns an empty string
+// Reads and Returns the Content of An Error Page File IF Found, OtherWise Returns to Empty String
 std::string ErrorHandler::loadErrorPage(const std::string& filePath) const
 {
 	std::ifstream errorFile(filePath);
@@ -26,7 +26,7 @@ std::string ErrorHandler::loadErrorPage(const std::string& filePath) const
 	return "";
 }
 
-// Generates an HTTP error response based on the error code and sends it via the server
+// Generates to http error response based on the error code and sends it via the server
 bool ErrorHandler::generateErrorResponse(Context& ctx) const
 {
 	std::ostringstream response;
@@ -49,7 +49,7 @@ bool ErrorHandler::generateErrorResponse(Context& ctx) const
 	return (server.sendHandler(ctx, response.str()));
 }
 
-// Updates the context with an error type, error code, and error message, returning false
+// Updates the Context with an Error Type, Error Code, and Error Message, Returning False
 bool	updateErrorStatus(Context &ctx, int error_code, std::string error_string)
 {
 	ctx.type = ERROR;

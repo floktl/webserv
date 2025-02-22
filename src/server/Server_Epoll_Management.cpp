@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-// Modifies the epoll event set for a given file descriptor (fd), adding or updating events
+// Modifies the Epoll Event Set for A Given File Descriptor (FD), Adding Or Updating Events
 void Server::modEpoll(int epoll_fd, int fd, uint32_t events)
 {
 	if (fd <= 0)
@@ -23,7 +23,7 @@ void Server::modEpoll(int epoll_fd, int fd, uint32_t events)
 	}
 }
 
-// Removes a client file descriptor from the epoll instance and closes it
+// Removes A Client File Descriptor From the Epoll Instance and Close IT
 void Server::delFromEpoll(int epfd, int client_fd)
 {
 	if (epfd <= 0 || client_fd <= 0)
@@ -49,7 +49,7 @@ void Server::delFromEpoll(int epfd, int client_fd)
 		globalFDS.clFD_to_svFD_map.erase(client_fd);
 }
 
-// Searches for a server block matching a given file descriptor
+// Searches for A Server Block Matching A Given File Descriptor
 bool Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd)
 {
 	for (const auto &conf : configs)
@@ -60,7 +60,7 @@ bool Server::findServerBlock(const std::vector<ServerBlock> &configs, int fd)
 	return false;
 }
 
-// Sets a file descriptor to non-blocking mode
+// Sets a file descriptor to non-blocking fashion
 int Server::setNonBlocking(int fd)
 {
 	int flags = fcntl(fd, F_GETFL, 0);
@@ -69,7 +69,7 @@ int Server::setNonBlocking(int fd)
 	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-// Checks and removes inactive connections that exceed the timeout threshold
+// Checks and removes inactive connections that Extred the Timeout Threshold
 void Server::checkAndCleanupTimeouts()
 {
 	auto now = std::chrono::steady_clock::now();
@@ -91,7 +91,7 @@ void Server::checkAndCleanupTimeouts()
 	}
 }
 
-// Terminates CGI processes that exceed their allowed execution time
+// Termates CGI Processes that Extred Their Allowed Execution Time
 void Server::killTimeoutedCGI(RequestBody &req)
 {
 	if (req.cgi_pid > 0)

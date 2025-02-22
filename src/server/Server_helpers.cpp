@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-// Adds a server name entry to the /etc/hosts file
+// Adds a server name Entry to the /etc /hosts file
 bool Server::addServerNameToHosts(const std::string &server_name)
 {
 	const std::string hosts_file = "/etc/hosts";
@@ -23,7 +23,7 @@ bool Server::addServerNameToHosts(const std::string &server_name)
 	return true;
 }
 
-// Removes previously added server names from the /etc/hosts file
+// Removes Previously Added Server Names from the /etc /hosts file
 void Server::removeAddedServerNamesFromHosts()
 {
 	const std::string hosts_file = "/etc/hosts";
@@ -59,7 +59,7 @@ void Server::removeAddedServerNamesFromHosts()
 	added_server_names.clear();
 }
 
-// Normalizes a given path, ensuring it starts with '/' and removing trailing slashes
+// Normalizes A Given Path, Ensuring It Starts with '/' And Removing Trailing Slashes
 std::string Server::normalizePath(const std::string& path) {
 	if (path.empty()) {
 		return "/";
@@ -173,7 +173,7 @@ std::string Server::subtractLocationPath(const std::string& path, const Location
 	return remainingPath;
 }
 
-// Extracts the directory part of a given file path
+// Extracts the Directory Part of a Given File Path
 std::string Server::getDirectory(const std::string& path)
 {
 	size_t lastSlash = path.find_last_of("/\\");
@@ -217,14 +217,14 @@ bool Server::dirReadable(const std::string& path)
 	return (stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode) && (st.st_mode & S_IRUSR));
 }
 
-// Checks if a directory is writable
+// Checks if a directory is written
 bool Server::dirWritable(const std::string& path)
 {
 	struct stat st;
 	return (stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode) && (st.st_mode & S_IWUSR));
 }
 
-// Verifies access permissions for a given path based on the request context
+// Verifies Access Permissions for a Given Path Based on the Request Context
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	struct stat path_stat;
@@ -261,7 +261,7 @@ bool Server::checkAccessRights(Context &ctx, std::string path)
 	return true;
 }
 
-// Determines whether the requested HTTP method is allowed in the location block
+// Determines Whether the Requested Http Method is allowed in the location block
 bool isMethodAllowed(Context& ctx)
 {
 
@@ -290,12 +290,12 @@ bool isMethodAllowed(Context& ctx)
 
 
 
-// Approves a file extension based on CGI configuration or static file handling rules
+// APPROVES A File Extension Based on CGI Configuration or Static File Handling Rules
 std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 {
 	size_t dot_pos = path_to_check.find_last_of('.');
 	bool starts_with_upload_store = false;
-	// bool ends_with_std_file = false;
+// BOOL ends_with_std_file = false;
 
 	Logger::blue(path_to_check);
 	Logger::blue(ctx.location.upload_store);
@@ -303,11 +303,11 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 	if (path_to_check.length() >= ctx.location.upload_store.length()) {
 		starts_with_upload_store = path_to_check.substr(0, ctx.location.upload_store.length()) == ctx.location.upload_store;
 	}
-	// if (path_to_check.length() >= std::string(DEFAULT_FILE).length()) {
-	// 	ends_with_std_file = path_to_check.substr(path_to_check.length() - std::string(DEFAULT_FILE).length()) == DEFAULT_FILE;
-	// }
+// if (path_to_check.length ()> = std :: string (default_file) .Lental ()) {
+// ends_with_std_file = path_to_check.substr (path_to_check.length () - std :: string (default_file) .Lental) == default_file;
+// None
 	Logger::yellow("start with upload store: " + std::to_string(starts_with_upload_store));
-	//Logger::yellow("ends with std file: " + std::to_string(ends_with_std_file));
+// Logger :: Yellow ("Ends with Std File:" + Std :: To_String (Ends_with_Std_File));
 
 	if (dot_pos != std::string::npos)
 	{
@@ -344,12 +344,12 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 			updateErrorStatus(ctx, 400, "Bad Request");
 			return "";
 		}
-		// if (ends_with_std_file && ctx.method == "POST")
-		// {
-		// 	Logger::yellow(" -- set post bad req");
-		// 	updateErrorStatus(ctx, 400, "Bad Request");
-		// 	return "";
-		// }
+// ifs_with_std_file && ctx.method == "post")
+// None
+// Logger :: Yellow (" - Set Post Bad Req");
+// Update rod status (CTX, 400, "Bad Request");
+// return "";
+// None
 		if (starts_with_upload_store && ctx.method == "POST")
 		{
 			Logger::yellow(" -- set post");
@@ -367,7 +367,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 	return path_to_check;
 }
 
-// Resets the context, clearing request data and restoring initial values
+// Resets the Context, Clearing Request Data and Restoring Initial Values
 bool Server::resetContext(Context& ctx)
 {
 	ctx.cookies.clear();
@@ -398,7 +398,7 @@ std::vector<std::string> Server::getBlocksLocsPath(const std::vector<Location>& 
 	return (locPaths);
 }
 
-// Determines the request type based on the server configuration and updates the context
+// Determines the Request Type Based on the Server Configuration and Updates The Context
 bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 {
 	ServerBlock* conf = nullptr;
@@ -436,7 +436,7 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 	return (updateErrorStatus(ctx, 500, "Internal Server Error"));
 }
 
-// Retrieves the maximum allowed body size for a request from the server configuration
+// Retrieves the Maximum Allowed Body Size for A Request From The Server Configuration
 void Server::getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs)
 {
 	ServerBlock* conf = nullptr;
