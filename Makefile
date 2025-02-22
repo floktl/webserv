@@ -209,20 +209,15 @@ leak:
 #--------------                   CLEANUP TARGETS                   -------------#
 #------------------------------------------------------------------------------#
 
-clean: file
+clean:
 	@rm -rf $(OBJ_DIR)
 	@echo "$(RED)objects deleted$(X)"
 
-fclean:
+fclean: clean
 	@rm -f $(NAME) $(PCHGCH)
 	@echo "$(RED)binaries deleted$(X)"
 
 CLEAN_DIRS = var/www/staticupload
-
-file:
-	@find var/www/statictester -type f ! -name "index.html" -delete
-	@find var/www/staticupload -type f ! -name "index.html" -delete
-	@echo "$(RED)Deleted all files all non-index.html files in 'staticupload'and 'statictester'.$(X)"
 
 re: fclean all
 
