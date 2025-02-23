@@ -21,14 +21,13 @@ SUCCESS := \n\
 🐑    🐑   🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑  🐑    🐑🐑        🐑           🐑 $(X)\n\
 🐑                                                                                                          🐑\n\
 🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\
-$(X) 🐑 Wir muessen noch alle config werte im req handler abfangen!!!!!!\n\
-$(X) 🐑 Checking the value of errno is strictly forbidden after a read or a write operation\n\
-$(X) 🐑 You can use every macro and define like FD_SET, FD_CLR, FD_ISSET, FD_ZERO (understanding what and how they do it is very useful).\n\
+$(X) 🦄wildacrad und pre header compilation checken....\n\
+$(X) 🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
+$(X) 🦄 You can use every macro and define like FD_SET, FD_CLR, FD_ISSET, FD_ZERO (understanding what and how they do it is very useful).\n\
 $(X) 🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks) no restarts on siege usage\n\
 $(X) 🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
 $(X) 🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
 $(X) 🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
-$(X) 🐑 wildacrad und pre header compilation checken....\n\
 $(X) 🐖 acheck autoindex\n\\n\
 $(X) 🐖 ????????? location paths.... root!!! \n\
 $(X) 🐖 // fallback for common error codes\n\
@@ -40,29 +39,11 @@ $(X) 🐖 	}\n\
 $(X) 🐖 }\n\
 $(X) 🐖 adjust Jeberle_warner for upload path\
 $(X) 🐖 FILE Download .\n\
-$(X) 🐑 Infinte redirect....  508 Error Page....  Loop locations redirect anaylsis in Configs .....\n\
-$(X) 🐑 server {\n\
-$(X) 🐑 	listen 8800;\n\
-$(X) 🐑 	server_name localhost;\n\
-$(X) 🐑 \n\
-$(X) 🐑 	root ./var/www/html;\n\
-$(X) 🐑 	index index.html;\n\
-$(X) 🐑 \n\
-$(X) 🐑 	location / {\n\
-$(X) 🐑 		return 301 /team;\n\
-$(X) 🐑 	}\n\
-$(X) 🐑 \n\
-$(X) 🐑 	location /team {\n\
-$(X) 🐑 		return 301 /;\n\
-$(X) 🐑 	}\n\
-$(X) 🐑 }\n\
 $(X) 🐑 staticHandler onhalt des block comments\n\
-$(X) 🐑 enums to enum classes check all calls...\n\
+$(X) 👺 enums to enum classes check all calls...\n\
 $(X) 🐑 Donwloads and HTML in CGI Locations\n\
 $(X) 🐑 Set download flow ... some cgi call shsow set diownlaod... \n\
 $(X) 🐑 loesche uncompleted uploads bei abbruch oder fehler...  \n\
-$(X) 🐑 bei delete request auf upload file... uplaod abbrechen und loeschen  \n\
-$(X) 🐑 [2025-02-21 15:31:19]  [ERROR] Read error: File exists bei GET manchmal...  \n\
 
 # helper command to search for fucntions with more than 40 lines
 #find . -type f -name "*.cpp" | xargs awk '
