@@ -146,5 +146,6 @@ void log_global_fds(const GlobalFDS& fds);
 void log_server_configs(const std::vector<ServerBlock>& configs);
 bool updateErrorStatus(Context &ctx, int error_code, std::string error_string);
 int extractPort(const std::string& header);
+std::string determineContentType(const std::string& path);
 
 #endif

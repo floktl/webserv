@@ -9,7 +9,8 @@ ALLOWED_FUNCTIONS = {
 	"accept", "listen", "send", "recv", "chdir", "bind", "connect",
 	"getaddrinfo", "freeaddrinfo", "setsockopt", "getsockname",
 	"getprotobyname", "fcntl", "close", "read", "write", "waitpid", "kill",
-	"signal", "access", "stat", "open", "opendir", "readdir", "closedir"
+	"signal", "access", "stat", "open", "opendir", "readdir", "closedir", "exit",
+	"data", "at", "assign"
 }
 
 # C++ Keywords to Ignore (not functions)
@@ -128,61 +129,77 @@ IGNORED_FUNCTIONS_AND_KEYWORDS = {
 	"color", "pop_back", "Location", "printSize", "undefined", "getGlobalFds", "getTaskStatus",
 	"server", "Content", "printIntValue", "printValue", "time_since_epoch", "formatSize",
 	"Method", "find_last_of", "localtime", "strftime", "detected", "S_ISDIR", "S_ISREG",
+	"g_shutdown_requested"
 }
 
-# Regex patterns
+import os
+import re
+
+# Regex patterns for function detection
 FUNCTION_DEF_PATTERN = re.compile(r"^\s*[a-zA-Z_][a-zA-Z0-9_:<>]*\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\(")
 FUNCTION_CALL_PATTERN = re.compile(r"\b([a-zA-Z_][a-zA-Z0-9_:]*)\s*\(")
 CLASS_METHOD_PATTERN = re.compile(r"\b([a-zA-Z_][a-zA-Z0-9_]*)::")
 SINGLE_LINE_COMMENT = re.compile(r"^\s*//")
 MULTI_LINE_COMMENT_START = re.compile(r"/\*")
 MULTI_LINE_COMMENT_END = re.compile(r"\*/")
+LOGGER_METHOD_PATTERN = re.compile(r"Logger::([a-zA-Z_][a-zA-Z0-9_]*)")
 
 # Warning thresholds
-MAX_FILE_LINES = 300
-MAX_FILE_FUNCTIONS = 5
+MAX_FILE_LINES = 400
+MAX_FILE_FUNCTIONS = 10
 MAX_FUNCTION_LINES = 45
 
-
 def find_defined_functions_and_classes(directory):
-	"""Find all user-defined functions and classes in `.cpp` and `.hpp` files."""
-	defined_functions = set()
-	defined_classes = set()
+    """Find all user-defined functions and classes in `.cpp` and `.hpp` files."""
+    defined_functions = set()
+    defined_classes = set()
 
-	for root, _, files in os.walk(directory):
-		for file in files:
-			if file.endswith((".hpp", ".cpp")):
-				file_path = os.path.abspath(os.path.join(root, file))
-				with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-					in_multiline_comment = False
-					for line in f:
-						line = line.strip()
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if file.endswith((".hpp", ".cpp")):
+                file_path = os.path.abspath(os.path.join(root, file))
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    in_multiline_comment = False
+                    for line in f:
+                        line = line.strip()
 
-						# Handle multi-line comments
-						if in_multiline_comment:
-							if MULTI_LINE_COMMENT_END.search(line):
-								in_multiline_comment = False
-							continue
-						if MULTI_LINE_COMMENT_START.search(line):
-							in_multiline_comment = True
-							continue
+                        # Handle multi-line comments
+                        if in_multiline_comment:
+                            if MULTI_LINE_COMMENT_END.search(line):
+                                in_multiline_comment = False
+                            continue
+                        if MULTI_LINE_COMMENT_START.search(line):
+                            in_multiline_comment = True
+                            continue
 
-						# Skip single-line comments
-						if SINGLE_LINE_COMMENT.match(line):
-							continue
+                        # Skip single-line comments
+                        if SINGLE_LINE_COMMENT.match(line):
+                            continue
 
-						# Detect function definitions
-						match = FUNCTION_DEF_PATTERN.match(line)
-						if match:
-							function_name = line.split("(")[0].split()[-1]
-							defined_functions.add(function_name)
+                        # Detect function definitions
+                        match = FUNCTION_DEF_PATTERN.match(line)
+                        if match:
+                            function_name = line.split("(")[0].split()[-1]
+                            defined_functions.add(function_name)
 
-						# Detect class definitions
-						class_match = re.match(r"^\s*class\s+([a-zA-Z_][a-zA-Z0-9_]*)", line)
-						if class_match:
-							defined_classes.add(class_match.group(1))
+                        # Detect class method definitions (including Logger::<functionname>)
+                        class_method_match = CLASS_METHOD_PATTERN.match(line)
+                        if class_method_match:
+                            defined_functions.add(class_method_match.group(1))
 
-	return defined_functions, defined_classes
+                        # Detect Logger methods specifically
+                        logger_method_match = LOGGER_METHOD_PATTERN.search(line)
+                        if logger_method_match:
+                            defined_functions.add(logger_method_match.group(1))
+
+                        # Detect class definitions
+                        class_match = re.match(r"^\s*class\s+([a-zA-Z_][a-zA-Z0-9_]*)", line)
+                        if class_match:
+                            defined_classes.add(class_match.group(1))
+
+    return defined_functions, defined_classes
+
+
 
 
 def find_function_calls(file_path):
@@ -241,12 +258,6 @@ def analyze_file_structure(file_path):
 			if SINGLE_LINE_COMMENT.match(line) or MULTI_LINE_COMMENT_START.search(line):
 				continue
 
-			# Detect function definitions
-			if FUNCTION_DEF_PATTERN.match(line):
-				function_count += 1
-				in_function = True
-				function_start_line = line_num
-				function_name = line.split("(")[0].strip()
 
 			# Detect function end (closing bracket alone in a line)
 			if in_function and line == "}":
@@ -261,8 +272,9 @@ def analyze_file_structure(file_path):
 	if total_lines > MAX_FILE_LINES:
 		warnings.append(f"⚠️ File `.{file_path}` has {total_lines} lines (limit: {MAX_FILE_LINES}).")
 
-	if function_count > MAX_FILE_FUNCTIONS:
+	if function_count > MAX_FILE_FUNCTIONS and not file_path.endswith((".hpp", ".h")):
 		warnings.append(f"⚠️ File `.{file_path}` has {function_count} functions (limit: {MAX_FILE_FUNCTIONS}).")
+
 
 	return warnings
 

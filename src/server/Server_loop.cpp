@@ -1,232 +1,15 @@
 #include "Server.hpp"
 
-size_t Server::findBodyStart(const std::string& buffer, Context& ctx) {
-	const std::string boundaryMarker = "\r\n\r\n";
-	size_t pos = buffer.find(boundaryMarker);
-
-	if (pos != std::string::npos) {
-		if (isMultipartUpload(ctx)) {
-			std::string contentType = ctx.headers["Content-Type"];
-			size_t boundaryPos = contentType.find("boundary=");
-			if (boundaryPos != std::string::npos) {
-				size_t boundaryStart = boundaryPos + 9;
-				size_t boundaryEnd = contentType.find(';', boundaryStart);
-				if (boundaryEnd == std::string::npos) {
-					boundaryEnd = contentType.length();
-				}
-
-				std::string boundary = "--" + contentType.substr(boundaryStart, boundaryEnd - boundaryStart);
-				ctx.boundary = boundary;
-				size_t boundaryInBuffer = buffer.find(boundary);
-				if (boundaryInBuffer != std::string::npos) {
-					return boundaryInBuffer + boundary.length() + 2;
-				}
-			}
-		}
-		return pos + boundaryMarker.length();
-	}
-
-	return 0;
-}
-
-std::string Server::extractBodyContent(const char* buffer, ssize_t bytes, Context& ctx) {
-	std::string cleanBody;
-
-	if (ctx.headers_complete) {
-		std::string temp(buffer, bytes);
-		size_t bodyStart = findBodyStart(temp, ctx);
-
-		if (bodyStart < static_cast<size_t>(bytes)) {
-			cleanBody.assign(buffer + bodyStart, buffer + bytes);
-
-			const std::string boundaryMarker = "\r\n\r\n";
-			size_t boundaryPos = cleanBody.find(boundaryMarker);
-			if (boundaryPos != std::string::npos) {
-				cleanBody = cleanBody.substr(boundaryPos + boundaryMarker.length());
-			}
-
-			size_t contentDispositionPos = cleanBody.find("Content-Disposition: form-data;");
-			if (contentDispositionPos != std::string::npos) {
-				size_t endPos = cleanBody.find("\r\n", contentDispositionPos);
-				if (endPos != std::string::npos) {
-					cleanBody.erase(contentDispositionPos, endPos - contentDispositionPos + 2);
-				}
-			}
-
-			size_t contentTypePos = cleanBody.find("Content-Type:");
-			if (contentTypePos != std::string::npos) {
-				size_t endPos = cleanBody.find("\r\n", contentTypePos);
-				if (endPos != std::string::npos) {
-					cleanBody.erase(contentTypePos, endPos - contentTypePos + 2);
-				}
-			}
-
-			size_t boundaryEndPos = cleanBody.rfind("--" + ctx.headers["Content-Type"].substr(ctx.headers["Content-Type"].find("boundary=") + 9));
-			if (boundaryEndPos != std::string::npos) {
-				cleanBody.erase(boundaryEndPos);
-			}
-		}
-	}
-
-	return cleanBody;
-}
-
-
-bool Server::isMultipartUpload(Context& ctx) {
-	bool isMultipartUpload = ctx.method == "POST" &&
-		ctx.headers.find("Content-Type") != ctx.headers.end() &&
-		ctx.headers["Content-Type"].find("multipart/form-data") != std::string::npos;
-
-	return isMultipartUpload;
-}
-
-bool Server::prepareMultipartUpload(Context& ctx) {
-	if (ctx.error_code)
-	{
-		ctx.uploaded_file_path = "";
-		ctx.upload_fd = -1;
-		return false;
-	}
-// If (! DetermineType (CTX, configs)) {
-// Logger :: Errorlog ("Failed to Determine Request Type");
-// return false;
-// None
-	std::string req_root = retreiveReqRoot(ctx);
-	Logger::magenta(ctx.uploaded_file_path);
-	if (ctx.uploaded_file_path == ctx.location.upload_store)
-	{
-		updateErrorStatus(ctx, 400, "Bad Request");
-		return false;
-	}
-	ctx.uploaded_file_path = concatenatePath(req_root, ctx.uploaded_file_path);
-
-	prepareUploadPingPong(ctx);
-
-	if (ctx.error_code != 0) {
-		Logger::errorLog("Upload preparation failed");
-		return false;
-	}
-	return true;
-}
-
-bool Server::readingTheBody(Context& ctx, const char* buffer, ssize_t bytes) {
-	ctx.had_seq_parse = true;
-
-	if (ctx.boundary.empty()) {
-		auto content_type_it = ctx.headers.find("Content-Type");
-		if (content_type_it != ctx.headers.end()) {
-			size_t boundary_pos = content_type_it->second.find("boundary=");
-			if (boundary_pos != std::string::npos) {
-				ctx.boundary = "--" + content_type_it->second.substr(boundary_pos + 9);
-				size_t end_pos = ctx.boundary.find(';');
-				if (end_pos != std::string::npos) {
-					ctx.boundary = ctx.boundary.substr(0, end_pos);
-				}
-			}
-		}
-
-		if (ctx.boundary.empty()) {
-			Logger::errorLog("Could not determine boundary from headers");
-			return false;
-		}
-	}
-
-	ctx.write_buffer.clear();
-	bool extraction_result = extractFileContent(ctx.boundary, std::string(buffer, bytes), ctx.write_buffer, ctx);
-
-	if (ctx.upload_fd > 0 && !ctx.write_buffer.empty()) {
-		ctx.write_pos = 0;
-		ctx.write_len = ctx.write_buffer.size();
-		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-	} else if (ctx.upload_fd > 0) {
-		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
-	}
-
-	return extraction_result;
-}
-
-// Runs the Main Event Loop, Handling Incoming Connections and Processing Events via Epoll
-// Int server :: Runeventloop (inte epoll_fd, std :: Vector <serverblock> & configs) {
-// Const int Max_events = 64;
-// Struct epoll_event events [max_events];
-// Const int timeout_ms = 1000;
-// int incoming_fd = -1;
-// int server_fd = -1;
-// int client_fd = -1;
-// // uint32_t eV;
-// int eventNum;
-
-// while (! g_shutdown_requested) {
-// Eventnum = epoll_wait (epoll_fd, events, max_events, timeout_ms);
-// if (eventnum <0 &&! g_shutdown_requested) {
-// Logger :: Errorlog ("Epoll Error:" + Std :: String (streror (errno))));
-// if (errno == entered)
-// Continue;
-// Break;
-// None
-// else if (eventnum == 0 &&! g_shutdown_requested) {
-// CheckandCleanupTimeouts ();
-// Continue;
-// None
-
-// if (! g_shutdown_requested)
-// None
-// for (int eventter = 0; eventiter <eventnum; eventiter ++) {
-// incoming_fd = events [Eventiter] .data.fd;
-
-// auto ctx_iter = globalfds.context_map.find (incoming_fd);
-// BOOL is_active_upload = false;
-
-// if (ctx_iter! = globalfds.context_map.end ()) {
-// Context & CTX = CTX_ITER-> Second;
-// If (Ismulti Partupload (CTX) &&
-// ctx.req.parsing_phase == Requestbody :: Parsing_Body &&
-// ! ctx.req.is_upload_complete) {
-// is_active_upload = true;
-// None
-// None
-
-// if (is_active_upload &&! g_shutdown_requested) {
-// Handleacceptedconnection (Epoll_FD, Incoming_FD, Events [Eventiter] .events, configs);
-// Continue;
-// None
-
-// If (FindSerlock (configs, incoming_fd) &&! g_shutdown_requested) {
-// server_fd = incoming_fd;
-// Acceptnewconnection (Epoll_FD, Server_FD, Configs);
-// None
-// else if (! g_shutdown_requested) {
-// client_fd = incoming_fd;
-// Handleacceptedconnection (Epoll_FD, Client_FD, Events [Eventiter] .Events, configs);
-// None
-// None
-// None
-// None
-// if (g_shutdown_requested) {
-// This-> cleanup ();
-// None
-// if (epoll_fd> 0) {
-// close (epoll_fd);
-// epoll_fd = -1;
-// globalfds.epoll_fd = -1;
-// None
-// epoll_fd = -1;
-// return exit_success;
-// None
-
-
-int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs) {
-	const int max_events = 64;
-	struct epoll_event events[max_events];
-	const int timeout_ms = 1000;
+int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
+{
+	struct epoll_event events[MAX_EVENTS];
 	int incoming_fd = -1;
 	int server_fd = -1;
 	int client_fd = -1;
-	// uint32_t eV;
 	int eventNum;
 
 	while (!g_shutdown_requested) {
-		eventNum = epoll_wait(epoll_fd, events, max_events, timeout_ms);
+		eventNum = epoll_wait(epoll_fd, events, MAX_EVENTS, TIMEOUT_MS);
 		log_global_fds(globalFDS);
 		if (eventNum < 0) {
 			if (errno == EINTR)
@@ -353,7 +136,8 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 	return true;
 }
 
-bool Server::extractFileContent(const std::string& boundary, const std::string& buffer, std::vector<char>& output, Context& ctx) {
+bool Server::extractFileContent(const std::string& boundary, const std::string& buffer, std::vector<char>& output, Context& ctx)
+{
 
 	if (boundary.empty()) {
 		return false;

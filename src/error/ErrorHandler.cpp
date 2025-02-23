@@ -34,12 +34,17 @@ bool ErrorHandler::generateErrorResponse(Context& ctx) const
 
 	std::map<int, std::string>::iterator it = ctx.errorPages.find(ctx.error_code);
 	if (it != ctx.errorPages.end())
+	{
 		content = loadErrorPage(it->second);
+	}
 	else
+	{
+		Logger::yellow("default");
 		content = "Default error page content for status " + std::to_string(ctx.error_code);
-	if (content.empty())
-		content = "<!DOCTYPE html><html><head><style>body { background-color: #940000; color: white; font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; justify-content: center; align-items: center;} h1 {font-size: 2rem;text-align: center;}</style></head><body><h1>"
-					+ std::to_string(ctx.error_code) + " " + ctx.error_message + "</h1></body></html>";
+	}
+	//if (content.empty())
+	//	content = "<!DOCTYPE html><html><head><style>body { background-color: #940000; color: white; font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; justify-content: center; align-items: center;} h1 {font-size: 2rem;text-align: center;}</style></head><body><h1>"
+	//				+ std::to_string(ctx.error_code) + " " + ctx.error_message + "</h1></body></html>";
 	response << "HTTP/1.1 " << ctx.error_code << " " << ctx.error_message << "\r\n"
 			<< "Content-Type: text/html\r\n"
 			<< "Content-Length: " << content.size() << "\r\n\r\n"

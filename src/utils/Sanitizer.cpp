@@ -39,29 +39,23 @@ bool Sanitizer::isValidPath(std::string& path, const std::string& context, const
 	}
 
 // Check for invalid characters in the Normalized Path
-	for (char c : normalizedPath) {
-		if (!std::isalnum(static_cast<unsigned char>(c)) && c != '/' && c != '_' && c != '-' && c != '.') {
-			Logger::error("[" + context + "] Invalid character '" + std::string(1, c) + "' found in path: " + normalizedPath);
-			return false;
-		}
+	for (char c : normalizedPath)
+	{
+		if (!std::isalnum(static_cast<unsigned char>(c)) && c != '/' && c != '_' && c != '-' && c != '.')
+			return (Logger::error("[" + context + "] Invalid character '" + std::string(1, c) + "' found in path: " + normalizedPath));
 	}
 
 // For root or error page contexts, verify that the path exists and is of the correct type
-	if (context == "Root" || context == "Error page") {
+	if (context == "Root" || context == "Error page")
+	{
 		struct stat path_stat;
-		if (stat(normalizedPath.c_str(), &path_stat) == -1) {
-			Logger::error("[" + context + "] Path does not exist: " + normalizedPath);
-			return false;
-		}
+		if (stat(normalizedPath.c_str(), &path_stat) == -1)
+			return Logger::error("[" + context + "] Path does not exist: " + normalizedPath);
 
-		if (context == "Root" && !S_ISDIR(path_stat.st_mode)) {
-			Logger::error("[" + context + "] Root path is not a directory: " + normalizedPath);
-			return false;
-		}
-		if (context == "Error page" && !S_ISREG(path_stat.st_mode)) {
-			Logger::error("[" + context + "] Error page path is not a file: " + normalizedPath);
-			return false;
-		}
+		if (context == "Root" && !S_ISDIR(path_stat.st_mode))
+			return Logger::error("[" + context + "] Root path is not a directory: " + normalizedPath);
+		if (context == "Error page" && !S_ISREG(path_stat.st_mode))
+			return Logger::error("[" + context + "] Error page path is not a file: " + normalizedPath);
 	}
 
 // If all checks pass, update the original path to the normalized absolute path
@@ -70,33 +64,35 @@ bool Sanitizer::isValidPath(std::string& path, const std::string& context, const
 }
 
 
-long Sanitizer::parseSize(const std::string& sizeStr, const std::string& defaultUnit) {
+long Sanitizer::parseSize(const std::string& sizeStr, const std::string& defaultUnit)
+{
 	std::string numberPart;
 	std::string unitPart;
 	size_t i = 0;
 
-	while (i < sizeStr.size() && isdigit(sizeStr[i])) {
-		numberPart += sizeStr[i];
-		i++;
-	}
+	while (i < sizeStr.size() && isdigit(sizeStr[i]))
+		numberPart += sizeStr[i++];
 
-	while (i < sizeStr.size() && isalpha(sizeStr[i])) {
-		unitPart += sizeStr[i];
-		i++;
-	}
+	while (i < sizeStr.size() && isalpha(sizeStr[i]))
+		unitPart += sizeStr[i++];
 
-	if (numberPart.empty()) return -1;
+	if (numberPart.empty())
+		return -1;
 
 	long size;
-	try {
+	try
+	{
 		size = std::stol(numberPart);
-	} catch (...) {
+	}
+	catch (...)
+	{
 		return -1;
 	}
 
 	if (size <= 0) return -1;
 
-	if (unitPart.empty()) {
+	if (unitPart.empty())
+	{
 		if (defaultUnit == "K" || defaultUnit == "KB") return size * 1024L;
 		if (defaultUnit == "M" || defaultUnit == "MB") return size * 1024L * 1024L;
 		if (defaultUnit == "G" || defaultUnit == "GB") return size * 1024L * 1024L * 1024L;
@@ -116,50 +112,50 @@ long Sanitizer::parseSize(const std::string& sizeStr, const std::string& default
 bool Sanitizer::isValidFilename(const std::string& filename, bool allowPath) {
 	if (filename.empty()) return false;
 
-	if (!allowPath && (filename.find('/') != std::string::npos ||
-					filename.find('\\') != std::string::npos)) {
+	if (!allowPath && (filename.find('/') != std::string::npos || filename.find('\\') != std::string::npos))
 		return false;
-	}
 
-	for (char c : filename) {
-		if (!isalnum(c) && c != '.' && c != '-' && c != '_' &&
-			!(allowPath && (c == '/' || c == '\\'))) {
+	for (char c : filename)
+	{
+		if (!isalnum(c) && c != '.' && c != '-' && c != '_' && !(allowPath && (c == '/' || c == '\\')))
 			return false;
-		}
 	}
-
 	return true;
 }
 
 // Public Methods - Mandatory Checks
-bool Sanitizer::sanitize_portNr(int portNr) {
+bool Sanitizer::sanitize_portNr(int portNr)
+{
 	return (portNr >= 1 && portNr <= 65535);
 }
 
-bool Sanitizer::sanitize_serverName(std::string& serverName) {
+bool Sanitizer::sanitize_serverName(std::string& serverName)
+{
 	if (serverName.empty() || serverName.length() > 255) return false;
 
 	std::string segment;
 	std::istringstream segmentStream(serverName);
 
-	while (std::getline(segmentStream, segment, '.')) {
-		if (segment.empty() || segment.length() > 63) return false;
-		if (!isalnum(segment.front()) || !isalnum(segment.back())) return false;
+	while (std::getline(segmentStream, segment, '.'))
+	{
+		if (segment.empty() || segment.length() > 63
+			|| !isalnum(segment.front()) || !isalnum(segment.back()))
+		return false;
 
-		for (char c : segment) {
+		for (char c : segment)
 			if (!isalnum(c) && c != '-') return false;
-		}
 	}
-
 	return true;
 }
 
-bool Sanitizer::sanitize_root(std::string& root, const std::string& pwd) {
+bool Sanitizer::sanitize_root(std::string& root, const std::string& pwd)
+{
 	return isValidPath(root, "Root", pwd);
 }
 
 // Public Methods - Optional Checks
-bool Sanitizer::sanitize_index(std::string& index) {
+bool Sanitizer::sanitize_index(std::string& index)
+{
 	return index.empty() || isValidFilename(index, false);
 }
 
@@ -169,9 +165,8 @@ bool Sanitizer::sanitize_errorPage(std::string &errorPage, const std::string &pw
 	std::vector<std::string> tokens;
 	std::string token;
 
-	while (stream >> token) {
+	while (stream >> token)
 		tokens.push_back(token);
-	}
 
 	if (tokens.size() < 2) {
 		Logger::error("Error page definition must include at least one error code and a path.");
@@ -432,7 +427,8 @@ bool Sanitizer::checkUploadStorePermissions(const std::string& path) {
 	return true;
 }
 
-bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context) {
+bool Sanitizer::isValidUploadPath(std::string& path, const std::string& context)
+{
 	if (path.empty()) {
 		Logger::error("[" + context + "] Path is empty.");
 		return false;
