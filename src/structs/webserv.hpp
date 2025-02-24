@@ -182,11 +182,12 @@ struct Context
 	std::string output_buffer = "";
 	std::string tmp_buffer = "";
 	bool headers_complete = false;
+	bool ready_for_ping_pong = false;
 	size_t header_length = 0;
 	long long content_length = 0;
 	long long body_received = 0;
 	bool keepAlive = false;
-	bool is_multipart;
+	bool is_multipart = false;
 	bool had_seq_parse = false;
 	std::vector<std::pair<std::string, std::string>> setCookies;
 	std::vector<std::pair<std::string, std::string>> cookies;
