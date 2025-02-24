@@ -31,12 +31,6 @@ $(X) 🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
 $(X) 🐖 acheck autoindex\n\\n\
 $(X) 🐖 ????????? location paths.... root!!! \n\
 $(X) 🐖 // fallback for common error codes\n\
-$(X) 🐖 const int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};\n\
-$(X) 🐖 for (int errorCode : defaultErrorCodes) {\n\
-$(X) 🐖 	if (conf.errorPages.find(errorCode) == conf.errorPages.end()) {\n\
-$(X) 🐖 		conf.errorPages[errorCode] = "/50x.html";\n\
-$(X) 🐖 	}\n\
-$(X) 🐖 }\n\
 $(X) 🐖 adjust Jeberle_warner for upload path\
 $(X) 🐖 FILE Download .\n\
 $(X) 🐑 staticHandler onhalt des block comments\n\
@@ -44,6 +38,7 @@ $(X) 👺 enums to enum classes check all calls...\n\
 $(X) 🐑 Donwloads and HTML in CGI Locations\n\
 $(X) 🐑 Set download flow ... some cgi call shsow set diownlaod... \n\
 $(X) 🐑 loesche uncompleted uploads bei abbruch oder fehler...  \n\
+$(X) 🐑 location wrong path no 404 currently ????...  \n\
 
 # helper command to search for fucntions with more than 40 lines
 #find . -type f -name "*.cpp" | xargs awk '

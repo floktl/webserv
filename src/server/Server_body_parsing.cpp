@@ -112,14 +112,19 @@ bool Server::prepareMultipartUpload(Context& ctx) {
 bool Server::readingTheBody(Context& ctx, const char* buffer, ssize_t bytes) {
 	ctx.had_seq_parse = true;
 
+	Logger::yellow("readingTheBody begin");
 	if (ctx.boundary.empty()) {
+		Logger::yellow("ctx.boundary.empty()");
 		auto content_type_it = ctx.headers.find("Content-Type");
 		if (content_type_it != ctx.headers.end()) {
+			Logger::yellow("content_type_it != ctx.headers.end()");
 			size_t boundary_pos = content_type_it->second.find("boundary=");
 			if (boundary_pos != std::string::npos) {
+				Logger::yellow("boundary_pos != std::string::npos");
 				ctx.boundary = "--" + content_type_it->second.substr(boundary_pos + 9);
 				size_t end_pos = ctx.boundary.find(';');
 				if (end_pos != std::string::npos) {
+					Logger::yellow("end_pos != std::string::npos");
 					ctx.boundary = ctx.boundary.substr(0, end_pos);
 				}
 			}

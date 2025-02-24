@@ -1,45 +1,7 @@
 #include "./ConfigHandler.hpp"
 
-void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
+void ConfigHandler::printRegisteredConfs(std::string filename)
 {
-// Map to Store Default Error Page Paths
-	std::map<int, std::string> errorPageDefaults;
-
-// Scan the Directory for Error Page Files
-	std::string errorPageDir = pwd + "/err_page_defaults";
-
-	DIR *dir = opendir(errorPageDir.c_str());
-	if (dir != NULL)
-	{
-		struct dirent *entry;
-		while ((entry = readdir(dir)) != NULL)
-		{
-// Skip "." and ".."
-			if (std::string(entry->d_name) == "." || std::string(entry->d_name) == "..")
-			{
-				continue;
-			}
-// Check IF Regular File
-			{
-				std::string fileName = entry->d_name;
-				size_t dotPos = fileName.find('.');
-				if (dotPos != std::string::npos)
-				{
-					try
-					{
-						int errorCode = std::stoi(fileName.substr(0, dotPos));
-						std::string fullPath = errorPageDir + "/" + fileName;
-						errorPageDefaults[errorCode] = fullPath;
-					}
-					catch (const std::exception& e)
-					{
-						continue;
-					}
-				}
-			}
-		}
-		closedir(dir);
-	}
 
 	if (registeredServerConfs.empty()) {
 		Logger::yellow("No configurations registered.");
@@ -158,25 +120,10 @@ void ConfigHandler::printRegisteredConfs(std::string filename, std::string pwd)
 		printSize(conf.client_max_body_size, "    Client Max Body Size: ", "1m");
 		printIntValue(conf.timeout, "    Timeout: ", 30);
 
-// Combined Stagebed Error Page Logic
 		if (conf.errorPages.empty()) {
-// ADD all Provided Error Pages Serverside
-			for (const auto& errorPage : errorPageDefaults) {
-				conf.errorPages[errorPage.first] = errorPage.second;
-			}
-
-// Fallback for Common Error Codes
-			const int defaultErrorCodes[] = {400, 401, 403, 404, 500, 502, 503, 504};
-			for (int errorCode : defaultErrorCodes) {
-				if (conf.errorPages.find(errorCode) == conf.errorPages.end()) {
-					conf.errorPages[errorCode] = "/50x.html";
-				}
-			}
-
-			Logger::yellow("    Using default error pages:");
+			Logger::yellow("    Using default error pages");
 		}
 
-// Show Error Pages
 		for (std::map<int, std::string>::const_iterator it = conf.errorPages.begin();
 			it != conf.errorPages.end(); ++it) {
 			Logger::white("    Error Page: ", false, 30);

@@ -97,7 +97,7 @@ void ConfigHandler::parseArgs(int argc, char **argv, char **envp)
 		if (isConfigFile(filepath))
 		{
 			Logger::green("\nConfig " + filepath + " registered successfully!\n");
-			printRegisteredConfs(filepath, expandEnvironmentVariables("$PWD", env));
+			printRegisteredConfs(filepath);
 		}
 
 	}
