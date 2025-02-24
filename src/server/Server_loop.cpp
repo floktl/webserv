@@ -208,7 +208,7 @@ bool Server::extractFileContent(const std::string& boundary, const std::string& 
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 {
 
-	if (!isMultipartUpload(ctx) || ctx.req.parsing_phase != RequestBody::PARSING_BODY) {
+	if (!ctx.is_multipart || ctx.req.parsing_phase != RequestBody::PARSING_BODY) {
 		ctx.read_buffer.clear();
 	}
 
@@ -233,79 +233,93 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		return true;
 	}
 
+	Logger::cyan("read_buffer:\n" + Logger::logReadBuffer(ctx.read_buffer));
+
 	ctx.last_activity = std::chrono::steady_clock::now();
 
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.upload_fd < 0)
 		resetContext(ctx);
 
-	if (isMultipartUpload(ctx) && ctx.req.parsing_phase == RequestBody::PARSING_BODY) {
-		ctx.read_buffer = std::string(buffer, bytes);
-	} else {
-		ctx.read_buffer = std::string(buffer, bytes);
-	}
-
-// Logger :: cyan ("read_ buffer: \ n" + logger :: logreadbuffer (ctx.read_ buffer));
+	ctx.read_buffer = std::string(buffer, bytes);
 
 	if (!ctx.headers_complete) {
-		if (!handleParsingPhase(ctx, configs)) {
+		// if (!handleParsingPhase(ctx, configs)) {
+		// 	Logger::errorLog("Header parsing failed");
+		// 	return false;
+		// }
+		if (!parseBareHeaders(ctx, configs)) {
 			Logger::errorLog("Header parsing failed");
 			return false;
 		}
 		if (ctx.error_code)
-		{
+			return false;
+		if (!determineType(ctx, configs)) {
+			Logger::errorLog("Failed to determine request type");
 			return false;
 		}
+		if (ctx.error_code)
+			return false;
+	}
 
-		if (ctx.headers_complete) {
-			handleSessionCookies(ctx);
+	if (ctx.headers_complete && !ctx.ready_for_ping_pong) {
+		// if (!handleParsingPhase(ctx, configs)) {
+		// 	Logger::errorLog("Header parsing failed");
+		// 	return false;
+		// }
+		if (!parseContentDisposition(ctx, configs)) {
+			Logger::errorLog("Content Disposition parsing failed");
+			return false;
+		}
+		if (ctx.error_code)
+			return false;
+	}
 
-			if (!determineType(ctx, configs)) {
-				Logger::errorLog("Failed to determine request type");
-				return false;
-			}
-			if (ctx.method == "GET" || ctx.method == "DELETE") {
-				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
-				return true;
-			}
-			Logger::yellow("before isMultipartUpload");
-			if (isMultipartUpload(ctx)) {
-				Logger::yellow("in isMultipartUpload");
-				ctx.req.parsing_phase = RequestBody::PARSING_BODY;
+	if (ctx.headers_complete && ctx.ready_for_ping_pong) {
+		handleSessionCookies(ctx);
 
-				if (ctx.boundary.empty()) {
-					Logger::yellow("in ctx.boundary.empty()");
-					auto content_type_it = ctx.headers.find("Content-Type");
-					if (content_type_it != ctx.headers.end()) {
-						Logger::yellow("in ctx.headers.end()");
-						size_t boundary_pos = content_type_it->second.find("boundary=");
-						if (boundary_pos != std::string::npos) {
-							Logger::yellow("boundary_pos != std::string::npos");
-							ctx.boundary = "--" + content_type_it->second.substr(boundary_pos + 9);
-							size_t end_pos = ctx.boundary.find(';');
-							if (end_pos != std::string::npos) {
-								Logger::yellow("end_pos != std::string::npos");
-								ctx.boundary = ctx.boundary.substr(0, end_pos);
-							}
+		if (ctx.method == "GET" || ctx.method == "DELETE") {
+			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
+			return true;
+		}
+		Logger::yellow("before isMultipartUpload");
+		if (isMultipartUpload(ctx)) {
+			Logger::yellow("in isMultipartUpload");
+			ctx.req.parsing_phase = RequestBody::PARSING_BODY;
+
+			if (ctx.boundary.empty()) {
+				Logger::yellow("in ctx.boundary.empty()");
+				auto content_type_it = ctx.headers.find("Content-Type");
+				if (content_type_it != ctx.headers.end()) {
+					Logger::yellow("in ctx.headers.end()");
+					size_t boundary_pos = content_type_it->second.find("boundary=");
+					if (boundary_pos != std::string::npos) {
+						Logger::yellow("boundary_pos != std::string::npos");
+						ctx.boundary = "--" + content_type_it->second.substr(boundary_pos + 9);
+						size_t end_pos = ctx.boundary.find(';');
+						if (end_pos != std::string::npos) {
+							Logger::yellow("end_pos != std::string::npos");
+							ctx.boundary = ctx.boundary.substr(0, end_pos);
 						}
 					}
 				}
-
-				if (ctx.uploaded_file_path.empty()) {
-								Logger::yellow("parseMultipartHeaders");
-					parseMultipartHeaders(ctx);
-				}
-
-				if (!ctx.uploaded_file_path.empty() && ctx.upload_fd < 0) {
-								Logger::yellow("!ctx.uploaded_file_path.empty() && ctx.upload_fd < 0");
-					if (!prepareMultipartUpload(ctx)) {
-						Logger::yellow("prepareMultipartUpload");
-						return false;
-					}
-				}
-				Logger::yellow("readingTheBody");
-				readingTheBody(ctx, buffer, bytes);
 			}
+
+			if (ctx.uploaded_file_path.empty()) {
+							Logger::yellow("parseMultipartHeaders");
+				parseMultipartHeaders(ctx);
+			}
+
+			if (!ctx.uploaded_file_path.empty() && ctx.upload_fd < 0) {
+							Logger::yellow("!ctx.uploaded_file_path.empty() && ctx.upload_fd < 0");
+				if (!prepareMultipartUpload(ctx)) {
+					Logger::yellow("prepareMultipartUpload");
+					return false;
+				}
+			}
+			Logger::yellow("readingTheBody");
+			readingTheBody(ctx, buffer, bytes);
 		}
+	}
 	} else if (isMultipartUpload(ctx) && ctx.req.parsing_phase == RequestBody::PARSING_BODY) {
 
 		if (ctx.read_buffer.size() > ctx.boundary.size() * 2) {
