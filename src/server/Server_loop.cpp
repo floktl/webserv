@@ -10,7 +10,6 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 
 	while (!g_shutdown_requested) {
 		eventNum = epoll_wait(epoll_fd, events, MAX_EVENTS, TIMEOUT_MS);
-		log_global_fds(globalFDS);
 		if (eventNum < 0) {
 			if (errno == EINTR)
 				break;
@@ -268,18 +267,23 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
 				return true;
 			}
-
+			Logger::yellow("before isMultipartUpload");
 			if (isMultipartUpload(ctx)) {
+				Logger::yellow("in isMultipartUpload");
 				ctx.req.parsing_phase = RequestBody::PARSING_BODY;
 
 				if (ctx.boundary.empty()) {
+					Logger::yellow("in ctx.boundary.empty()");
 					auto content_type_it = ctx.headers.find("Content-Type");
 					if (content_type_it != ctx.headers.end()) {
+						Logger::yellow("in ctx.headers.end()");
 						size_t boundary_pos = content_type_it->second.find("boundary=");
 						if (boundary_pos != std::string::npos) {
+							Logger::yellow("boundary_pos != std::string::npos");
 							ctx.boundary = "--" + content_type_it->second.substr(boundary_pos + 9);
 							size_t end_pos = ctx.boundary.find(';');
 							if (end_pos != std::string::npos) {
+								Logger::yellow("end_pos != std::string::npos");
 								ctx.boundary = ctx.boundary.substr(0, end_pos);
 							}
 						}
@@ -287,15 +291,18 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 				}
 
 				if (ctx.uploaded_file_path.empty()) {
+								Logger::yellow("parseMultipartHeaders");
 					parseMultipartHeaders(ctx);
 				}
 
 				if (!ctx.uploaded_file_path.empty() && ctx.upload_fd < 0) {
+								Logger::yellow("!ctx.uploaded_file_path.empty() && ctx.upload_fd < 0");
 					if (!prepareMultipartUpload(ctx)) {
+						Logger::yellow("prepareMultipartUpload");
 						return false;
 					}
 				}
-
+				Logger::yellow("readingTheBody");
 				readingTheBody(ctx, buffer, bytes);
 			}
 		}

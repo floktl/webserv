@@ -349,6 +349,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 		if (starts_with_upload_store && ctx.method == "POST")
 		{
 			Logger::yellow(" -- set post");
+			Logger::red(path_to_check);
 			return path_to_check;
 		}
 

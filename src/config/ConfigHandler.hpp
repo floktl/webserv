@@ -29,7 +29,7 @@ private:
 // ** Setup.cpp: Constructor, Destructor, and Core Config Handling **
 	bool parseConfigContent(std::string filename);
 	bool isConfigFile(const std::string& filepath);
-	void printRegisteredConfs(std::string filename, std::string pwd);
+	void printRegisteredConfs(std::string filename);
 
 // ** Parseline.cpp: Parsing and Directive Handling **
 	bool parseErr(const std::string &str);

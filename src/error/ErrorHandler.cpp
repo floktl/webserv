@@ -31,26 +31,55 @@ bool ErrorHandler::generateErrorResponse(Context& ctx) const
 {
 	std::ostringstream response;
 	std::string content;
+	Logger::blue("generateErrorResponse");
+	Logger::errorLog("ErrorHandler: Errorcode: " + std::to_string(ctx.error_code) + " " + ctx.error_message);
 
 	std::map<int, std::string>::iterator it = ctx.errorPages.find(ctx.error_code);
 	if (it != ctx.errorPages.end())
 	{
+		Logger::blue("loadErrorPage");
 		content = loadErrorPage(it->second);
 	}
 	else
 	{
-		Logger::yellow("default");
-		content = "Default error page content for status " + std::to_string(ctx.error_code);
+		content = "<!DOCTYPE html>"
+			"<html lang=\"en\">"
+			"<head>"
+			"<meta charset=\"UTF-8\">"
+			"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+			"<title>Webserv: Internal Server Error</title>"
+			"<style>"
+			"body {"
+			"background-color: rgb(163, 163, 163);"
+			"background-image: radial-gradient(circle at center, rgb(85, 0, 0) 0%, rgb(168, 0, 0));"
+			"color: white;"
+			"font-family: Arial, Helvetica, sans-serif;"
+			"margin: 0;"
+			"padding: 0;"
+			"height: 100vh;"
+			"display: flex;"
+			"justify-content: center;"
+			"align-items: center;"
+			"}"
+			"h1 {"
+			"font-size: 2rem;"
+			"}"
+			"</style>"
+			"</head>"
+			"<body>"
+			"<main>"
+			"<h1>" + std::to_string(ctx.error_code) + ": " + ctx.error_message + "</h1>"
+			"<p>Some problem on running the app occurred!</p>"
+			"</main>"
+			"</body>"
+			"</html>";
 	}
-	//if (content.empty())
-	//	content = "<!DOCTYPE html><html><head><style>body { background-color: #940000; color: white; font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; justify-content: center; align-items: center;} h1 {font-size: 2rem;text-align: center;}</style></head><body><h1>"
-	//				+ std::to_string(ctx.error_code) + " " + ctx.error_message + "</h1></body></html>";
+
 	response << "HTTP/1.1 " << ctx.error_code << " " << ctx.error_message << "\r\n"
 			<< "Content-Type: text/html\r\n"
 			<< "Content-Length: " << content.size() << "\r\n\r\n"
 			<< content;
 
-	Logger::errorLog("ErrorHandler: Errorcode: " + std::to_string(ctx.error_code) + " " + ctx.error_message);
 	return (server.sendHandler(ctx, response.str()));
 }
 
