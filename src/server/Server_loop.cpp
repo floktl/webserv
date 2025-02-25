@@ -618,7 +618,6 @@ void Server::initializeWritingActions(Context& ctx)
 }
 
 bool Server::handleWrite(Context& ctx) {
-	Logger::blue("ctx.doAutoIndex " + ctx.doAutoIndex);
 	bool result = false;
 	initializeWritingActions(ctx);
 
