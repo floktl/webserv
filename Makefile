@@ -20,26 +20,34 @@ SUCCESS := \n\
 🐑  🐑 🐑 🐑 🐑  🐑            🐑          🐑            🐑  🐑            🐑   🐑          🐑🐑        🐑$(X)\n\
 🐑    🐑   🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑    🐑🐑🐑🐑🐑🐑  🐑🐑🐑🐑🐑🐑  🐑    🐑🐑        🐑           🐑 $(X)\n\
 🐑                                                                                                          🐑\n\
-🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\
-$(X) 🦄wildacrad und pre header compilation checken....\n\
-$(X) 🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
-$(X) 🦄 You can use every macro and define like FD_SET, FD_CLR, FD_ISSET, FD_ZERO (understanding what and how they do it is very useful).\n\
-$(X) 🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks) no restarts on siege usage\n\
-$(X) 🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
-$(X) 🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
-$(X) 🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
-$(X) 🐖 acheck autoindex\n\\n\
-$(X) 🐖 ????????? location paths.... root!!! \n\
-$(X) 🐖 // fallback for common error codes\n\
-$(X) 🐖 adjust Jeberle_warner for upload path\
-$(X) 🐖 FILE Download .\n\
-$(X) 🐑 staticHandler onhalt des block comments\n\
-$(X) 👺 enums to enum classes check all calls...\n\
-$(X) 🐑 Donwloads and HTML in CGI Locations\n\
-$(X) 🐑 Set download flow ... some cgi call shsow set diownlaod... \n\
-$(X) 🐑 loesche uncompleted uploads bei abbruch oder fehler...  \n\
-$(X) 🐑 location wrong path no 404 currently ????...  \n\
-
+🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\n\
+$(GREEN)Task at the end:$(X)\n\
+$(X)	🦄 wildcard checken....\n\
+$(X)	🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
+$(X)	🦄 adjust Jeberle_warner for upload path \n\
+$(X)  \n\
+$(GREEN)Needs CGI ready:$(X)\n\
+$(X)	🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
+$(X)	🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
+$(X)	🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
+$(X)	🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
+$(X)	🐑 Donwloads and HTML in CGI Locations\n\
+$(X)  \n\
+$(GREEN)Flos tasks:$(X)\n\
+$(X)	🐖 check autoindex\n\
+$(X)	🐑 staticHandler onhalt des block comments\n\
+$(X)	🐖 ????????? location paths.... root!!! \n\
+$(X)	🐑 location wrong path no 404 currently ????...  \n\
+$(X)  \n\
+$(GREEN)Jeberles Tasks:$(X)\n\
+$(X)	🐖 FILE Download .\n\
+$(X)	🐑 Set download flow ... some cgi call shsow set diownlaod... \n\
+$(X)	🐑 loesche uncompleted uploads bei abbruch oder fehler...  \n\
+$(X)  \n\
+$(GREEN)Thomas Bornheim's Tasks:$(X)\n\
+$(X)	🐑 Let the sheeps out \n\
+$(X)	🐖 Feed he pigs\n\
+$(X)	🦄 create unicorns at 42 \n\
 # helper command to search for fucntions with more than 40 lines
 #find . -type f -name "*.cpp" | xargs awk '
 #/^[a-zA-Z_].*\(/ { func_name = $0; line_count = 0; }
@@ -61,13 +69,13 @@ NAME=webserv
 
 CC=c++
 CFLAGS = -Wall -Wextra -Werror -Wshadow -std=c++17 -include $(PCH)
-LDFLAGS=-flto=$(shell nproc)
+#LDFLAGS=-flto=$(shell nproc)
 
-ifeq ($(DEBUG), 1)
-	CFLAGS += -fsanitize=address -g
-endif
+#ifeq ($(DEBUG), 1)
+#	CFLAGS += -fsanitize=address -g
+#endif
 
-DEPFLAGS=-MMD -MP -MT $@
+#DEPFLAGS=-MMD -MP -MT $@
 PCH = ./src/utils/pch.hpp
 PCHGCH = $(PCH).gch
 
@@ -160,7 +168,7 @@ prune:
 	fi
 	@echo "$(GREEN)All done!$(X)"
 
-test: $(NAME)
+test:
 	@if [ -e "./webserv.log" ]; then \
 		echo "$(YELLOW)Clearing webserv.log$(X)"; \
 		> ./webserv.log; \
@@ -170,9 +178,24 @@ test: $(NAME)
 	@python3 src/Jeberle_warner.py
 	@if [ $$? -ne 0 ]; then \
 		echo "$(RED)Static analysis failed! Fix the issues before running the server.$(X)"; \
+	fi
+	@echo "$(YELLOW)Compiling in the background...$(X)"
+	@make $(NAME) > /dev/null 2>&1 & \
+	comp_pid=$$!; \
+	while kill -0 $$comp_pid 2>/dev/null; do \
+		echo -ne "$(CYAN)⏳ Compilation in progress... Play the game!$(X)\r"; \
+		make sheep; \
+	done; \
+	wait $$comp_pid; \
+	echo ""; \
+	if [ -f "./$(NAME)" ]; then \
+		echo "$(GREEN)✅ Compilation Finished!$(X)"; \
+		echo "$(YELLOW)Starting the server...$(X)"; \
+		./$(NAME) config/test.conf; \
+	else \
+		echo "$(RED)❌ Compilation Failed!$(X)"; \
 		exit 1; \
 	fi
-	@./$(NAME) config/test.conf
 
 leak:
 	@if [ -e "./webserv.log" ]; then \
@@ -197,5 +220,109 @@ CLEAN_DIRS = var/www/staticupload
 
 re: fclean all
 
+GREEN := \033[32m
+RED := \033[31m
+YELLOW := \033[33m
+BLUE := \033[34m
+MAGENTA := \033[35m
+CYAN := \033[36m
+X := \033[0m
+CLEAR := \033[H\033[J
+
 sheep:
+	@clear
+	@echo "$(GREEN)🐑 Welcome to Sheep vs. Pigs! 🦄$(X)"
+	@echo "$(YELLOW)Catch the pig before the unicorns catch you!$(X)"
+	@echo "Press Q to quit."
+	@sleep 2
+	@bash -c ' \
+		grid_size=10; \
+		sheep_x=5; \
+		sheep_y=5; \
+		pig_x=7; \
+		pig_y=7; \
+		uni_x1=$$((RANDOM % grid_size)); \
+		uni_y1=$$((RANDOM % grid_size)); \
+		uni_x2=$$((RANDOM % grid_size)); \
+		uni_y2=$$((RANDOM % grid_size)); \
+		uni_x3=$$((RANDOM % grid_size)); \
+		uni_y3=$$((RANDOM % grid_size)); \
+		while true; do \
+			echo -e "$(CLEAR)"; \
+			echo -e "$(GREEN) SHEEP 🐑 | $(RED)PIG 🐖 | $(BLUE)UNICORNS 🦄$(X)"; \
+			echo ""; \
+			for y in $$(seq 0 $$grid_size); do \
+				for x in $$(seq 0 $$grid_size); do \
+					if [ $$x -eq $$sheep_x ] && [ $$y -eq $$sheep_y ]; then \
+						echo -ne "$(GREEN)🐑$(X) "; \
+					elif [ $$x -eq $$pig_x ] && [ $$y -eq $$pig_y ]; then \
+						echo -ne "$(RED)🐖$(X) "; \
+					elif [ $$x -eq $$uni_x1 ] && [ $$y -eq $$uni_y1 ]; then \
+						echo -ne "$(BLUE)🦄$(X) "; \
+					elif [ $$x -eq $$uni_x2 ] && [ $$y -eq $$uni_y2 ]; then \
+						echo -ne "$(BLUE)🦄$(X) "; \
+					elif [ $$x -eq $$uni_x3 ] && [ $$y -eq $$uni_y3 ]; then \
+						echo -ne "$(BLUE)🦄$(X) "; \
+					else \
+						echo -ne "⬛ "; \
+					fi; \
+				done; \
+				echo ""; \
+			done; \
+			echo ""; \
+			echo -e "$(GREEN)W$(X) - sheep Move Up    $(GREEN)A$(X) - sheep Move Left    $(GREEN)S$(X) - sheep Move Down    $(GREEN)D$(X) - sheep Move Right"; \
+			echo -e "$(GREEN)I$(X) - pig Move Up    $(GREEN)J$(X) - pig Move Left    $(GREEN)K$(X) - pig Move Down    $(GREEN)L$(X) - pig Move Right"; \
+			echo -e "$(MAGENTA)Q$(X) - Quit"; \
+			read -n1 -s key; \
+			case $$key in \
+				w) if [ $$sheep_y -gt 0 ]; then sheep_y=$$((sheep_y - 1)); fi;; \
+				s) if [ $$sheep_y -lt $$grid_size ]; then sheep_y=$$((sheep_y + 1)); fi;; \
+				a) if [ $$sheep_x -gt 0 ]; then sheep_x=$$((sheep_x - 1)); fi;; \
+				d) if [ $$sheep_x -lt $$grid_size ]; then sheep_x=$$((sheep_x + 1)); fi;; \
+				i) if [ $$pig_y -gt 0 ]; then pig_y=$$((pig_y - 1)); fi;; \
+				k) if [ $$pig_y -lt $$grid_size ]; then pig_y=$$((pig_y + 1)); fi;; \
+				j) if [ $$pig_x -gt 0 ]; then pig_x=$$((pig_x - 1)); fi;; \
+				l) if [ $$pig_x -lt $$grid_size ]; then pig_x=$$((pig_x + 1)); fi;; \
+				q) echo -e "$(MAGENTA)👋 Exiting game!$(X)"; exit;; \
+				*) echo -e "$(CYAN)🤔 Invalid key!$(X)";; \
+			esac; \
+			if [ $$sheep_x -eq $$pig_x ] && [ $$sheep_y -eq $$pig_y ]; then \
+				echo -e "$(BLUE)🎉 Sheep caught the pig! 🐖💀$(X)"; \
+				sleep 2; \
+				exit; \
+			fi; \
+			if ([ $$sheep_x -eq $$uni_x1 ] && [ $$sheep_y -eq $$uni_y1 ]) || \
+			   ([ $$sheep_x -eq $$uni_x2 ] && [ $$sheep_y -eq $$uni_y2 ]) || \
+			   ([ $$sheep_x -eq $$uni_x3 ] && [ $$sheep_y -eq $$uni_y3 ]) || \
+			   ([ $$pig_x -eq $$uni_x1 ] && [ $$pig_y -eq $$uni_y1 ]) || \
+			   ([ $$pig_x -eq $$uni_x2 ] && [ $$pig_y -eq $$uni_y2 ]) || \
+			   ([ $$pig_x -eq $$uni_x3 ] && [ $$pig_y -eq $$uni_y3 ]); then \
+				echo -e "$(RED)💀 A unicorn caught you! GAME OVER! 🦄$(X)"; \
+				sleep 2; \
+				exit; \
+			fi; \
+			move=$$((RANDOM % 4)); \
+			case $$move in \
+				0) if [ $$uni_y1 -gt 0 ]; then uni_y1=$$((uni_y1 - 1)); fi;; \
+				1) if [ $$uni_y1 -lt $$grid_size ]; then uni_y1=$$((uni_y1 + 1)); fi;; \
+				2) if [ $$uni_x1 -gt 0 ]; then uni_x1=$$((uni_x1 - 1)); fi;; \
+				3) if [ $$uni_x1 -lt $$grid_size ]; then uni_x1=$$((uni_x1 + 1)); fi;; \
+			esac; \
+			move=$$((RANDOM % 4)); \
+			case $$move in \
+				0) if [ $$uni_y2 -gt 0 ]; then uni_y2=$$((uni_y2 - 1)); fi;; \
+				1) if [ $$uni_y2 -lt $$grid_size ]; then uni_y2=$$((uni_y2 + 1)); fi;; \
+				2) if [ $$uni_x2 -gt 0 ]; then uni_x2=$$((uni_x2 - 1)); fi;; \
+				3) if [ $$uni_x2 -lt $$grid_size ]; then uni_x2=$$((uni_x2 + 1)); fi;; \
+			esac; \
+			move=$$((RANDOM % 4)); \
+			case $$move in \
+				0) if [ $$uni_y3 -gt 0 ]; then uni_y3=$$((uni_y3 - 1)); fi;; \
+				1) if [ $$uni_y3 -lt $$grid_size ]; then uni_y3=$$((uni_y3 + 1)); fi;; \
+				2) if [ $$uni_x3 -gt 0 ]; then uni_x3=$$((uni_x3 - 1)); fi;; \
+				3) if [ $$uni_x3 -lt $$grid_size ]; then uni_x3=$$((uni_x3 + 1)); fi;; \
+			esac; \
+			sleep 0.002; \
+		done \
+	'
 	@echo "$(SUCCESS)"
