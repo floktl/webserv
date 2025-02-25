@@ -143,6 +143,7 @@ bool ErrorHandler::generateErrorResponse(Context& ctx) const
 	return (server.sendHandler(ctx, response.str()));
 }
 
+
 // Updates the Context with an Error Type, Error Code, and Error Message, Returning False
 bool	updateErrorStatus(Context &ctx, int error_code, std::string error_string)
 {
