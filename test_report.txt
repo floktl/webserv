@@ -1,0 +1,11 @@
+📝 Siege Test Report
+=====================
+✅ Found servers on ports: 8080
+✅ No restarts detected.
+⚠ smem not installed, skipping detailed memory check.
+📊 Siege Test Summary:
+   ✅ Successful Transactions: 
+   ❌ Failed Transactions: 
+   📈 Average Availability: 0%
+✅ Server availability is good.
+✅ No failed transactions detected.
