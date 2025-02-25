@@ -619,7 +619,6 @@ void Server::initializeWritingActions(Context& ctx)
 }
 
 bool Server::handleWrite(Context& ctx) {
-	Logger::green("handleWrite");
 	bool result = false;
 	initializeWritingActions(ctx);
 
