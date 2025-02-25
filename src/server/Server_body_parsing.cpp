@@ -5,7 +5,7 @@ size_t Server::findBodyStart(const std::string& buffer, Context& ctx) {
 	size_t pos = buffer.find(boundaryMarker);
 
 	if (pos != std::string::npos) {
-		if (isMultipartUpload(ctx)) {
+		if (isMultipart(ctx)) {
 			std::string contentType = ctx.headers["Content-Type"];
 			size_t boundaryPos = contentType.find("boundary=");
 			if (boundaryPos != std::string::npos) {
@@ -72,7 +72,7 @@ std::string Server::extractBodyContent(const char* buffer, ssize_t bytes, Contex
 }
 
 
-bool Server::isMultipartUpload(Context& ctx) {
+bool Server::isMultipart(Context& ctx) {
 	bool isMultipartUpload = ctx.method == "POST" &&
 		ctx.headers.find("Content-Type") != ctx.headers.end() &&
 		ctx.headers["Content-Type"].find("multipart/form-data") != std::string::npos;
@@ -80,34 +80,6 @@ bool Server::isMultipartUpload(Context& ctx) {
 	return isMultipartUpload;
 }
 
-bool Server::prepareMultipartUpload(Context& ctx) {
-	if (ctx.error_code)
-	{
-		ctx.uploaded_file_path = "";
-		ctx.upload_fd = -1;
-		return false;
-	}
-// If (! DetermineType (CTX, configs)) {
-// Logger :: Errorlog ("Failed to Determine Request Type");
-// return false;
-// None
-	std::string req_root = retreiveReqRoot(ctx);
-	Logger::magenta(ctx.uploaded_file_path);
-	if (ctx.uploaded_file_path == ctx.location.upload_store)
-	{
-		updateErrorStatus(ctx, 400, "Bad Request");
-		return false;
-	}
-	ctx.uploaded_file_path = concatenatePath(req_root, ctx.uploaded_file_path);
-
-	prepareUploadPingPong(ctx);
-
-	if (ctx.error_code != 0) {
-		Logger::errorLog("Upload preparation failed");
-		return false;
-	}
-	return true;
-}
 
 bool Server::readingTheBody(Context& ctx, const char* buffer, ssize_t bytes) {
 	ctx.had_seq_parse = true;

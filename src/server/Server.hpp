@@ -79,7 +79,6 @@ class Server
 		void killTimeoutedCGI(RequestBody &req);
 
 		void logContext(const Context& ctx, const std::string& event = "");
-		void parseRequest(Context& ctx);
 		std::string requestTypeToString(RequestType type);
 		bool determineType(Context& ctx, std::vector<ServerBlock> configs);
 		bool matchLoc(const std::vector<Location>& locations, const std::string& rawPath, Location& bestMatch);
@@ -88,19 +87,16 @@ class Server
 		std::string subtractLocationPath(const std::string& path, const Location& location);
 		std::string getDirectory(const std::string& path);
 		bool buildAutoIndexResponse(Context& ctx, std::stringstream* response);
-		bool parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs);
+		bool parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs);
 		bool handleWrite(Context& ctx);
 		bool queueResponse(Context& ctx, const std::string& response);
-		bool isRequestComplete(Context& ctx);
 		std::string approveExtention(Context& ctx, std::string path_to_check);
 		void parseChunkedBody(Context& ctx);
 		bool redirectAction(Context& ctx);
 		bool deleteHandler(Context &ctx);
 		void getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs);
 		bool resetContext(Context& ctx);
-		bool handleContentLength(Context& ctx, const std::vector<ServerBlock>& configs);
-		bool processParsingBody(Context& ctx);
-		bool handleParsingPhase(Context& ctx, const std::vector<ServerBlock>& configs);
+		bool checkMaxContentLength(Context& ctx, std::vector<ServerBlock>& configs);
 		bool finalizeRequest(Context& ctx);
 		bool handleRead(Context& ctx, std::vector<ServerBlock>& configs);
 
@@ -120,8 +116,7 @@ class Server
 		void prepareUploadPingPong(Context& ctx);
 		void handleSessionCookies(Context& ctx);
 		std::string retreiveReqRoot(Context &ctx);
-		bool isMultipartUpload(Context& ctx);
-		bool prepareMultipartUpload(Context& ctx);
+		bool isMultipart(Context& ctx);
 		bool doMultipartWriting(Context& ctx);
 		bool completeUpload(Context& ctx);
 		void initializeWritingActions(Context& ctx);
@@ -133,6 +128,7 @@ class Server
 		bool executeCgi(Context& ctx);
 		std::vector<std::string> prepareCgiEnvironment(const Context& ctx);
 		std::string extractQueryString(const std::string& path);
+		bool parseContentDisposition(Context& ctx);
 };
 
 std::string extractHostname(const std::string& header);
