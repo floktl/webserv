@@ -229,9 +229,11 @@ bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	struct stat path_stat;
 	Logger::red("FKEITELSS ANAL PATH: " + path);
-	if (stat(path.c_str(), &path_stat) != 0 && ctx.method != "POST")
+	if (stat(path.c_str(), &path_stat) != 0 && ctx.method == "GET")
 		return updateErrorStatus(ctx, 404, "Not found");
 
+	if (!fileReadable(path) && ctx.method == "DELETE")
+		return updateErrorStatus(ctx, 404, "Not found");
 	if (!fileReadable(path) && ctx.method != "POST")
 		return updateErrorStatus(ctx, 403, "Forbidden");
 
