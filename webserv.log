@@ -1,3 +1,3 @@
-[2025-02-25 14:41:37]  [ERROR] ErrorHandler: Errorcode: 402 File is currently in use and cannot be deleted.
-[2025-02-25 14:41:48]  [ERROR] ErrorHandler: Errorcode: 402 File is currently in use and cannot be deleted.
-[2025-02-25 14:42:58]  [ERROR] ErrorHandler: Errorcode: 404 Not found
+[2025-02-25 17:53:02]  [ERROR] ErrorHandler: Errorcode: 403 Forbidden
+[2025-02-25 17:53:18]  [ERROR] ErrorHandler: Errorcode: 500 Failed to read file
+[2025-02-25 17:53:18]  [ERROR] ErrorHandler: Errorcode: 500 Failed to read file
