@@ -1,16 +1,5 @@
 #include "Server.hpp"
 
-// The most important changes:
-
-// Do not set cookies in auto index because it is a technical directory list
-// Set cookies in BuildSTATICRESPONSE at normal gets for files
-// Set Cookie in Redirect at Post/Delete after a successful campaign
-
-// This is more consistent because:
-
-// Auto index is a technical function and does not need cookies
-// Normal pages can get cookies
-// After actions (Post/Delete), the cookie is set in the redirect
 bool Server::staticHandler(Context& ctx)
 {
 	if (ctx.method == "POST")
@@ -36,7 +25,7 @@ bool Server::staticHandler(Context& ctx)
 			if (ctx.type == ERROR)
 				return (false);
 			if (!ctx.keepAlive)
-// Modepoll (ctx.epoll_fd, ctx.client_fd, epollin | epollet);
+			// Modepoll (ctx.epoll_fd, ctx.client_fd, epollin | epollet);
 			return (true);
 		}
 	}

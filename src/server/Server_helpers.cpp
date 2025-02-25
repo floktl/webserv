@@ -228,25 +228,11 @@ bool Server::dirWritable(const std::string& path)
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	struct stat path_stat;
-	if (stat(path.c_str(), &path_stat) != 0)
+	Logger::red("FKEITELSS ANAL PATH: " + path);
+	if (stat(path.c_str(), &path_stat) != 0 && ctx.method != "POST")
 		return updateErrorStatus(ctx, 404, "Not found");
 
-	if (S_ISDIR(path_stat.st_mode))
-	{
-		if (ctx.location_inited && ctx.location.autoindex == "on")
-		{
-			std::string dirPath = getDirectory(path) + '/';
-			if (!dirReadable(dirPath))
-				return updateErrorStatus(ctx, 403, "Forbidden");
-			ctx.doAutoIndex = dirPath;
-			ctx.type = STATIC;
-			return true;
-		}
-		else
-			return updateErrorStatus(ctx, 403, "Forbidden");
-	}
-
-	if (!fileReadable(path))
+	if (!fileReadable(path) && ctx.method != "POST")
 		return updateErrorStatus(ctx, 403, "Forbidden");
 
 	if (ctx.method == "POST")
@@ -354,7 +340,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 		}
 
 		Logger::yellow(" -- approveExtention");
-		updateErrorStatus(ctx, 404, "Not found");
+		updateErrorStatus(ctx, 404, "Not sdzv");
 		return "";
 	}
 

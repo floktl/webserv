@@ -34,15 +34,9 @@ $(X)	🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
 $(X)	🐑 Donwloads and HTML in CGI Locations\n\
 $(X)  \n\
 $(GREEN)Flos tasks:$(X)\n\
-$(X)	🐖 check autoindex\n\
-$(X)	🐑 staticHandler onhalt des block comments\n\
-$(X)	🐖 ????????? location paths.... root!!! \n\
-$(X)	🐑 location wrong path no 404 currently ????...  \n\
 $(X)  \n\
 $(GREEN)Jeberles Tasks:$(X)\n\
-$(X)	🐖 FILE Download .\n\
 $(X)	🐑 Set download flow ... some cgi call shsow set diownlaod... \n\
-$(X)	🐑 loesche uncompleted uploads bei abbruch oder fehler...  \n\
 $(X)  \n\
 $(GREEN)Thomas Bornheim's Tasks:$(X)\n\
 $(X)	🐑 Let the sheeps out \n\
@@ -168,7 +162,22 @@ prune:
 	fi
 	@echo "$(GREEN)All done!$(X)"
 
-test:
+test: $(NAME)
+	@if [ -e "./webserv.log" ]; then \
+		echo "$(YELLOW)Clearing webserv.log$(X)"; \
+		> ./webserv.log; \
+	fi
+	@echo "$(GREEN)Running static analysis...$(X)"
+	@echo "$(GREEN)Total C++ Project Lines:$(X) $(shell find . -type f \( -name "*.cpp" -o -name "*.hpp" \) | xargs wc -l | tail -n 1 | awk '{print $$1}')"
+	@python3 src/Jeberle_warner.py
+	@if [ $$? -ne 0 ]; then \
+		echo "$(RED)Static analysis failed! Fix the issues before running the server.$(X)"; \
+		exit 1; \
+	fi
+	@./$(NAME) config/test.conf
+
+
+sheeptest:
 	@if [ -e "./webserv.log" ]; then \
 		echo "$(YELLOW)Clearing webserv.log$(X)"; \
 		> ./webserv.log; \
@@ -179,30 +188,29 @@ test:
 	@if [ $$? -ne 0 ]; then \
 		echo "$(RED)Static analysis failed! Fix the issues before running the server.$(X)"; \
 	fi
-	@echo "$(YELLOW)Compiling in the background...$(X)"
-	@make $(NAME) > /dev/null 2>&1 & \
-	comp_pid=$$!; \
-	while kill -0 $$comp_pid 2>/dev/null; do \
-		echo -ne "$(CYAN)⏳ Compilation in progress... Play the game!$(X)\r"; \
-		make sheep; \
-	done; \
-	wait $$comp_pid; \
-	echo ""; \
-	if [ -f "./$(NAME)" ]; then \
-		echo "$(GREEN)✅ Compilation Finished!$(X)"; \
-		echo "$(YELLOW)Starting the server...$(X)"; \
-		./$(NAME) config/test.conf; \
+	@if [ -f "./$(NAME)" ]; then \
+		echo "$(GREEN)No changes detected, skipping compilation and game.$(X)"; \
 	else \
-		echo "$(RED)❌ Compilation Failed!$(X)"; \
-		exit 1; \
+		echo "$(YELLOW)Compiling in the background...$(X)"; \
+		make $(NAME) > /dev/null 2>&1 & \
+		comp_pid=$$!; \
+		while kill -0 $$comp_pid 2>/dev/null; do \
+			echo -ne "$(CYAN)⏳ Compilation in progress... Play the game!$(X)\r"; \
+			make sheep; \
+		done; \
+		wait $$comp_pid; \
+		echo ""; \
+		if [ -f "./$(NAME)" ]; then \
+			echo "$(GREEN)✅ Compilation Finished!$(X)"; \
+			echo "$(YELLOW)Starting the server...$(X)"; \
+		else \
+			echo "$(RED)❌ Compilation Failed!$(X)"; \
+			exit 1; \
+		fi; \
 	fi
+	./$(NAME) config/test.conf; \
 
-leak:
-	@if [ -e "./webserv.log" ]; then \
-		echo "$(YELLOW)Clearing webserv.log$(X)"; \
-		> ./webserv.log; \
-	fi
-	@make && valgrind --leak-check=full --track-origins=yes ./$(NAME)  config/test.conf
+
 
 #------------------------------------------------------------------------------#
 #--------------                   CLEANUP TARGETS                   -------------#

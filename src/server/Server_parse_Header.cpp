@@ -220,8 +220,19 @@ void Server::parseAccessRights(Context& ctx)
 		if (!ctx.useLocRoot) {
 			adjustedPath = subtractLocationPath(ctx.path, ctx.location);
 		}
-		requestedPath = concatenatePath(req_root, adjustedPath);
-		if (!requestedPath.empty() && requestedPath.back() == '/')
+		if (!requestedPath.empty() && requestedPath.back() == '/' && ctx.location.autoindex == "on")
+		{
+			std::string tmppath = concatenatePath(requestedPath, ctx.location.default_file);
+			if (fileReadable(tmppath))
+			{
+				requestedPath = tmppath;
+			}
+			else
+			{
+				ctx.doAutoIndex = requestedPath;
+			}
+		}
+		else if (!requestedPath.empty() && requestedPath.back() == '/')
 			requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
 		if (ctx.location_inited && requestedPath == ctx.location.upload_store && dirWritable(requestedPath))
 			return;
