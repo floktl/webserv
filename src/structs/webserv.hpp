@@ -193,8 +193,8 @@ struct Context
 	std::vector<std::pair<std::string, std::string>> cookies;
 	std::vector<std::string> blocks_location_paths;
 
-	int upload_fd = -1;
-	std::string uploaded_file_path = "";
+	int multipart_fd_up_down = -1;
+	std::string multipart_file_path_up_down = "";
 	std::vector<char> write_buffer;
 	size_t write_pos;
 	size_t write_len;

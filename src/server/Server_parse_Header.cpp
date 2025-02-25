@@ -96,7 +96,7 @@ void Server::parseMultipartHeaders(Context& ctx) {
 		if (filename_end != std::string::npos) {
 			std::string filename = ctx.read_buffer.substr(filename_pos, filename_end - filename_pos);
 			ctx.headers["Content-Disposition-Filename"] = filename;
-			ctx.uploaded_file_path = concatenatePath(ctx.location.upload_store, filename);
+			ctx.multipart_file_path_up_down = concatenatePath(ctx.location.upload_store, filename);
 		}
 	}
 
@@ -168,7 +168,7 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 
 void Server::prepareUploadPingPong(Context& ctx)
 {
-	std::string upload_dir = ctx.uploaded_file_path.substr(0, ctx.uploaded_file_path.find_last_of("/"));
+	std::string upload_dir = ctx.multipart_file_path_up_down.substr(0, ctx.multipart_file_path_up_down.find_last_of("/"));
 
 	struct stat dir_stat;
 	if (stat(upload_dir.c_str(), &dir_stat) < 0) {
@@ -190,14 +190,14 @@ void Server::prepareUploadPingPong(Context& ctx)
 	}
 
 // Check IF File Already Exists
-	if (access(ctx.uploaded_file_path.c_str(), F_OK) == 0) {
-		Logger::errorLog("File already exists: " + ctx.uploaded_file_path);
+	if (access(ctx.multipart_file_path_up_down.c_str(), F_OK) == 0) {
+		Logger::errorLog("File already exists: " + ctx.multipart_file_path_up_down);
 		updateErrorStatus(ctx, 409, "File already exists");
 		return;
 	}
 
-	ctx.upload_fd = open(ctx.uploaded_file_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
-	if (ctx.upload_fd < 0) {
+	ctx.multipart_fd_up_down = open(ctx.multipart_file_path_up_down.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	if (ctx.multipart_fd_up_down < 0) {
 		updateErrorStatus(ctx, 500, "Failed to create upload file");
 		return;
 	}

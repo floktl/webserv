@@ -1,9 +1,15 @@
 #include "Server.hpp"
 
-// Builds to HTTP Response for Serving Static Files, Setting Content Type and Response Headers
 void Server::buildStaticResponse(Context &ctx)
 {
 	std::string fullPath = ctx.approved_req_path;
+
+	if (ctx.is_download) {
+		ctx.multipart_fd_up_down = -1;
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		return;
+	}
+
 	std::ifstream file(fullPath, std::ios::binary);
 	if (!file) {
 		updateErrorStatus(ctx, 404, "Not found");
@@ -128,10 +134,38 @@ void Server::generateAutoIndexHeader(Context& ctx, std::stringstream& content)
 			<< "            color: #333;\n"
 			<< "            user-select: none;\n"
 			<< "        }\n"
+			<< "body {\n"
+			<< "	margin: 0;\n"
+			<< "	padding: 40px;\n"
+			<< "	height: 100vh;\n"
+			<< "	overflow: hidden;\n"
+			<< "	background: linear-gradient(\n"
+			<< "		to bottom,\n"
+			<< "		#ff0000,\n"
+			<< "		#ff7f00,\n"
+			<< "		#ffff00,\n"
+			<< "		#00ff00,\n"
+			<< "		#0000ff,\n"
+			<< "		#4b0082,\n"
+			<< "		#9400d3,\n"
+			<< "		#ff0000\n"
+			<< "	);\n"
+			<< "	background-size: 100% 8000%;\n"
+			<< "	animation: rainbow-animation 10s linear infinite;\n"
+			<< "}\n"
+			<< "@keyframes rainbow-animation {\n"
+			<< "	0% {\n"
+			<< "		background-position: 0% 0%;\n"
+			<< "	}\n"
+			<< "	100% {\n"
+			<< "		background-position: 0% 100%;\n"
+			<< "	}\n"
+			<< "}\n"
 			<< "        h1 {\n"
 			<< "            border-bottom: 1px solid #eee;\n"
 			<< "            padding-bottom: 10px;\n"
-			<< "            color: #444;\n"
+			<< "            color: white;\n"
+			<< "            mix-blend-mode: difference;\n"
 			<< "        }\n"
 			<< "        .listing {\n"
 			<< "            display: table;\n"
@@ -140,6 +174,8 @@ void Server::generateAutoIndexHeader(Context& ctx, std::stringstream& content)
 			<< "        }\n"
 			<< "        .entry {\n"
 			<< "            display: table-row;\n"
+			<< "            background-color: white;\n"
+			<< "            mix-blend-mode: difference;\n"
 			<< "        }\n"
 			<< "        .entry:hover {\n"
 			<< "            background-color: #f5f5f5;\n"

@@ -266,9 +266,9 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
 
 	if (bytes < 0) {
-		if (ctx.upload_fd > 0) {
-			close(ctx.upload_fd);
-			ctx.upload_fd = -1;
+		if (ctx.multipart_fd_up_down > 0) {
+			close(ctx.multipart_fd_up_down);
+			ctx.multipart_fd_up_down = -1;
 			ctx.write_buffer.clear();
 			ctx.write_pos = 0;
 			ctx.write_len = 0;
@@ -281,11 +281,12 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 	}
 
 	ctx.last_activity = std::chrono::steady_clock::now();
-	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.upload_fd < 0)
+	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.multipart_fd_up_down < 0)
 		resetContext(ctx);
 	ctx.read_buffer = std::string(buffer, bytes);
 
 	//Logger::cyan("read_buffer:\n" + Logger::logReadBuffer(ctx.read_buffer));
+	Logger::cyan("read_buffer:\n" + std::string(ctx.read_buffer.begin(), ctx.read_buffer.end()));
 
 	if (!ctx.headers_complete) {
 		if (!parseBareHeaders(ctx, configs)) {
@@ -311,7 +312,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 			return false;
 
 		// If we have found the filename from Content-Disposition, prepare for upload
-		if (!ctx.uploaded_file_path.empty()) {
+		if (!ctx.multipart_file_path_up_down.empty()) {
 			prepareUploadPingPong(ctx);
 			if (ctx.error_code)
 				return false;
@@ -328,8 +329,8 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 			// If final boundary is found, complete the upload
 			if (ctx.final_boundary_found) {
 				// Write any pending data first
-				if (!ctx.write_buffer.empty() && ctx.upload_fd >= 0) {
-					ssize_t written = write(ctx.upload_fd, ctx.write_buffer.data(), ctx.write_buffer.size());
+				if (!ctx.write_buffer.empty() && ctx.multipart_fd_up_down >= 0) {
+					ssize_t written = write(ctx.multipart_fd_up_down, ctx.write_buffer.data(), ctx.write_buffer.size());
 					if (written > 0) {
 						ctx.req.current_body_length += written;
 					}
@@ -338,7 +339,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 			}
 
 			// If we have data to write, switch to write mode
-			if (!ctx.write_buffer.empty() && ctx.upload_fd >= 0) {
+			if (!ctx.write_buffer.empty() && ctx.multipart_fd_up_down >= 0) {
 				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 				return true;
 			}
@@ -368,8 +369,8 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 			// If final boundary was found, complete the upload
 			if (ctx.final_boundary_found) {
 				// Write any pending data first
-				if (!ctx.write_buffer.empty() && ctx.upload_fd >= 0) {
-					ssize_t written = write(ctx.upload_fd, ctx.write_buffer.data(), ctx.write_buffer.size());
+				if (!ctx.write_buffer.empty() && ctx.multipart_fd_up_down >= 0) {
+					ssize_t written = write(ctx.multipart_fd_up_down, ctx.write_buffer.data(), ctx.write_buffer.size());
 					if (written > 0) {
 						ctx.req.current_body_length += written;
 					}
@@ -378,7 +379,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 			}
 
 			// If we have data to write, trigger a write operation
-			if (!ctx.write_buffer.empty() && ctx.upload_fd >= 0) {
+			if (!ctx.write_buffer.empty() && ctx.multipart_fd_up_down >= 0) {
 				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 				return true;
 			}
@@ -393,8 +394,8 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		// If final boundary was found, complete the upload
 		if (ctx.final_boundary_found) {
 			// Write any pending data first
-			if (!ctx.write_buffer.empty() && ctx.upload_fd >= 0) {
-				ssize_t written = write(ctx.upload_fd, ctx.write_buffer.data(), ctx.write_buffer.size());
+			if (!ctx.write_buffer.empty() && ctx.multipart_fd_up_down >= 0) {
+				ssize_t written = write(ctx.multipart_fd_up_down, ctx.write_buffer.data(), ctx.write_buffer.size());
 				if (written > 0) {
 					ctx.req.current_body_length += written;
 				}
@@ -403,7 +404,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		}
 
 		// If we have data to write, trigger a write event
-		if (!ctx.write_buffer.empty() && ctx.upload_fd >= 0) {
+		if (!ctx.write_buffer.empty() && ctx.multipart_fd_up_down >= 0) {
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 			return true;
 		}
@@ -455,7 +456,7 @@ bool Server::parseContentDisposition(Context& ctx)
 		if (filename_end != std::string::npos) {
 			std::string filename = ctx.read_buffer.substr(filename_pos, filename_end - filename_pos);
 			ctx.headers["Content-Disposition-Filename"] = filename;
-			ctx.uploaded_file_path = concatenatePath(ctx.location.upload_store, filename);
+			ctx.multipart_file_path_up_down = concatenatePath(ctx.location.upload_store, filename);
 
 			// Find the end of headers to locate the start of content
 			size_t headers_end = ctx.read_buffer.find("\r\n\r\n", disp_pos);
@@ -516,23 +517,23 @@ bool Server::doMultipartWriting(Context& ctx) {
 	}
 
 	// Open the file if not already open
-	if (ctx.upload_fd < 0) {
-		ctx.upload_fd = open(ctx.uploaded_file_path.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
-		if (ctx.upload_fd < 0) {
+	if (ctx.multipart_fd_up_down < 0) {
+		ctx.multipart_fd_up_down = open(ctx.multipart_file_path_up_down.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+		if (ctx.multipart_fd_up_down < 0) {
 			Logger::errorLog("Failed to open file");
 			return updateErrorStatus(ctx, 500, "Failed to open upload file");
 		}
 	}
 
 	// Write the data
-	ssize_t written = write(ctx.upload_fd,
+	ssize_t written = write(ctx.multipart_fd_up_down,
 						ctx.write_buffer.data(),
 						ctx.write_buffer.size());
 
 	if (written < 0) {
 		Logger::errorLog("Write error");
-		close(ctx.upload_fd);
-		ctx.upload_fd = -1;
+		close(ctx.multipart_fd_up_down);
+		ctx.multipart_fd_up_down = -1;
 		return updateErrorStatus(ctx, 500, "Failed to write to upload file");
 	}
 
@@ -571,9 +572,9 @@ bool Server::completeUpload(Context& ctx) {
 	Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "Completed Upload: 8");
 	std::cout << std::endl;
 
-	if (ctx.upload_fd >= 0) {
-		close(ctx.upload_fd);
-		ctx.upload_fd = -1;
+	if (ctx.multipart_fd_up_down >= 0) {
+		close(ctx.multipart_fd_up_down);
+		ctx.multipart_fd_up_down = -1;
 	}
 
 	ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
@@ -618,12 +619,17 @@ void Server::initializeWritingActions(Context& ctx)
 }
 
 bool Server::handleWrite(Context& ctx) {
-	Logger::blue("ctx.doAutoIndex " + ctx.doAutoIndex);
+	Logger::green("handleWrite");
 	bool result = false;
 	initializeWritingActions(ctx);
 
-	if (ctx.upload_fd > 0) {
-		if (!ctx.write_buffer.empty()) {
+		Logger::yellow("fd: " + std::to_string(ctx.multipart_fd_up_down));
+	if (ctx.multipart_fd_up_down > 0) {
+		if (ctx.is_download) {
+		Logger::yellow("downloadHandler");
+			result = downloadHandler(ctx);
+		} else if (!ctx.write_buffer.empty()) {
+			// Handle upload
 			result = doMultipartWriting(ctx);
 		} else {
 			// If the upload is complete, finish the process
@@ -670,4 +676,120 @@ bool Server::handleWrite(Context& ctx) {
 	if (!result)
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 	return result;
+}
+
+bool Server::downloadHandler(Context &ctx) {
+	std::string fullPath = ctx.approved_req_path;
+
+	// Check if file is already open
+	if (ctx.multipart_fd_up_down < 0) {
+		ctx.multipart_fd_up_down = open(fullPath.c_str(), O_RDONLY);
+		if (ctx.multipart_fd_up_down < 0) {
+			return updateErrorStatus(ctx, 404, "Not found");
+		}
+
+		// Get file size
+		struct stat file_stat;
+		if (fstat(ctx.multipart_fd_up_down, &file_stat) < 0) {
+			close(ctx.multipart_fd_up_down);
+			ctx.multipart_fd_up_down = -1;
+			return updateErrorStatus(ctx, 500, "Internal Server Error");
+		}
+
+		// Prepare HTTP headers (only on first call)
+		std::string contentType = determineContentType(fullPath);
+		std::stringstream headers;
+		headers << "HTTP/1.1 200 OK\r\n"
+				<< "Content-Type: " << contentType << "\r\n"
+				<< "Content-Length: " << file_stat.st_size << "\r\n"
+				<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
+
+		// Add filename for download (derive from path)
+		size_t lastSlash = fullPath.find_last_of("/\\");
+		std::string filename = (lastSlash != std::string::npos) ?
+								fullPath.substr(lastSlash + 1) : fullPath;
+		headers << "Content-Disposition: attachment; filename=\"" << filename << "\"\r\n";
+
+		// Add cookies if needed
+		for (const auto& cookiePair : ctx.setCookies) {
+			Cookie cookie;
+			cookie.name = cookiePair.first;
+			cookie.value = cookiePair.second;
+			cookie.path = "/";
+			headers << generateSetCookieHeader(cookie) << "\r\n";
+		}
+
+		headers << "\r\n";
+
+		// Store headers in a temporary buffer
+		ctx.tmp_buffer = headers.str();
+
+		// Reset tracking variables
+		ctx.req.expected_body_length = file_stat.st_size;
+		ctx.req.current_body_length = 0;
+		ctx.write_buffer.clear();
+	}
+
+	// First, check if we need to send headers
+	if (!ctx.tmp_buffer.empty()) {
+		ssize_t sent = write(ctx.client_fd, ctx.tmp_buffer.c_str(), ctx.tmp_buffer.length());
+		if (sent <= 0) {
+			close(ctx.multipart_fd_up_down);
+			ctx.multipart_fd_up_down = -1;
+			return updateErrorStatus(ctx, 500, "Failed to send headers");
+		}
+		ctx.tmp_buffer.clear();
+	}
+
+	// Read chunk from file into buffer
+	ctx.write_buffer.resize(DEFAULT_REQUESTBUFFER_SIZE);
+	ssize_t bytes_read = read(ctx.multipart_fd_up_down, ctx.write_buffer.data(), DEFAULT_REQUESTBUFFER_SIZE);
+
+	if (bytes_read < 0) {
+		close(ctx.multipart_fd_up_down);
+		ctx.multipart_fd_up_down = -1;
+		return updateErrorStatus(ctx, 500, "Failed to read file");
+	}
+
+	// If no more data, we're done
+	if (bytes_read == 0) {
+		close(ctx.multipart_fd_up_down);
+		ctx.multipart_fd_up_down = -1;
+		ctx.is_download = false;
+		Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "Download Complete");
+		return true;
+	}
+
+	// Resize buffer to match what we read
+	ctx.write_buffer.resize(bytes_read);
+
+	// Write the chunk to the client
+	ssize_t bytes_sent = write(ctx.client_fd, ctx.write_buffer.data(), bytes_read);
+	if (bytes_sent <= 0) {
+		close(ctx.multipart_fd_up_down);
+		ctx.multipart_fd_up_down = -1;
+		return updateErrorStatus(ctx, 500, "Failed to send file data");
+	}
+
+	// Update progress
+	ctx.req.current_body_length += bytes_sent;
+	Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "Download");
+
+	// If we didn't send all bytes, adjust our position in the file
+	if (bytes_sent < bytes_read) {
+		lseek(ctx.multipart_fd_up_down, -(bytes_read - bytes_sent), SEEK_CUR);
+	}
+
+	// Schedule more reading/writing
+	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+
+	// If we're done, clean up
+	if (ctx.req.current_body_length >= ctx.req.expected_body_length) {
+		close(ctx.multipart_fd_up_down);
+		ctx.multipart_fd_up_down = -1;
+		ctx.is_download = false;
+		return true;
+	}
+
+	return true;
 }

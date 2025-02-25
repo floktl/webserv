@@ -53,7 +53,7 @@ bool Server::deleteHandler(Context &ctx)
 	for (auto it = globalFDS.context_map.begin(); it != globalFDS.context_map.end(); ++it)
 	{
 		Context &other_ctx = it->second;
-		if (other_ctx.uploaded_file_path == requestedPath && other_ctx.client_fd != ctx.client_fd)
+		if (other_ctx.multipart_file_path_up_down == requestedPath && other_ctx.client_fd != ctx.client_fd)
 		{
 			Logger::red("File is currently being uploaded by client_fd " + std::to_string(other_ctx.client_fd) + " - Deletion blocked.");
 
