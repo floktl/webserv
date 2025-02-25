@@ -2,13 +2,8 @@
 
 
 // Extracts and Validates http Headers from the Request, Updating the Request Context
-bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
+bool Server::parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs)
 {
-	if (!ctx.read_buffer.empty())
-	{
-		ctx.tmp_buffer = std::string(ctx.read_buffer.begin(), ctx.read_buffer.end());
-
-	}
 	size_t header_end = ctx.read_buffer.find("\r\n\r\n");
 	if (header_end == std::string::npos)
 		return true;
@@ -48,10 +43,18 @@ bool Server::parseHeaders(Context& ctx, const std::vector<ServerBlock>& configs)
 	}
 	ctx.read_buffer.erase(0, header_end + 4);
 	ctx.headers_complete = true;
-
+	ctx.is_multipart = isMultipart(ctx);
+	if (!ctx.is_multipart)
+	{
+		ctx.ready_for_ping_pong = 1;
+	}
 	if (ctx.method == "POST" && ctx.headers.find("Content-Length") == ctx.headers.end() &&
 		ctx.headers.find("Transfer-Encoding") == ctx.headers.end())
 		return updateErrorStatus(ctx, 411, "Length Required");
+
+	if (!checkMaxContentLength(ctx, configs))
+		return false;
+	Logger::magenta("reach here");
 	return true;
 }
 
@@ -344,7 +347,7 @@ void Server::parseChunkedBody(Context& ctx)
 }
 
 // Validates Content-Lengh Header and Checks Against Server-Configureded Limits
-bool Server::handleContentLength(Context& ctx, const std::vector<ServerBlock>& configs)
+bool Server::checkMaxContentLength(Context& ctx, std::vector<ServerBlock>& configs)
 {
 	auto headersit = ctx.headers.find("Content-Length");
 	long long content_length;
@@ -356,5 +359,22 @@ bool Server::handleContentLength(Context& ctx, const std::vector<ServerBlock>& c
 		if (content_length > ctx.client_max_body_size)
 			return updateErrorStatus(ctx, 413, "Payload too large");
 	}
+	return true;
+}
+
+// Finalizes Request Parsing by Determining the Request Type and Updating Epoll Events
+bool Server::finalizeRequest(Context& ctx)
+{
+	if (isMultipart(ctx) &&
+		ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
+		!ctx.req.is_upload_complete) {
+
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
+		return true;
+	}
+	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE)
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
+	else if (ctx.error_code != 0)
+		return false;
 	return true;
 }

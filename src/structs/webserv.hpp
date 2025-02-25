@@ -204,6 +204,7 @@ struct Context
 	bool found_first_boundary = false;
 	int near_completion_count = 0;
 	bool is_download = false;
+	bool final_boundary_found = false;
 
 };
 
