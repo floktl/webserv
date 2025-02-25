@@ -285,17 +285,15 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		resetContext(ctx);
 	ctx.read_buffer = std::string(buffer, bytes);
 
-	Logger::cyan("read_buffer:\n" + Logger::logReadBuffer(ctx.read_buffer));
+	//Logger::cyan("read_buffer:\n" + Logger::logReadBuffer(ctx.read_buffer));
 
 	if (!ctx.headers_complete) {
-		Logger::green("parseBareHeaders\n");
 		if (!parseBareHeaders(ctx, configs)) {
 			Logger::errorLog("Header parsing failed");
 			return false;
 		}
 		if (ctx.error_code)
 			return false;
-		Logger::green("determineType\n");
 		if (!determineType(ctx, configs)) {
 			Logger::errorLog("Failed to determine request type");
 			return false;
@@ -304,12 +302,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 			return false;
 	}
 
-	Logger::red("ctx.headers_complete: " + std::to_string(ctx.headers_complete));
-	Logger::red("ctx.ready_for_ping_pong: " + std::to_string(ctx.ready_for_ping_pong));
-	Logger::red("ctx.is_multipart: " + std::to_string(ctx.is_multipart));
-
 	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong) {
-		Logger::green("parseContentDisposition\n");
 		if (!parseContentDisposition(ctx)) {
 			Logger::errorLog("Content Disposition parsing failed");
 			return false;
@@ -319,7 +312,6 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 
 		// If we have found the filename from Content-Disposition, prepare for upload
 		if (!ctx.uploaded_file_path.empty()) {
-			Logger::yellow("prepareUploadPingPong");
 			prepareUploadPingPong(ctx);
 			if (ctx.error_code)
 				return false;
@@ -333,9 +325,6 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 			// Process initial data if we have it
 			extractFileContent(ctx.boundary, ctx.read_buffer, ctx.write_buffer, ctx);
 
-			Logger::yellow(ctx.boundary);
-			Logger::yellow("--" + ctx.boundary + "--");
-			Logger::yellow("final_boundary_found: " + std::to_string(ctx.final_boundary_found));
 			// If final boundary is found, complete the upload
 			if (ctx.final_boundary_found) {
 				// Write any pending data first
@@ -360,8 +349,6 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		}
 	}
 
-	Logger::red("ctx.boundary: " + ctx.boundary);
-	Logger::red("ctx.uploaded_file_path: " + ctx.uploaded_file_path);
 
 	if (ctx.headers_complete && ctx.ready_for_ping_pong) {
 		handleSessionCookies(ctx);
@@ -422,7 +409,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		}
 	}
 
-	Logger::green("Write_Buffer:\n" + Logger::logWriteBuffer(ctx.write_buffer));
+	//Logger::green("Write_Buffer:\n" + Logger::logWriteBuffer(ctx.write_buffer));
 
 	return finalizeRequest(ctx);
 }
@@ -631,6 +618,7 @@ void Server::initializeWritingActions(Context& ctx)
 }
 
 bool Server::handleWrite(Context& ctx) {
+	Logger::blue("ctx.doAutoIndex " + ctx.doAutoIndex);
 	bool result = false;
 	initializeWritingActions(ctx);
 
@@ -648,7 +636,6 @@ bool Server::handleWrite(Context& ctx) {
 		}
 	}
 	else {
-		Logger::yellow("normal write");
 		switch (ctx.type) {
 			case INITIAL:
 				result = true;
@@ -673,6 +660,7 @@ bool Server::handleWrite(Context& ctx) {
 		return getErrorHandler()->generateErrorResponse(ctx);
 
 	if (result) {
+		ctx.doAutoIndex = "";
 		if (ctx.keepAlive)
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
 		else
