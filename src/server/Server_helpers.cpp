@@ -233,13 +233,13 @@ bool Server::checkAccessRights(Context &ctx, std::string path)
 	if (!fileReadable(path) && ctx.method == "DELETE")
 		return updateErrorStatus(ctx, 404, "Not found in 2. checkaccessright()");
 	if (!fileReadable(path) && ctx.method != "POST")
-		return updateErrorStatus(ctx, 403, "Forbidden");
+		return updateErrorStatus(ctx, 403, "Forbidden in 1. checkAccessRights()");
 
 	if (ctx.method == "POST")
 	{
 		std::string uploadDir = getDirectory(path);
 		if (!dirWritable(uploadDir))
-			return updateErrorStatus(ctx, 403, "Forbidden");
+			return updateErrorStatus(ctx, 403, "Forbidden in 2. checkAccessRights()");
 	}
 
 	if (path.length() > 4096)
@@ -276,13 +276,20 @@ bool isMethodAllowed(Context& ctx)
 
 
 std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
+	Logger::green("approveExtention() path to check: " + path_to_check);
 	size_t dot_pos = path_to_check.find_last_of('.');
 	bool starts_with_upload_store = false;
 
-	if (path_to_check.length() >= ctx.location.upload_store.length()) {
+	Logger::yellow("ctx.location.upload_store.length(): " + ctx.location.upload_store);
+	if (path_to_check.length() >= ctx.location.upload_store.length())
+	{
 		starts_with_upload_store = path_to_check.substr(0, ctx.location.upload_store.length()) == ctx.location.upload_store;
 	}
-
+	if (path_to_check.back() == '/')
+	{
+		Logger::red("Detected a folder! Resetting `starts_with_upload_store`.");
+		starts_with_upload_store = false;
+	}
 	if (!ctx.location.return_url.empty() && ctx.method == "GET") {
 		if (std::find(ctx.blocks_location_paths.begin(), ctx.blocks_location_paths.end(),
 			ctx.location.return_url) != ctx.blocks_location_paths.end()) {
@@ -298,11 +305,11 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 		Logger::yellow(" -- Processing download request: " + path_to_check);
 		ctx.is_download = true;
 
+		Logger::red("path_to_check before return: " + path_to_check);
 		if (!fileReadable(path_to_check)) {
 			updateErrorStatus(ctx, 403, "Forbidden");
 			return "";
 		}
-
 		if (ctx.multipart_fd_up_down >= 0) {
 			close(ctx.multipart_fd_up_down);
 			ctx.multipart_fd_up_down = -1;
@@ -338,8 +345,12 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 		if (starts_with_upload_store && ctx.method == "POST") {
 			return path_to_check;
 		}
-
-		updateErrorStatus(ctx, 404, "Not found");
+		if (!starts_with_upload_store && ctx.method == "GET")
+		{
+			updateErrorStatus(ctx, 403, "Forbidden");
+			return "";
+		}
+		updateErrorStatus(ctx, 404, "Not found in approveextension()");
 		return "";
 	}
 
