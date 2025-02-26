@@ -25,6 +25,9 @@ $(GREEN)Task at the end:$(X)\n\
 $(X)	🦄 wildcard checken....\n\
 $(X)	🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
 $(X)	🦄 adjust Jeberle_warner for upload path \n\
+$(X)	🦄 error code pruefen gegen statuses.... \n\
+$(X)	🐑 bei zugriff auf nciht definierte location http://localhost:9090/team kein error.... 404\n\
+$(X)	🐑 bei zugriff auf nciht definierte location http://localhost:9090/team/ kein error.... 404\n\
 $(X)  \n\
 $(GREEN)Needs CGI ready:$(X)\n\
 $(X)	🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\

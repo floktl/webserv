@@ -2,12 +2,14 @@
 
 bool Server::executeCgi(Context& ctx) {
 	Logger::green("executeCgi");
+	Logger::file("executeCgi started");
 
 	int input_pipe[2];
 	int output_pipe[2];
 
 	if (pipe(input_pipe) < 0 || pipe(output_pipe) < 0) {
 		Logger::error("Failed to create pipes for CGI");
+		Logger::file("Failed to create pipes for CGI");
 		ctx.error_code = 500;
 		return false;
 	}
@@ -16,6 +18,7 @@ bool Server::executeCgi(Context& ctx) {
 
 	if (pid < 0) {
 		Logger::error("Failed to fork for CGI execution");
+		Logger::file("Failed to fork for CGI execution");
 		close(input_pipe[0]);
 		close(input_pipe[1]);
 		close(output_pipe[0]);
@@ -25,12 +28,12 @@ bool Server::executeCgi(Context& ctx) {
 	}
 
 	if (pid == 0) {
-// Redirect Stdin to input_pipe
+		// Redirect Stdin to input_pipe
 		dup2(input_pipe[0], STDIN_FILENO);
-// Redirect stdout to output_pipe
+		// Redirect stdout to output_pipe
 		dup2(output_pipe[1], STDOUT_FILENO);
 
-// Close Unused Pipe Ends
+		// Close Unused Pipe Ends
 		close(input_pipe[0]);
 		close(input_pipe[1]);
 		close(output_pipe[0]);
@@ -43,7 +46,7 @@ bool Server::executeCgi(Context& ctx) {
 		}
 		env_pointers.push_back(nullptr);
 
-		std::string script_path = ctx.root + ctx.path;
+		std::string script_path = ctx.root + ctx.path + "index.php";
 		std::string interpreter;
 		if (ctx.location.cgi_filetype == ".py") {
 			interpreter = "/usr/bin/python";
@@ -59,13 +62,14 @@ bool Server::executeCgi(Context& ctx) {
 			nullptr
 		};
 
+		Logger::file("Executing CGI script: " + script_path + " with interpreter: " + interpreter);
 		execve(interpreter.c_str(), args, env_pointers.data());
 
-		Logger::error("execve failed for CGI execution");
+		Logger::file("execve failed for CGI execution");
 		exit(1);
 	}
 
-// Close Unused Pipe Ends
+	// Close Unused Pipe Ends
 	close(input_pipe[0]);
 	close(output_pipe[1]);
 
@@ -75,17 +79,22 @@ bool Server::executeCgi(Context& ctx) {
 	ctx.req.cgi_done = false;
 	ctx.req.state = RequestBody::STATE_CGI_RUNNING;
 
+	Logger::file("CGI process started with PID: " + std::to_string(pid));
+
 	if (!ctx.body.empty()) {
 		write(ctx.req.cgi_in_fd, ctx.body.c_str(), ctx.body.length());
+		Logger::file("CGI input written: " + std::to_string(ctx.body.length()) + " bytes");
 	}
 
 	close(ctx.req.cgi_in_fd);
 	ctx.req.cgi_in_fd = -1;
 
 	ctx.last_activity = std::chrono::steady_clock::now();
+	Logger::file("executeCgi completed successfully");
 
 	return true;
 }
+
 
 std::vector<std::string> Server::prepareCgiEnvironment(const Context& ctx) {
 	std::vector<std::string> env;
