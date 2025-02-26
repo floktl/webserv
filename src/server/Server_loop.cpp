@@ -35,12 +35,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 				}
 			}
 
-			if (is_active_upload) {
-				handleAcceptedConnection(epoll_fd, incoming_fd, events[eventIter].events, configs);
-				continue;
-			}
-
-			if (findServerBlock(configs, incoming_fd)) {
+			if (!is_active_upload && findServerBlock(configs, incoming_fd)) {
 				server_fd = incoming_fd;
 				acceptNewConnection(epoll_fd, server_fd, configs);
 			}
@@ -546,6 +541,7 @@ bool Server::buildDownloadResponse(Context &ctx) {
 bool Server::handleChunkedDownload(Context& ctx) {
 	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
 
+	Logger::magenta("read in handleChunkedDownload");
 	ssize_t bytes_read = read(ctx.multipart_fd_up_down, buffer, DEFAULT_REQUESTBUFFER_SIZE);
 
 	if (bytes_read <= 0) {
