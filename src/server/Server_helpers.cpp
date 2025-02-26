@@ -229,10 +229,9 @@ bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	struct stat path_stat;
 	if (stat(path.c_str(), &path_stat) != 0 && ctx.method == "GET")
-		return updateErrorStatus(ctx, 404, "Not found");
-
+		return updateErrorStatus(ctx, 404, "Not found in 1. checkaccessright()");
 	if (!fileReadable(path) && ctx.method == "DELETE")
-		return updateErrorStatus(ctx, 404, "Not found");
+		return updateErrorStatus(ctx, 404, "Not found in 2. checkaccessright()");
 	if (!fileReadable(path) && ctx.method != "POST")
 		return updateErrorStatus(ctx, 403, "Forbidden");
 

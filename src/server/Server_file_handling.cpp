@@ -17,6 +17,7 @@ std::string Server::retreiveReqRoot(Context &ctx)
 // and sending appropriate responses without killing the process.
 bool Server::deleteHandler(Context &ctx)
 {
+	Logger::green("deletehandler()");
 	std::string req_root = retreiveReqRoot(ctx);
 	std::string requestedPath = concatenatePath(req_root, ctx.path);
 
