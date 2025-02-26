@@ -139,218 +139,193 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 
 bool Server::extractFileContent(const std::string& boundary, const std::string& buffer, std::vector<char>& output, Context& ctx)
 {
-    // Prüfen, ob boundary leer ist
-    if (boundary.empty()) {
-        Logger::errorLog("Empty boundary");
-        return false;
-    }
+	if (boundary.empty()) {
+		Logger::errorLog("Empty boundary");
+		return false;
+	}
 
-    // Boundary-Zeichenketten definieren
-    std::string boundaryStr = boundary;  // Die ctx.boundary enthält bereits "--"
-    std::string finalBoundaryStr = boundaryStr + "--";
+	std::string boundaryStr = boundary;
+	std::string finalBoundaryStr = boundaryStr + "--";
 
-    // Positionen der Boundaries im Buffer finden
-    size_t boundaryPos = buffer.find(boundaryStr);
-    size_t finalBoundaryPos = buffer.find(finalBoundaryStr);
+	size_t boundaryPos = buffer.find(boundaryStr);
+	size_t finalBoundaryPos = buffer.find(finalBoundaryStr);
 
-    // Erkennen, ob finale Boundary gefunden wurde
-    bool finalBoundaryFound = (finalBoundaryPos != std::string::npos);
-    if (finalBoundaryFound) {
-        ctx.req.is_upload_complete = true;
-        ctx.final_boundary_found = true;
-    }
+	bool finalBoundaryFound = (finalBoundaryPos != std::string::npos);
+	if (finalBoundaryFound) {
+		ctx.req.is_upload_complete = true;
+		ctx.final_boundary_found = true;
+	}
 
-    // DEBUG: Größe des Buffers protokollieren
+	if (!ctx.found_first_boundary) {
+		if (boundaryPos != std::string::npos) {
+			ctx.found_first_boundary = true;
 
-    // Fall 1: Erste Boundary noch nicht gefunden
-    if (!ctx.found_first_boundary) {
-        if (boundaryPos != std::string::npos) {
-            ctx.found_first_boundary = true;
+			size_t headers_end = buffer.find("\r\n\r\n", boundaryPos);
+			if (headers_end != std::string::npos) {
+				size_t content_start = headers_end + 4;
 
-            // Ende der Headers nach der ersten Boundary finden
-            size_t headers_end = buffer.find("\r\n\r\n", boundaryPos);
-            if (headers_end != std::string::npos) {
-                size_t content_start = headers_end + 4;
+				if (finalBoundaryFound) {
+					if (finalBoundaryPos > content_start) {
+						size_t content_end = finalBoundaryPos;
+						if (content_end >= 2 && buffer[content_end-1] == '\n' && buffer[content_end-2] == '\r') {
+							content_end -= 2;
+						}
 
-                // Wenn finale Boundary im selben Buffer, nur Inhalt bis dorthin extrahieren
-                if (finalBoundaryFound) {
-                    if (finalBoundaryPos > content_start) { // Nur wenn Inhalt existiert
-                        size_t content_end = finalBoundaryPos;
-                        // CRLF vor der Boundary entfernen
-                        if (content_end >= 2 && buffer[content_end-1] == '\n' && buffer[content_end-2] == '\r') {
-                            content_end -= 2;
-                        }
+						if (content_start < content_end) {
+							output.insert(output.end(),
+										buffer.begin() + content_start,
+										buffer.begin() + content_end);
+						}
+					}
+				}
+				else if (content_start < buffer.size()) {
+					output.insert(output.end(),
+								buffer.begin() + content_start,
+								buffer.end());
+				}
+			}
+		}
+		return true;
+	}
+	else {
+		if (finalBoundaryFound) {
+			size_t end_pos = finalBoundaryPos;
 
-                        if (content_start < content_end) {
-                            output.insert(output.end(),
-                                         buffer.begin() + content_start,
-                                         buffer.begin() + content_end);
-                        }
-                    }
-                }
-                // Sonst alles nach den Headers bis zum Ende extrahieren
-                else if (content_start < buffer.size()) {
-                    output.insert(output.end(),
-                                 buffer.begin() + content_start,
-                                 buffer.end());
-                }
-            }
-        }
-        return true;
-    }
-    // Fall 2: Weitere Datenchunks verarbeiten (erste Boundary bereits gefunden)
-    else {
-        // Wenn finale Boundary gefunden wurde
-        if (finalBoundaryFound) {
-            size_t end_pos = finalBoundaryPos;
+			if (end_pos >= 2 && buffer[end_pos-1] == '\n' && buffer[end_pos-2] == '\r') {
+				end_pos -= 2;
+			}
 
-            // CRLF vor der Boundary entfernen
-            if (end_pos >= 2 && buffer[end_pos-1] == '\n' && buffer[end_pos-2] == '\r') {
-                end_pos -= 2;
-            }
+			if (end_pos > 0) {
+				output.insert(output.end(),
+							buffer.begin(),
+							buffer.begin() + end_pos);
+			}
+		}
+		else if (boundaryPos != std::string::npos) {
+			if (boundaryPos > 0) {
+				size_t end_pos = boundaryPos;
 
-            // Daten bis zur finalen Boundary extrahieren
-            if (end_pos > 0) {
-                output.insert(output.end(),
-                             buffer.begin(),
-                             buffer.begin() + end_pos);
-            }
-        }
-        // Wenn reguläre Boundary gefunden wurde (Teil eines Multipart-Chunks)
-        else if (boundaryPos != std::string::npos) {
-            // Daten bis zur regulären Boundary extrahieren
-            if (boundaryPos > 0) {
-                size_t end_pos = boundaryPos;
+				if (end_pos >= 2 && buffer[end_pos-1] == '\n' && buffer[end_pos-2] == '\r') {
+					end_pos -= 2;
+				}
 
-                // CRLF vor der Boundary entfernen
-                if (end_pos >= 2 && buffer[end_pos-1] == '\n' && buffer[end_pos-2] == '\r') {
-                    end_pos -= 2;
-                }
+				output.insert(output.end(),
+							buffer.begin(),
+							buffer.begin() + end_pos);
+			}
 
-                output.insert(output.end(),
-                             buffer.begin(),
-                             buffer.begin() + end_pos);
-            }
+			size_t headers_end = buffer.find("\r\n\r\n", boundaryPos);
+			if (headers_end != std::string::npos) {
+				size_t content_start = headers_end + 4;
 
-            // Header-Ende für den nächsten Teil finden
-            size_t headers_end = buffer.find("\r\n\r\n", boundaryPos);
-            if (headers_end != std::string::npos) {
-                size_t content_start = headers_end + 4;
+				if (content_start < buffer.size()) {
+					output.insert(output.end(),
+								buffer.begin() + content_start,
+								buffer.end());
+				}
+			}
+		}
+		else {
+			output.insert(output.end(), buffer.begin(), buffer.end());
+		}
+	}
 
-                // Daten nach dem Header-Ende extrahieren
-                if (content_start < buffer.size()) {
-                    output.insert(output.end(),
-                                 buffer.begin() + content_start,
-                                 buffer.end());
-                }
-            }
-        }
-        // Keine Boundary gefunden - den ganzen Buffer hinzufügen
-        else {
-            output.insert(output.end(), buffer.begin(), buffer.end());
-        }
-    }
 
-    // DEBUG: Endgültige Größe des Output-Buffers melden
-
-    return true;
+	return true;
 }
 
 // Handles Reading Request Data from the Client and Processing It Accordingly
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
-    Logger::green("handleRead");
-    if (!ctx.is_multipart || ctx.req.parsing_phase != RequestBody::PARSING_BODY) {
-        ctx.read_buffer.clear();
-    }
+	Logger::green("handleRead");
+	if (!ctx.is_multipart || ctx.req.parsing_phase != RequestBody::PARSING_BODY) {
+		ctx.read_buffer.clear();
+	}
 
-    ctx.write_buffer.clear();
+	ctx.write_buffer.clear();
 
-    char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-    std::memset(buffer, 0, sizeof(buffer));
-    Logger::magenta("read in hadnleRead");
-    ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
+	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+	std::memset(buffer, 0, sizeof(buffer));
+	Logger::magenta("read in hadnleRead");
+	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
 
-    if (bytes < 0) {
-        if (ctx.multipart_fd_up_down > 0) {
-            close(ctx.multipart_fd_up_down);
-            ctx.multipart_fd_up_down = -1;
-            ctx.write_buffer.clear();
-        }
-        return Logger::errorLog("Read error");
-    }
-    if (bytes == 0 && !ctx.req.is_upload_complete) {
-        return true;
-    }
+	if (bytes < 0) {
+		if (ctx.multipart_fd_up_down > 0) {
+			close(ctx.multipart_fd_up_down);
+			ctx.multipart_fd_up_down = -1;
+			ctx.write_buffer.clear();
+		}
+		return Logger::errorLog("Read error");
+	}
+	if (bytes == 0 && !ctx.req.is_upload_complete) {
+		return true;
+	}
 
-    ctx.last_activity = std::chrono::steady_clock::now();
-    if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.multipart_fd_up_down < 0)
-        resetContext(ctx);
-    ctx.read_buffer = std::string(buffer, bytes);
+	ctx.last_activity = std::chrono::steady_clock::now();
+	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.multipart_fd_up_down < 0)
+		resetContext(ctx);
+	ctx.read_buffer = std::string(buffer, bytes);
 
-    if (!ctx.headers_complete) {
-        if (!parseBareHeaders(ctx, configs)) {
-            Logger::errorLog("Header parsing failed");
-            return false;
-        }
-        if (ctx.error_code)
-            return false;
-        if (!determineType(ctx, configs)) {
-            Logger::errorLog("Failed to determine request type");
-            return false;
-        }
-        if (ctx.error_code)
-            return false;
-    }
+	if (!ctx.headers_complete) {
+		if (!parseBareHeaders(ctx, configs)) {
+			Logger::errorLog("Header parsing failed");
+			return false;
+		}
+		if (ctx.error_code)
+			return false;
+		if (!determineType(ctx, configs)) {
+			Logger::errorLog("Failed to determine request type");
+			return false;
+		}
+		if (ctx.error_code)
+			return false;
+	}
 
-    if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong) {
-        if (!parseContentDisposition(ctx)) {
-            Logger::errorLog("Content Disposition parsing failed");
-            return false;
-        }
-        if (ctx.error_code)
-            return false;
+	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong) {
+		if (!parseContentDisposition(ctx)) {
+			Logger::errorLog("Content Disposition parsing failed");
+			return false;
+		}
+		if (ctx.error_code)
+			return false;
 
-        // If we have found the filename from Content-Disposition, prepare for upload
-        if (!ctx.multipart_file_path_up_down.empty()) {
-            prepareUploadPingPong(ctx);
-            if (ctx.error_code)
-                return false;
+		if (!ctx.multipart_file_path_up_down.empty()) {
+			prepareUploadPingPong(ctx);
+			if (ctx.error_code)
+				return false;
 
-            ctx.ready_for_ping_pong = true;
-        }
-    }
+			ctx.ready_for_ping_pong = true;
+		}
+	}
 
-    if (ctx.headers_complete && ctx.ready_for_ping_pong) {
-        handleSessionCookies(ctx);
+	if (ctx.headers_complete && ctx.ready_for_ping_pong) {
+		handleSessionCookies(ctx);
 
-        if (ctx.method == "GET" || ctx.method == "DELETE") {
-            modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
-            return true;
-        }
-    }
+		if (ctx.method == "GET" || ctx.method == "DELETE") {
+			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
+			return true;
+		}
+	}
 
-    // If download is ready to be sent, trigger EPOLLOUT
-    if (ctx.is_download && ctx.multipart_fd_up_down > 0) {
-        modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-        return true;
-    }
+	if (ctx.is_download && ctx.multipart_fd_up_down > 0) {
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		return true;
+	}
 
-    if (ctx.is_multipart && ctx.multipart_fd_up_down > 0 && ctx.multipart_file_path_up_down != "" && ctx.headers_complete && ctx.ready_for_ping_pong) {
-        ctx.final_boundary_found = (ctx.read_buffer.find(ctx.boundary + "--") != std::string::npos);
-        extractFileContent(ctx.boundary, ctx.read_buffer, ctx.write_buffer, ctx);
-        modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-        return true;
-    }
-    return false;
+	if (ctx.is_multipart && ctx.multipart_fd_up_down > 0 && ctx.multipart_file_path_up_down != "" && ctx.headers_complete && ctx.ready_for_ping_pong) {
+		ctx.final_boundary_found = (ctx.read_buffer.find(ctx.boundary + "--") != std::string::npos);
+		extractFileContent(ctx.boundary, ctx.read_buffer, ctx.write_buffer, ctx);
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		return true;
+	}
+	return false;
 }
 
 bool Server::parseContentDisposition(Context& ctx)
 {
 	if (!ctx.is_multipart) {
-		return true; // Not needed for non-multipart requests
+		return true;
 	}
 
-	// Extract boundary if not done yet
 	if (ctx.boundary.empty()) {
 		auto content_type_it = ctx.headers.find("Content-Type");
 		if (content_type_it != ctx.headers.end()) {
@@ -365,29 +340,25 @@ bool Server::parseContentDisposition(Context& ctx)
 		}
 	}
 
-	// Find the boundary in the buffer
 	size_t boundary_start = ctx.read_buffer.find(ctx.boundary);
 	if (boundary_start == std::string::npos) {
-		return true; // Not found yet, need more data
+		return true;
 	}
 
-	// Find Content-Disposition
 	size_t disp_pos = ctx.read_buffer.find("Content-Disposition: form-data", boundary_start);
 	if (disp_pos == std::string::npos) {
-		return true; // Not found yet, need more data
+		return true;
 	}
 
-	// Extract filename
 	size_t filename_pos = ctx.read_buffer.find("filename=\"", disp_pos);
 	if (filename_pos != std::string::npos) {
-		filename_pos += 10; // Length of 'filename="'
+		filename_pos += 10;
 		size_t filename_end = ctx.read_buffer.find("\"", filename_pos);
 		if (filename_end != std::string::npos) {
 			std::string filename = ctx.read_buffer.substr(filename_pos, filename_end - filename_pos);
 			ctx.headers["Content-Disposition-Filename"] = filename;
 			ctx.multipart_file_path_up_down = concatenatePath(ctx.location.upload_store, filename);
 
-			// Find the end of headers to locate the start of content
 			size_t headers_end = ctx.read_buffer.find("\r\n\r\n", disp_pos);
 			if (headers_end != std::string::npos) {
 				ctx.header_offset = headers_end + 4;
@@ -422,204 +393,179 @@ void Server::handleSessionCookies(Context& ctx) {
 
 
 bool Server::handleWrite(Context& ctx) {
-    Logger::green("handleWrite");
-    bool result = false;
+	Logger::green("handleWrite");
+	bool result = false;
 
-    // Handle file downloads
-    if (ctx.is_download && ctx.multipart_fd_up_down > 0) {
-        return buildDownloadResponse(ctx);
-    }
+	if (ctx.is_download && ctx.multipart_fd_up_down > 0) {
+		return buildDownloadResponse(ctx);
+	}
 
-    // Multipart-Upload-Handling
-    if (ctx.is_multipart && ctx.multipart_fd_up_down > 0 && !ctx.multipart_file_path_up_down.empty() &&
-        ctx.headers_complete && ctx.ready_for_ping_pong) {
+	if (ctx.is_multipart && ctx.multipart_fd_up_down > 0 && !ctx.multipart_file_path_up_down.empty() &&
+		ctx.headers_complete && ctx.ready_for_ping_pong) {
 
-        bool upload_complete = false;
+		bool upload_complete = false;
 
-        // Upload ist abgeschlossen, wenn die finale Boundary gefunden wurde oder
-        // die erwartete Länge erreicht ist
-        if (ctx.final_boundary_found ||
-            (ctx.req.expected_body_length > 0 && ctx.req.current_body_length >= ctx.req.expected_body_length)) {
-            upload_complete = true;
-        }
+		if (ctx.final_boundary_found ||
+			(ctx.req.expected_body_length > 0 && ctx.req.current_body_length >= ctx.req.expected_body_length)) {
+			upload_complete = true;
+		}
 
-        // Schreiben des Pufferinhalts in die Datei - nur ein Write pro Event
-        if (!ctx.write_buffer.empty()) {
-            Logger::magenta("write in handleWrite");
-            ssize_t written = write(ctx.multipart_fd_up_down, ctx.write_buffer.data(), ctx.write_buffer.size());
-            if (written < 0) {
-                Logger::errorLog("Error writing to file: " + std::string(strerror(errno)));
-                close(ctx.multipart_fd_up_down);
-                ctx.multipart_fd_up_down = -1;
-                return false;
-            }
+		if (!ctx.write_buffer.empty()) {
+			Logger::magenta("write in handleWrite");
+			ssize_t written = write(ctx.multipart_fd_up_down, ctx.write_buffer.data(), ctx.write_buffer.size());
+			if (written < 0) {
+				Logger::errorLog("Error writing to file: " + std::string(strerror(errno)));
+				close(ctx.multipart_fd_up_down);
+				ctx.multipart_fd_up_down = -1;
+				return false;
+			}
 
-            if (written > 0) {
-                ctx.req.current_body_length += written;
-                ctx.write_buffer.clear();
-            }
+			if (written > 0) {
+				ctx.req.current_body_length += written;
+				ctx.write_buffer.clear();
+			}
 
-            // Überprüfen, ob Upload jetzt abgeschlossen ist
-            if (ctx.final_boundary_found ||
-                (ctx.req.expected_body_length > 0 && ctx.req.current_body_length >= ctx.req.expected_body_length)) {
-                upload_complete = true;
-            }
-        }
+			if (ctx.final_boundary_found ||
+				(ctx.req.expected_body_length > 0 && ctx.req.current_body_length >= ctx.req.expected_body_length)) {
+				upload_complete = true;
+			}
+		}
 
-        // Upload noch nicht abgeschlossen, weiter auf Daten warten
-        if (!upload_complete) {
-            modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
-            return true;
-        }
+		if (!upload_complete) {
+			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
+			return true;
+		}
 
-        // Upload abgeschlossen, Datei schließen
-        close(ctx.multipart_fd_up_down);
-        ctx.multipart_fd_up_down = -1;
-        ctx.req.is_upload_complete = true;
+		close(ctx.multipart_fd_up_down);
+		ctx.multipart_fd_up_down = -1;
+		ctx.req.is_upload_complete = true;
 
-        // Rufe redirectAction() auf, um die Umleitung durchzuführen
-        ctx.type = REDIRECT;
-        modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-        return true;
-    }
+		ctx.type = REDIRECT;
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		return true;
+	}
 
-    // Nicht-Multipart-Anfragen verarbeiten
-    switch (ctx.type) {
-        case INITIAL:
-            result = true;
-            break;
-        case STATIC:
-            result = staticHandler(ctx);
-            break;
-        case REDIRECT:
-            result = redirectAction(ctx);
-            break;
-        case CGI:
-            result = executeCgi(ctx);
-            break;
-        case ERROR:
-            return getErrorHandler()->generateErrorResponse(ctx);
-    }
+	switch (ctx.type) {
+		case INITIAL:
+			result = true;
+			break;
+		case STATIC:
+			result = staticHandler(ctx);
+			break;
+		case REDIRECT:
+			result = redirectAction(ctx);
+			break;
+		case CGI:
+			result = executeCgi(ctx);
+			break;
+		case ERROR:
+			return getErrorHandler()->generateErrorResponse(ctx);
+	}
 
-    if (ctx.error_code != 0)
-        return getErrorHandler()->generateErrorResponse(ctx);
+	if (ctx.error_code != 0)
+		return getErrorHandler()->generateErrorResponse(ctx);
 
-    if (result) {
-        ctx.doAutoIndex = "";
-        if (ctx.keepAlive)
-            modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
-        else
-            result = false;
-    }
+	if (result) {
+		ctx.doAutoIndex = "";
+		if (ctx.keepAlive)
+			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+		else
+			result = false;
+	}
 
-    if (!result)
-        delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-    return result;
+	if (!result)
+		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+	return result;
 }
 
 bool Server::buildDownloadResponse(Context &ctx) {
-    Logger::yellow("Building download response for: " + ctx.multipart_file_path_up_down);
+	Logger::yellow("Building download response for: " + ctx.multipart_file_path_up_down);
 
-    // Get file information
-    struct stat file_stat;
-    if (stat(ctx.multipart_file_path_up_down.c_str(), &file_stat) != 0) {
-        return updateErrorStatus(ctx, 404, "File not found");
-    }
+	struct stat file_stat;
+	if (stat(ctx.multipart_file_path_up_down.c_str(), &file_stat) != 0) {
+		return updateErrorStatus(ctx, 404, "File not found");
+	}
 
-    // Extract filename from the path
-    std::string filename = ctx.multipart_file_path_up_down;
-    size_t last_slash = filename.find_last_of("/\\");
-    if (last_slash != std::string::npos) {
-        filename = filename.substr(last_slash + 1);
-    }
+	std::string filename = ctx.multipart_file_path_up_down;
+	size_t last_slash = filename.find_last_of("/\\");
+	if (last_slash != std::string::npos) {
+		filename = filename.substr(last_slash + 1);
+	}
 
-    // Get content type
-    std::string contentType = determineContentType(ctx.multipart_file_path_up_down);
+	std::string contentType = determineContentType(ctx.multipart_file_path_up_down);
 
-    // Create the HTTP response headers
-    std::stringstream response;
-    response << "HTTP/1.1 200 OK\r\n"
-             << "Content-Type: " << contentType << "\r\n"
-             << "Content-Length: " << file_stat.st_size << "\r\n"
-             << "Content-Disposition: attachment; filename=\"" << filename << "\"\r\n"
-             << "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
+	std::stringstream response;
+	response << "HTTP/1.1 200 OK\r\n"
+			<< "Content-Type: " << contentType << "\r\n"
+			<< "Content-Length: " << file_stat.st_size << "\r\n"
+			<< "Content-Disposition: attachment; filename=\"" << filename << "\"\r\n"
+			<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
 
-    // Add cookies if present
-    for (const auto& cookiePair : ctx.setCookies) {
-        Cookie cookie;
-        cookie.name = cookiePair.first;
-        cookie.value = cookiePair.second;
-        cookie.path = "/";
-        response << generateSetCookieHeader(cookie) << "\r\n";
-    }
+	for (const auto& cookiePair : ctx.setCookies) {
+		Cookie cookie;
+		cookie.name = cookiePair.first;
+		cookie.value = cookiePair.second;
+		cookie.path = "/";
+		response << generateSetCookieHeader(cookie) << "\r\n";
+	}
 
-    response << "\r\n";
+	response << "\r\n";
 
-    // Send headers
-    Logger::magenta("send headers");
-    if (send(ctx.client_fd, response.str().c_str(), response.str().size(), MSG_NOSIGNAL) < 0) {
-        close(ctx.multipart_fd_up_down);
-        ctx.multipart_fd_up_down = -1;
-        return updateErrorStatus(ctx, 500, "Failed to send headers");
-    }
+	Logger::magenta("send headers");
+	if (send(ctx.client_fd, response.str().c_str(), response.str().size(), MSG_NOSIGNAL) < 0) {
+		close(ctx.multipart_fd_up_down);
+		ctx.multipart_fd_up_down = -1;
+		return updateErrorStatus(ctx, 500, "Failed to send headers");
+	}
 
-    // Send file content in chunks
-    char buffer[8192];
-    ssize_t bytes_read;
+	char buffer[8192];
+	ssize_t bytes_read;
 
-    Logger::magenta("sending file content");
-    while ((bytes_read = read(ctx.multipart_fd_up_down, buffer, sizeof(buffer))) > 0) {
-        if (send(ctx.client_fd, buffer, bytes_read, MSG_NOSIGNAL) < 0) {
-            close(ctx.multipart_fd_up_down);
-            ctx.multipart_fd_up_down = -1;
-            return updateErrorStatus(ctx, 500, "Failed to send file content");
-        }
-    }
+	Logger::magenta("sending file content");
+	while ((bytes_read = read(ctx.multipart_fd_up_down, buffer, sizeof(buffer))) > 0) {
+		if (send(ctx.client_fd, buffer, bytes_read, MSG_NOSIGNAL) < 0) {
+			close(ctx.multipart_fd_up_down);
+			ctx.multipart_fd_up_down = -1;
+			return updateErrorStatus(ctx, 500, "Failed to send file content");
+		}
+	}
 
-    // Close file and clean up
-    close(ctx.multipart_fd_up_down);
-    ctx.multipart_fd_up_down = -1;
+	close(ctx.multipart_fd_up_down);
+	ctx.multipart_fd_up_down = -1;
 
-    if (ctx.keepAlive) {
-        resetContext(ctx);
-        modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
-    } else {
-        delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-    }
+	if (ctx.keepAlive) {
+		resetContext(ctx);
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+	} else {
+		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+	}
 
-    return true;
+	return true;
 }
 
 bool Server::handleChunkedDownload(Context& ctx) {
-    // Define buffer size for reading the file
-    char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
 
-    // Read a chunk from the file
-    ssize_t bytes_read = read(ctx.multipart_fd_up_down, buffer, DEFAULT_REQUESTBUFFER_SIZE);
+	ssize_t bytes_read = read(ctx.multipart_fd_up_down, buffer, DEFAULT_REQUESTBUFFER_SIZE);
 
-    if (bytes_read <= 0) {
-        // End of file or error
-        close(ctx.multipart_fd_up_down);
-        ctx.multipart_fd_up_down = -1;
+	if (bytes_read <= 0) {
+		close(ctx.multipart_fd_up_down);
+		ctx.multipart_fd_up_down = -1;
 
-        // If this was the end of the file, return true to indicate success
-        if (bytes_read == 0) {
-            resetContext(ctx);
-            return true;
-        }
+		if (bytes_read == 0) {
+			resetContext(ctx);
+			return true;
+		}
 
-        // Error reading file
-        return updateErrorStatus(ctx, 500, "Error reading download file");
-    }
+		return updateErrorStatus(ctx, 500, "Error reading download file");
+	}
 
-    // Send the chunk to the client
-    if (send(ctx.client_fd, buffer, bytes_read, MSG_NOSIGNAL) < 0) {
-        close(ctx.multipart_fd_up_down);
-        ctx.multipart_fd_up_down = -1;
-        return updateErrorStatus(ctx, 500, "Failed to send file chunk");
-    }
+	if (send(ctx.client_fd, buffer, bytes_read, MSG_NOSIGNAL) < 0) {
+		close(ctx.multipart_fd_up_down);
+		ctx.multipart_fd_up_down = -1;
+		return updateErrorStatus(ctx, 500, "Failed to send file chunk");
+	}
 
-    // More data to send, keep the EPOLLOUT flag
-    modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-    return true;
+	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+	return true;
 }

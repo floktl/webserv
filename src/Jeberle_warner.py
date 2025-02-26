@@ -150,54 +150,54 @@ MAX_FILE_FUNCTIONS = 10
 MAX_FUNCTION_LINES = 45
 
 def find_defined_functions_and_classes(directory):
-    """Find all user-defined functions and classes in `.cpp` and `.hpp` files."""
-    defined_functions = set()
-    defined_classes = set()
+	"""Find all user-defined functions and classes in `.cpp` and `.hpp` files."""
+	defined_functions = set()
+	defined_classes = set()
 
-    for root, _, files in os.walk(directory):
-        for file in files:
-            if file.endswith((".hpp", ".cpp")):
-                file_path = os.path.abspath(os.path.join(root, file))
-                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                    in_multiline_comment = False
-                    for line in f:
-                        line = line.strip()
+	for root, _, files in os.walk(directory):
+		for file in files:
+			if file.endswith((".hpp", ".cpp")):
+				file_path = os.path.abspath(os.path.join(root, file))
+				with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+					in_multiline_comment = False
+					for line in f:
+						line = line.strip()
 
-                        # Handle multi-line comments
-                        if in_multiline_comment:
-                            if MULTI_LINE_COMMENT_END.search(line):
-                                in_multiline_comment = False
-                            continue
-                        if MULTI_LINE_COMMENT_START.search(line):
-                            in_multiline_comment = True
-                            continue
+						# Handle multi-line comments
+						if in_multiline_comment:
+							if MULTI_LINE_COMMENT_END.search(line):
+								in_multiline_comment = False
+							continue
+						if MULTI_LINE_COMMENT_START.search(line):
+							in_multiline_comment = True
+							continue
 
-                        # Skip single-line comments
-                        if SINGLE_LINE_COMMENT.match(line):
-                            continue
+						# Skip single-line comments
+						if SINGLE_LINE_COMMENT.match(line):
+							continue
 
-                        # Detect function definitions
-                        match = FUNCTION_DEF_PATTERN.match(line)
-                        if match:
-                            function_name = line.split("(")[0].split()[-1]
-                            defined_functions.add(function_name)
+						# Detect function definitions
+						match = FUNCTION_DEF_PATTERN.match(line)
+						if match:
+							function_name = line.split("(")[0].split()[-1]
+							defined_functions.add(function_name)
 
-                        # Detect class method definitions (including Logger::<functionname>)
-                        class_method_match = CLASS_METHOD_PATTERN.match(line)
-                        if class_method_match:
-                            defined_functions.add(class_method_match.group(1))
+						# Detect class method definitions (including Logger::<functionname>)
+						class_method_match = CLASS_METHOD_PATTERN.match(line)
+						if class_method_match:
+							defined_functions.add(class_method_match.group(1))
 
-                        # Detect Logger methods specifically
-                        logger_method_match = LOGGER_METHOD_PATTERN.search(line)
-                        if logger_method_match:
-                            defined_functions.add(logger_method_match.group(1))
+						# Detect Logger methods specifically
+						logger_method_match = LOGGER_METHOD_PATTERN.search(line)
+						if logger_method_match:
+							defined_functions.add(logger_method_match.group(1))
 
-                        # Detect class definitions
-                        class_match = re.match(r"^\s*class\s+([a-zA-Z_][a-zA-Z0-9_]*)", line)
-                        if class_match:
-                            defined_classes.add(class_match.group(1))
+						# Detect class definitions
+						class_match = re.match(r"^\s*class\s+([a-zA-Z_][a-zA-Z0-9_]*)", line)
+						if class_match:
+							defined_classes.add(class_match.group(1))
 
-    return defined_functions, defined_classes
+	return defined_functions, defined_classes
 
 
 
