@@ -34,7 +34,6 @@ $(X)	🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
 $(X)	🐑 Donwloads and HTML in CGI Locations\n\
 $(X)  \n\
 $(GREEN)Flos tasks:$(X)\n\
-$(X)  \n\
 $(GREEN)Jeberles Tasks:$(X)\n\
 $(X)	🐑 Set download flow ... some cgi call shsow set diownlaod... \n\
 $(X)  \n\
@@ -42,6 +41,28 @@ $(GREEN)Thomas Bornheim's Tasks:$(X)\n\
 $(X)	🐑 Let the sheeps out \n\
 $(X)	🐖 Feed he pigs\n\
 $(X)	🦄 create unicorns at 42 \n\
+#  ACTUNG DAS HIER SIND TODOS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# $(X) bei delete auf folder.... probleme   read in hadnleRead\n\
+# $(X) /app/var/www/staticupload/success$(X)\n\
+# $(X) $(X)\n\
+# $(X) epoll event$(X)\n\
+# $(X) handleWrite$(X)\n\
+# $(X) /app/var/www/staticupload/success$(X)\n\
+# $(X) $(X)\n\
+# $(X) Cleaning up server resources...$(X)\n\
+# $(X) Error: filesystem error: cannot remove: Directory not empty [/app/var/www/staticupload/success]$(X)\n\
+# $(X) make: *** [Makefile:171: test] Error 1 \n\
+#
+# $(X) handleRead \n\
+# $(X) read in hadnleRead \n\
+# $(X) /app/var/www/staticupload/success/delete-confirmation.html \n\
+# $(X) [2025-02-25 21:51:13]  [ERROR] ErrorHandler: Errorcode: 404 Not found \n\
+# $(X) send \n\
+
+#  ACTUNG DAS HIER SIND TODOS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
 # helper command to search for fucntions with more than 40 lines
 #find . -type f -name "*.cpp" | xargs awk '
 #/^[a-zA-Z_].*\(/ { func_name = $0; line_count = 0; }

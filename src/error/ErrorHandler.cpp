@@ -31,13 +31,13 @@ bool ErrorHandler::generateErrorResponse(Context& ctx) const
 {
 	std::ostringstream response;
 	std::string content;
-	Logger::blue("generateErrorResponse");
+	//Logger::blue("generateErrorResponse");
 	Logger::errorLog("ErrorHandler: Errorcode: " + std::to_string(ctx.error_code) + " " + ctx.error_message);
 
 	std::map<int, std::string>::iterator it = ctx.errorPages.find(ctx.error_code);
 	if (it != ctx.errorPages.end())
 	{
-		Logger::blue("loadErrorPage");
+		//Logger::blue("loadErrorPage");
 		content = loadErrorPage(it->second);
 	}
 	else

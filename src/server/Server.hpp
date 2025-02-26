@@ -35,13 +35,9 @@ class Server
 		void modEpoll(int epfd, int fd, uint32_t events);
 		void delFromEpoll(int epfd, int fd);
 		int setNonBlocking(int fd);
-		enum RequestBody::Task getTaskStatus(int client_fd);
 		void setTimeout(int t);
-		int getTimeout() const;
-		void setTaskStatus(enum RequestBody::Task new_task, int client_fd);
 		void cleanup();
 		int runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs);
-		void logRequestBodyMapFDs();
 		void parseAccessRights(Context& ctx);
 		bool checkAccessRights(Context &ctx, std::string path);
 		bool fileReadable(const std::string& path);
@@ -69,15 +65,11 @@ class Server
 
 // server_event_handlers
 		bool staticHandler(Context& ctx);
-		bool handleCGIEvent(int epoll_fd, int fd, uint32_t ev);
 		void buildStaticResponse(Context &ctx);
 
 // Server Loop
-		bool dispatchEvent(int epoll_fd, int fd, uint32_t ev, std::vector<ServerBlock> &configs);
 		bool acceptNewConnection(int epoll_fd, int server_fd, std::vector<ServerBlock> &configs);
 		void checkAndCleanupTimeouts();
-		void killTimeoutedCGI(RequestBody &req);
-
 		void logContext(const Context& ctx, const std::string& event = "");
 		std::string requestTypeToString(RequestType type);
 		bool determineType(Context& ctx, std::vector<ServerBlock> configs);
@@ -89,15 +81,12 @@ class Server
 		bool buildAutoIndexResponse(Context& ctx, std::stringstream* response);
 		bool parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs);
 		bool handleWrite(Context& ctx);
-		bool queueResponse(Context& ctx, const std::string& response);
 		std::string approveExtention(Context& ctx, std::string path_to_check);
-		void parseChunkedBody(Context& ctx);
 		bool redirectAction(Context& ctx);
 		bool deleteHandler(Context &ctx);
 		void getMaxBodySizeFromConfig(Context& ctx, std::vector<ServerBlock> configs);
 		bool resetContext(Context& ctx);
 		bool checkMaxContentLength(Context& ctx, std::vector<ServerBlock>& configs);
-		bool finalizeRequest(Context& ctx);
 		bool handleRead(Context& ctx, std::vector<ServerBlock>& configs);
 
 
@@ -117,8 +106,6 @@ class Server
 		void handleSessionCookies(Context& ctx);
 		std::string retreiveReqRoot(Context &ctx);
 		bool isMultipart(Context& ctx);
-		bool doMultipartWriting(Context& ctx);
-		bool completeUpload(Context& ctx);
 		void initializeWritingActions(Context& ctx);
 		bool extractFileContent(const std::string& boundary, const std::string& buffer, std::vector<char>& output, Context& ctx);
 		void handle_sigint(int sig);
@@ -126,7 +113,8 @@ class Server
 		std::vector<std::string> prepareCgiEnvironment(const Context& ctx);
 		std::string extractQueryString(const std::string& path);
 		bool parseContentDisposition(Context& ctx);
-		bool downloadHandler(Context &ctx);
+		bool buildDownloadResponse(Context &ctx);
+		bool handleChunkedDownload(Context& ctx);
 };
 
 std::string extractHostname(const std::string& header);

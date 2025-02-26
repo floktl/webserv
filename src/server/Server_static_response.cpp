@@ -63,14 +63,6 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 	return true;
 }
 
-// Quees to http response in the output buffer and updates epoll events for writing
-bool Server::queueResponse(Context& ctx, const std::string& response)
-{
-	ctx.output_buffer += response;
-	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
-	return true;
-}
-
 // Retrieves Directory Entries, Filtering and Sorting Them for Directory Listing
 std::vector<DirEntry> Server::getDirectoryEntries(Context& ctx)
 {

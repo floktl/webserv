@@ -22,12 +22,6 @@ void Server::setTimeout(int t)
 	timeout = t;
 }
 
-// Retrieves the Current Server Timeout Value
-int Server::getTimeout() const
-{
-	return timeout;
-}
-
 // Performs Cleanup Operations Search as Removing Added Server Names from /etc /hosts
 void Server::cleanup()
 {

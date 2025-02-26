@@ -9,7 +9,6 @@
 #include <vector>
 
 #define DEFAULT_FILE "index.html"
-#define BUFFER_SIZE 17000
 #define DEFAULT_REQUESTBUFFER_SIZE 8192
 #define DEFAULT_MAXBODYSIZE 1048576
 #define MAX_EVENTS 64
@@ -29,7 +28,7 @@ struct Location
 	std::string	methods;
 	std::string	autoindex;
 	std::string	default_file;
-	std::string	upload_store{""};
+	std::string	upload_store{"uploads"};
 	long long		client_max_body_size = -1;
 	std::string	root;
 	std::string	cgi;
@@ -66,13 +65,6 @@ enum RequestType
 	CGI,
 	REDIRECT,
 	ERROR
-};
-
-enum ERRORFLAG {
-	FILE_EXISTS  = F_OK,
-	FILE_READ    = R_OK,
-	FILE_WRITE   = W_OK,
-	FILE_EXECUTE = X_OK
 };
 
 // Request body
@@ -125,7 +117,6 @@ struct RequestBody
 
 	ServerBlock* associated_conf;
 	std::string location_path;
-	std::string requested_path;
 
 	ChunkedState chunked_state;
 
@@ -172,6 +163,7 @@ struct Context
 	std::string root;
 	std::string index;
 	std::string approved_req_path;
+	long long content_length = 0;
 
 	std::map<int, std::string>	errorPages;
 	long long						client_max_body_size = -1;
@@ -179,16 +171,6 @@ struct Context
 	std::string doAutoIndex = "";
 
 	std::string read_buffer = "";
-	std::string output_buffer = "";
-	std::string tmp_buffer = "";
-	bool headers_complete = false;
-	bool ready_for_ping_pong = false;
-	size_t header_length = 0;
-	long long content_length = 0;
-	long long body_received = 0;
-	bool keepAlive = false;
-	bool is_multipart = false;
-	bool had_seq_parse = false;
 	std::vector<std::pair<std::string, std::string>> setCookies;
 	std::vector<std::pair<std::string, std::string>> cookies;
 	std::vector<std::string> blocks_location_paths;
@@ -196,35 +178,16 @@ struct Context
 	int multipart_fd_up_down = -1;
 	std::string multipart_file_path_up_down = "";
 	std::vector<char> write_buffer;
-	size_t write_pos;
-	size_t write_len;
 	bool useLocRoot;
 	size_t header_offset = 0;
 	std::string boundary = "";
 	bool found_first_boundary = false;
-	int near_completion_count = 0;
 	bool is_download = false;
 	bool final_boundary_found = false;
-
-};
-
-struct CgiTunnel
-{
-	pid_t pid = -1;
-	int in_fd = -1;
-	int out_fd = -1;
-	int client_fd = -1;
-	int server_fd = -1;
-	int port = 0;
-	std::string server_name;
-	ServerBlock* config = NULL;
-	Location* location = NULL;
-	std::chrono::steady_clock::time_point last_used = std::chrono::steady_clock::now();
-	bool is_busy = false;
-	std::string script_path;
-	std::vector<char> buffer;
-	std::vector<char*> envp;
-	RequestBody request;
+	bool ready_for_ping_pong = false;
+	bool headers_complete = false;
+	bool keepAlive = false;
+	bool is_multipart = false;
 };
 
 struct GlobalFDS
@@ -247,8 +210,6 @@ struct Cookie {
 	std::string domain;
 	std::string path;
 	time_t expires = 0;
-	bool secure = false;
-	bool httpOnly = false;
 };
 
 #endif
