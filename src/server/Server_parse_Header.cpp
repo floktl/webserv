@@ -219,6 +219,8 @@ void Server::prepareUploadPingPong(Context& ctx)
 void Server::parseAccessRights(Context& ctx)
 {
 	std::string req_root = retreiveReqRoot(ctx);
+	if (ctx.method == "DELETE")
+		ctx.path = "/uploads" + ctx.path;
 	std::string requestedPath = concatenatePath(req_root, ctx.path);
 	if (ctx.index.empty() && ctx.method != "DELETE")
 		ctx.index = DEFAULT_FILE;
@@ -249,7 +251,6 @@ void Server::parseAccessRights(Context& ctx)
 			return;
 		requestedPath = approveExtention(ctx, requestedPath);
 	}
-
 	if (ctx.type == ERROR)
 		return;
 	if (ctx.type != REDIRECT)
