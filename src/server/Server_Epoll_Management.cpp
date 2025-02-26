@@ -39,6 +39,7 @@ void Server::delFromEpoll(int epfd, int client_fd)
 		globalFDS.clFD_to_svFD_map.erase(client_fd);
 		close(client_fd);
 		client_fd =-1;
+		resetContext(globalFDS.context_map[client_fd]);
 		globalFDS.context_map.erase(client_fd);
 	}
 	else
@@ -84,43 +85,5 @@ void Server::checkAndCleanupTimeouts()
 		}
 		else
 			++it;
-	}
-}
-
-// Termates CGI Processes that Extred Their Allowed Execution Time
-void Server::killTimeoutedCGI(RequestBody &req)
-{
-	if (req.cgi_pid > 0)
-	{
-		kill(req.cgi_pid, SIGTERM);
-		std::this_thread::sleep_for(std::chrono::microseconds(req.associated_conf->timeout));
-		int status;
-		pid_t result = waitpid(req.cgi_pid, &status, WNOHANG);
-		if (result == 0)
-		{
-			kill(req.cgi_pid, SIGKILL);
-			waitpid(req.cgi_pid, &status, 0);
-		}
-		req.cgi_pid = -1;
-	}
-	if (req.cgi_in_fd != -1)
-	{
-		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.cgi_in_fd, NULL);
-		close(req.cgi_in_fd);
-		globalFDS.clFD_to_svFD_map.erase(req.cgi_in_fd);
-		req.cgi_in_fd = -1;
-	}
-	if (req.cgi_out_fd != -1)
-	{
-		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.cgi_out_fd, NULL);
-		close(req.cgi_out_fd);
-		globalFDS.clFD_to_svFD_map.erase(req.cgi_out_fd);
-		req.cgi_out_fd = -1;
-	}
-	if (req.pipe_fd != -1)
-	{
-		epoll_ctl(globalFDS.epoll_fd, EPOLL_CTL_DEL, req.pipe_fd, NULL);
-		close(req.pipe_fd);
-		req.pipe_fd = -1;
 	}
 }

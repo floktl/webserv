@@ -79,7 +79,7 @@ bool ConfigHandler::validateLocationConfigs(ServerBlock& serverConf, size_t serv
 
 		// Reset upload_store if cgi is enabled
 		if (!loc.cgi.empty())
-			loc.upload_store = "";
+			loc.upload_store = "uploads";
 	}
 	return true;
 }

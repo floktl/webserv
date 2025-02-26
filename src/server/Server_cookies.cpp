@@ -109,13 +109,5 @@ std::string Server::generateSetCookieHeader(const Cookie& cookie) {
 		<< std::setfill('0') << std::setw(2) << seconds << " GMT";
 	}
 
-	if (cookie.secure) {
-		ss << "; Secure";
-	}
-
-	if (cookie.httpOnly) {
-		ss << "; HttpOnly";
-	}
-
 	return ss.str();
 }

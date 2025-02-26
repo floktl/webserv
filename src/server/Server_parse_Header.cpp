@@ -54,7 +54,6 @@ bool Server::parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs)
 
 	if (!checkMaxContentLength(ctx, configs))
 		return false;
-	Logger::magenta("reach here");
 	return true;
 }
 
@@ -168,6 +167,19 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 
 void Server::prepareUploadPingPong(Context& ctx)
 {
+	if (ctx.multipart_fd_up_down >= 0) {
+		return;
+	}
+
+	struct stat prev_stat;
+	if (stat(ctx.multipart_file_path_up_down.c_str(), &prev_stat) == 0) {
+		if (S_ISDIR(prev_stat.st_mode)) {
+			Logger::errorLog("Upload file is a directory: " + ctx.multipart_file_path_up_down);
+			updateErrorStatus(ctx, 400, "Bad Request");
+			return;
+		}
+	}
+
 	std::string upload_dir = ctx.multipart_file_path_up_down.substr(0, ctx.multipart_file_path_up_down.find_last_of("/"));
 
 	struct stat dir_stat;
@@ -179,7 +191,7 @@ void Server::prepareUploadPingPong(Context& ctx)
 
 	if (!S_ISDIR(dir_stat.st_mode)) {
 		Logger::errorLog("Upload path is not a directory: " + upload_dir);
-		updateErrorStatus(ctx, 400, "Invalid upload directory");
+		updateErrorStatus(ctx, 400, "Bad Request");
 		return;
 	}
 
@@ -188,8 +200,7 @@ void Server::prepareUploadPingPong(Context& ctx)
 		updateErrorStatus(ctx, 403, "Upload directory not writable");
 		return;
 	}
-
-// Check IF File Already Exists
+	// Check IF File Already Exists
 	if (access(ctx.multipart_file_path_up_down.c_str(), F_OK) == 0) {
 		Logger::errorLog("File already exists: " + ctx.multipart_file_path_up_down);
 		updateErrorStatus(ctx, 409, "File already exists");
@@ -246,7 +257,7 @@ void Server::parseAccessRights(Context& ctx)
 	if (ctx.type == ERROR)
 		return;
 	ctx.approved_req_path = requestedPath;
-	Logger::blue(ctx.approved_req_path);
+	//Logger::blue(ctx.approved_req_path);
 }
 
 // Extracts The Port Number from the Http Host Header, Defaulting to 80 IF Missing
@@ -306,57 +317,6 @@ std::string extractHostname(const std::string& header)
 	return hostname;
 }
 
-// Processes Chunked Transfer Encoding, Extracting and Assembling Request Body Chunks
-void Server::parseChunkedBody(Context& ctx)
-{
-	while (!ctx.read_buffer.empty())
-	{
-		if (!ctx.req.chunked_state.processing)
-		{
-			size_t pos = ctx.read_buffer.find("\r\n");
-			if (pos == std::string::npos)
-				return;
-
-			std::string chunk_size_str = ctx.read_buffer.substr(0, pos);
-			size_t chunk_size;
-			std::stringstream ss;
-			ss << std::hex << chunk_size_str;
-			ss >> chunk_size;
-
-			if (chunk_size == 0)
-			{
-				ctx.req.parsing_phase = RequestBody::PARSING_COMPLETE;
-				ctx.req.is_upload_complete = true;
-				ctx.read_buffer.clear();
-				return;
-			}
-			ctx.read_buffer.erase(0, pos + 2);
-			ctx.req.chunked_state.buffer = "";
-			ctx.req.chunked_state.processing = true;
-			ctx.req.expected_body_length += chunk_size;
-		}
-
-		size_t remaining = ctx.req.expected_body_length - ctx.req.current_body_length;
-		size_t available = std::min(remaining, ctx.read_buffer.size());
-
-		if (available > 0) {
-			ctx.req.received_body += ctx.read_buffer.substr(0, available);
-			ctx.req.current_body_length += available;
-			ctx.read_buffer.erase(0, available);
-		}
-		if (ctx.req.current_body_length == ctx.req.expected_body_length)
-		{
-			if (ctx.read_buffer.size() >= 2 && ctx.read_buffer.substr(0, 2) == "\r\n")
-			{
-				ctx.read_buffer.erase(0, 2);
-				ctx.req.chunked_state.processing = false;
-			}
-			else
-				return;
-		}
-	}
-}
-
 // Validates Content-Lengh Header and Checks Against Server-Configureded Limits
 bool Server::checkMaxContentLength(Context& ctx, std::vector<ServerBlock>& configs)
 {
@@ -370,22 +330,5 @@ bool Server::checkMaxContentLength(Context& ctx, std::vector<ServerBlock>& confi
 		if (content_length > ctx.client_max_body_size)
 			return updateErrorStatus(ctx, 413, "Payload too large");
 	}
-	return true;
-}
-
-// Finalizes Request Parsing by Determining the Request Type and Updating Epoll Events
-bool Server::finalizeRequest(Context& ctx)
-{
-	if (isMultipart(ctx) &&
-		ctx.req.parsing_phase == RequestBody::PARSING_BODY &&
-		!ctx.req.is_upload_complete) {
-
-		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
-		return true;
-	}
-	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE)
-		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
-	else if (ctx.error_code != 0)
-		return false;
 	return true;
 }

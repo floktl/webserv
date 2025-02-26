@@ -40,8 +40,6 @@ bool Server::deleteHandler(Context &ctx)
 	if (ctx.location_inited && requestedPath == ctx.location.upload_store && dirWritable(requestedPath))
 		return false;
 
-	Logger::magenta(requestedPath);
-
 	// Prevent DELETE of a file that matches DEFAULT_FILE
 	if (requestedPath.length() >= std::string(DEFAULT_FILE).length() &&
 		requestedPath.substr(requestedPath.length() - std::string(DEFAULT_FILE).length()) == DEFAULT_FILE)

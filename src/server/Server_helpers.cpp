@@ -276,122 +276,91 @@ bool isMethodAllowed(Context& ctx)
 }
 
 
-
-// APPROVES A File Extension Based on CGI Configuration or Static File Handling Rules
 std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
-	size_t dot_pos = path_to_check.find_last_of('.');
-	bool starts_with_upload_store = false;
+    size_t dot_pos = path_to_check.find_last_of('.');
+    bool starts_with_upload_store = false;
 
-	// Check if path starts with upload_store
-	if (path_to_check.length() >= ctx.location.upload_store.length()) {
-		starts_with_upload_store = path_to_check.substr(0, ctx.location.upload_store.length()) == ctx.location.upload_store;
-	}
+    // Check if path starts with upload_store
+    if (path_to_check.length() >= ctx.location.upload_store.length()) {
+        starts_with_upload_store = path_to_check.substr(0, ctx.location.upload_store.length()) == ctx.location.upload_store;
+    }
 
-	// Detect Redirect Loop Before Proceeding
-	if (!ctx.location.return_url.empty() && ctx.method == "GET") {
-		if (std::find(ctx.blocks_location_paths.begin(), ctx.blocks_location_paths.end(),
-			ctx.location.return_url) != ctx.blocks_location_paths.end()) {
-			updateErrorStatus(ctx, 508, "Infinite redirect loop detected: " + ctx.location.return_url);
-			return "";
-		}
-		ctx.blocks_location_paths.push_back(ctx.location.return_url);
-		ctx.type = REDIRECT;
-		return path_to_check;
-	}
+    // Detect Redirect Loop Before Proceeding
+    if (!ctx.location.return_url.empty() && ctx.method == "GET") {
+        if (std::find(ctx.blocks_location_paths.begin(), ctx.blocks_location_paths.end(),
+            ctx.location.return_url) != ctx.blocks_location_paths.end()) {
+            updateErrorStatus(ctx, 508, "Infinite redirect loop detected: " + ctx.location.return_url);
+            return "";
+        }
+        ctx.blocks_location_paths.push_back(ctx.location.return_url);
+        ctx.type = REDIRECT;
+        return path_to_check;
+    }
 
-	// Handle CGI and HTML processing
-	if (dot_pos != std::string::npos) {
-		std::string extension = path_to_check.substr(dot_pos + 1);
-		Logger::yellow("extension: " + extension);
-		Logger::yellow("cgi_filetype: " + ctx.location.cgi_filetype);
+    // Handle Download Requests - First check for any path in upload_store directory
+    if (ctx.method == "GET" && starts_with_upload_store) {
+        Logger::yellow(" -- Processing download request: " + path_to_check);
+        ctx.is_download = true;
 
-		if (("." + extension) == ctx.location.cgi_filetype && ctx.type == CGI)
-			return path_to_check;
+        // Check if file is readable
+        if (!fileReadable(path_to_check)) {
+            updateErrorStatus(ctx, 403, "Forbidden");
+            return "";
+        }
 
-		Logger::yellow(" -- no cgi");
-		if (ctx.method == "GET" && ctx.location.return_url.empty() && extension == "html")
-			return path_to_check;
+        // Close any previously opened file descriptor
+        if (ctx.multipart_fd_up_down >= 0) {
+            close(ctx.multipart_fd_up_down);
+            ctx.multipart_fd_up_down = -1;
+        }
 
-		Logger::yellow(" -- no simple get");
+        // Open the file for reading
+        ctx.multipart_fd_up_down = open(path_to_check.c_str(), O_RDONLY);
+        if (ctx.multipart_fd_up_down < 0) {
+            Logger::errorLog("Failed to open file for download: " + path_to_check);
+            updateErrorStatus(ctx, 500, "Internal Server Error");
+            return "";
+        }
 
-		if (starts_with_upload_store && ctx.method == "GET" && ("." + extension) != ctx.location.cgi_filetype) {
-			Logger::yellow(" -- set download");
-			ctx.is_download = true;
+        // Store path for use in Content-Disposition header
+        ctx.multipart_file_path_up_down = path_to_check;
 
-			// Check if file is readable
-			if (!fileReadable(path_to_check)) {
-				updateErrorStatus(ctx, 403, "Forbidden");
-				return "";
-			}
+        // Set to be handled by staticHandler
+        ctx.type = STATIC;
+        return path_to_check;
+    }
 
-			// Close any previously opened file descriptor
-			if (ctx.multipart_fd_up_down >= 0) {
-				close(ctx.multipart_fd_up_down);
-				ctx.multipart_fd_up_down = -1;
-			}
+    // Handle CGI and HTML processing
+    if (dot_pos != std::string::npos) {
+        std::string extension = path_to_check.substr(dot_pos + 1);
 
-			// Open the file for reading
-			ctx.multipart_fd_up_down = open(path_to_check.c_str(), O_RDONLY);
-			if (ctx.multipart_fd_up_down < 0) {
-				Logger::errorLog("Failed to open file for download: " + path_to_check);
-				updateErrorStatus(ctx, 500, "Internal Server Error");
-				return "";
-			}
+        // Check for CGI files
+        if (("." + extension) == ctx.location.cgi_filetype && ctx.type == CGI)
+            return path_to_check;
 
-			// Store path for use in Content-Disposition header
-			ctx.multipart_file_path_up_down = path_to_check;
+        // Check for HTML files
+        if (ctx.method == "GET" && ctx.location.return_url.empty() && extension == "html")
+            return path_to_check;
 
-			return path_to_check;
-		}
+        // Handle DELETE requests in upload store
+        if (starts_with_upload_store && ctx.method == "DELETE") {
+            // DELETE is not allowed here
+            updateErrorStatus(ctx, 400, "Bad Request");
+            return "";
+        }
 
-		if (starts_with_upload_store && ctx.method == "DELETE") {
-			Logger::yellow(" -- set post bad req");
-			updateErrorStatus(ctx, 400, "Bad Request");
-			return "";
-		}
+        // Handle POST requests in upload store
+        if (starts_with_upload_store && ctx.method == "POST") {
+            return path_to_check;
+        }
 
-		if (starts_with_upload_store && ctx.method == "POST") {
-			Logger::yellow(" -- set post");
-			Logger::red(path_to_check);
-			return path_to_check;
-		}
+        // Not found or not allowed
+        updateErrorStatus(ctx, 404, "Not found");
+        return "";
+    }
 
-		Logger::yellow(" -- approveExtention");
-		updateErrorStatus(ctx, 404, "Not found");
-		return "";
-	}
-
-	if (ctx.method == "GET" && starts_with_upload_store) {
-		Logger::yellow(" -- set download no ext");
-		ctx.is_download = true;
-
-		// Check if file is readable
-		if (!fileReadable(path_to_check)) {
-			updateErrorStatus(ctx, 403, "Forbidden");
-			return "";
-		}
-
-		// Close any previously opened file descriptor
-		if (ctx.multipart_fd_up_down >= 0) {
-			close(ctx.multipart_fd_up_down);
-			ctx.multipart_fd_up_down = -1;
-		}
-
-		// Open the file for reading
-		ctx.multipart_fd_up_down = open(path_to_check.c_str(), O_RDONLY);
-		if (ctx.multipart_fd_up_down < 0) {
-			Logger::errorLog("Failed to open file for download: " + path_to_check);
-			updateErrorStatus(ctx, 500, "Internal Server Error");
-			return "";
-		}
-
-		// Store path for use in Content-Disposition header
-		ctx.multipart_file_path_up_down = path_to_check;
-	}
-
-	return path_to_check;
+    return path_to_check;
 }
-
 
 // Resets the Context, Clearing Request Data and Restoring Initial Values
 bool Server::resetContext(Context& ctx)
@@ -404,7 +373,6 @@ bool Server::resetContext(Context& ctx)
 	ctx.path.clear();
 	ctx.version.clear();
 	ctx.headers_complete = false;
-	ctx.content_length = 0;
 	ctx.error_code = 0;
 	ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
 	ctx.req.current_body_length = 0;

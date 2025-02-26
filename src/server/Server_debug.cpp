@@ -45,16 +45,6 @@ void Server::logContext(const Context& ctx, const std::string& event)
 	Logger::file(log);
 }
 
-// Logs Active File Descriptor in the Request Body Map
-void Server::logRequestBodyMapFDs()
-{
-	if (globalFDS.context_map.empty())
-		return;
-
-	std::string log = "Active FDs: ";
-	for (const auto& pair : globalFDS.context_map)
-		log += std::to_string(pair.first) + " ";
-}
 
 // Logs Server Configuration Details, Including Ports, Root Paths, Timeouts, and Error Pages
 void log_server_configs(const std::vector<ServerBlock>& configs)
@@ -248,6 +238,5 @@ void printRequestBody(const Context& ctx)
 	}
 	else
 		std::cout << "Associated ServerBlock: NULL" << std::endl;
-	std::cout << "Requested Path: " << ctx.req.requested_path << std::endl;
 	std::cout << "----------------------------------" << std::endl;
 }
