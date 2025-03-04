@@ -51,7 +51,7 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 	generateAutoIndexHeader(ctx, content);
 	generateAutoIndexBody(entries, content);
 
-	content << "    </div>\n" << "</body>\n" << "</html>\n";
+	content << "    </div>\n" << "<script>document.addEventListener('DOMContentLoaded', function() {const userConfirmed = confirm('EPILEPSY WARNING: This content contains visual elements that may trigger photosensitive reactions.');if (userConfirmed) {document.body.classList.add('active');const activeImages = document.querySelectorAll('img');activeImages.forEach(function(img) {img.classList.add('active');});}});</script></body>\n" << "</html>\n";
 
 	std::string content_str = content.str();
 
@@ -126,7 +126,7 @@ void Server::generateAutoIndexHeader(Context& ctx, std::stringstream& content)
 			<< "            color: #333;\n"
 			<< "            user-select: none;\n"
 			<< "        }\n"
-			<< "body {\n"
+			<< "body.active{\n"
 			<< "	margin: 0;\n"
 			<< "	padding: 40px;\n"
 			<< "	height: 100vh;\n"
@@ -214,8 +214,22 @@ void Server::generateAutoIndexHeader(Context& ctx, std::stringstream& content)
 			<< "      transform: translate(0, 0);\n"
 			<< "    }\n"
 			<< "}\n"
-			<< ".wiggle-image {\n"
+			<< "body .wiggle-image{\n"
+			<< "	overflow:hidden;\n"
+			<< "}\n"
+			<< "body .wiggle-image{\n"
+			<< "	pointer-events:none;\n"
+			<< "	user-select:none;\n"
+			<< "	display:none;\n"
+			<< "	opacity:0;\n"
+			<< "}\n"
+			<< "body.active .wiggle-image{\n"
+			<< "	opacity:0.5;\n"
+			<< "	display:inherit;\n"
 			<< "	animation: wiggle 0.3s ease-in-out infinite;\n"
+			<< "}\n"
+			<< "body:not(.active) h1{\n"
+			<< "	color: black;\n"
 			<< "}\n"
 			<< "    </style>\n"
 			<< "</head>\n"
