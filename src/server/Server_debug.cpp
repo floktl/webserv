@@ -188,7 +188,6 @@ void printRequestBody(const Context& ctx)
 	std::cout << "CGI Input FD: " << ctx.req.cgi_in_fd << std::endl;
 	std::cout << "CGI Output FD: " << ctx.req.cgi_out_fd << std::endl;
 	std::cout << "CGI PID: " << ctx.req.cgi_pid << std::endl;
-	std::cout << "CGI Done: " << (ctx.req.cgi_done ? "true" : "false") << std::endl;
 	std::cout << "State: ";
 	switch (ctx.req.state)
 	{

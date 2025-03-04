@@ -103,14 +103,13 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 	{
 		Context		&ctx = contextIter->second;
 		ctx.last_activity = std::chrono::steady_clock::now();
-		if (ev & EPOLLIN)
-		{
-			//Logger::white("EPOLLIN");
+		if (ev & EPOLLIN) {
+			Logger::white("EPOLLIN");
 			status = handleRead(ctx, configs);
 		}
 		if ((ev & EPOLLOUT))
 		{
-			//Logger::white("EPOLLOUT");
+			Logger::white("EPOLLOUT");
 			status = handleWrite(ctx);
 			if (status == false)
 				delFromEpoll(epoll_fd, client_fd);
@@ -230,7 +229,7 @@ bool Server::extractFileContent(const std::string& boundary, const std::string& 
 
 // Handles Reading Request Data from the Client and Processing It Accordingly
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
-	//Logger::green("handleRead");
+	Logger::green("handleRead");
 	if (!ctx.is_multipart || ctx.req.parsing_phase != RequestBody::PARSING_BODY) {
 		ctx.read_buffer.clear();
 	}
@@ -386,7 +385,7 @@ void Server::handleSessionCookies(Context& ctx) {
 
 
 bool Server::handleWrite(Context& ctx) {
-	//Logger::green("handleWrite");
+	Logger::green("handleWrite");
 	bool result = false;
 
 	if (ctx.is_download && ctx.multipart_fd_up_down > 0) {
@@ -454,7 +453,25 @@ bool Server::handleWrite(Context& ctx) {
 			result = redirectAction(ctx);
 			break;
 		case CGI:
-			result = executeCgi(ctx);
+			if(!ctx.cgi_executed)
+			{
+				result = executeCgi(ctx);
+				if (result)
+				{
+					ctx.cgi_output_phase = true;
+					return result;
+				}
+			}
+			result = sendCgiResponse(ctx);
+			Logger::magenta(std::to_string(ctx.cgi_terminated));
+			if (ctx.cgi_terminated)
+			{
+				delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+			}
+			if (result)
+			{
+				return result;
+			}
 			break;
 		case ERROR:
 			return getErrorHandler()->generateErrorResponse(ctx);
