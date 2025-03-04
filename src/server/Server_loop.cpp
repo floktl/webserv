@@ -99,19 +99,18 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 {
 	std::map<int, Context>::iterator contextIter = globalFDS.context_map.find(client_fd);
 	bool		status = false;
-	Logger::white("\nepoll event");
 	if (contextIter != globalFDS.context_map.end())
 	{
 		Context		&ctx = contextIter->second;
 		ctx.last_activity = std::chrono::steady_clock::now();
 		if (ev & EPOLLIN)
 		{
-			Logger::white("EPOLLIN");
+			//Logger::white("EPOLLIN");
 			status = handleRead(ctx, configs);
 		}
 		if ((ev & EPOLLOUT))
 		{
-			Logger::white("EPOLLOUT");
+			//Logger::white("EPOLLOUT");
 			status = handleWrite(ctx);
 			if (status == false)
 				delFromEpoll(epoll_fd, client_fd);
@@ -231,7 +230,7 @@ bool Server::extractFileContent(const std::string& boundary, const std::string& 
 
 // Handles Reading Request Data from the Client and Processing It Accordingly
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
-	Logger::green("handleRead");
+	//Logger::green("handleRead");
 	if (!ctx.is_multipart || ctx.req.parsing_phase != RequestBody::PARSING_BODY) {
 		ctx.read_buffer.clear();
 	}
@@ -240,7 +239,6 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
 
 	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
 	std::memset(buffer, 0, sizeof(buffer));
-	Logger::magenta("read in hadnleRead");
 	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
 
 	if (bytes < 0) {
@@ -388,7 +386,7 @@ void Server::handleSessionCookies(Context& ctx) {
 
 
 bool Server::handleWrite(Context& ctx) {
-	Logger::green("handleWrite");
+	//Logger::green("handleWrite");
 	bool result = false;
 
 	if (ctx.is_download && ctx.multipart_fd_up_down > 0) {
@@ -406,7 +404,7 @@ bool Server::handleWrite(Context& ctx) {
 		}
 
 		if (!ctx.write_buffer.empty()) {
-			Logger::magenta("write in handleWrite");
+			//Logger::magenta("write in handleWrite");
 			ssize_t written = write(ctx.multipart_fd_up_down, ctx.write_buffer.data(), ctx.write_buffer.size());
 			if (written < 0) {
 				Logger::errorLog("Error writing to file: " + std::string(strerror(errno)));
