@@ -220,7 +220,6 @@ void Server::parseAccessRights(Context& ctx)
 {
 	std::string req_root = retreiveReqRoot(ctx);
 	Logger::green("checkaccessright() ctx.method: " + ctx.method);
-	Logger::red("ctx.path = /uploads + ctx.path;!!!!!!!!!!!!!!!!!");
 	if (ctx.method == "DELETE")
 		ctx.path = "/uploads" + ctx.path;
 	std::string requestedPath = concatenatePath(req_root, ctx.path);

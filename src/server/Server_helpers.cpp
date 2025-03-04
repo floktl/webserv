@@ -227,8 +227,8 @@ bool Server::dirWritable(const std::string& path)
 // Verifies Access Permissions for a Given Path Based on the Request Context
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
-	struct stat path_stat;
-	if (stat(path.c_str(), &path_stat) != 0 && ctx.method == "GET")
+	Logger::green(path);
+	if (!fileReadable(path) && ctx.method == "GET")
 		return updateErrorStatus(ctx, 404, "Not found in 1. checkaccessright()");
 	if (!fileReadable(path) && ctx.method == "DELETE")
 		return updateErrorStatus(ctx, 404, "Not found in 2. checkaccessright()");
@@ -307,7 +307,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 
 		Logger::red("path_to_check before return: " + path_to_check);
 		if (!fileReadable(path_to_check)) {
-			updateErrorStatus(ctx, 403, "Forbidden");
+			updateErrorStatus(ctx, 403, "Forbidden fileReadable");
 			return "";
 		}
 		if (ctx.multipart_fd_up_down >= 0) {
@@ -328,31 +328,25 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 		return path_to_check;
 	}
 
-	if (dot_pos != std::string::npos) {
-		std::string extension = path_to_check.substr(dot_pos + 1);
+	Logger::red("fall here " + path_to_check);
+	std::string extension = path_to_check.substr(dot_pos + 1);
 
-		if (("." + extension) == ctx.location.cgi_filetype && ctx.type == CGI)
-			return path_to_check;
+	if (("." + extension) == ctx.location.cgi_filetype && ctx.type == CGI)
+		return path_to_check;
 
-		if (ctx.method == "GET" && ctx.location.return_url.empty() && extension == "html")
-			return path_to_check;
+	if (ctx.method == "GET" && ctx.location.return_url.empty())
+		return path_to_check;
 
-		if (starts_with_upload_store && ctx.method == "DELETE") {
-			updateErrorStatus(ctx, 400, "Bad Request");
-			return "";
-		}
-
-		if (starts_with_upload_store && ctx.method == "POST") {
-			return path_to_check;
-		}
-		if (!starts_with_upload_store && ctx.method == "GET")
-		{
-			updateErrorStatus(ctx, 403, "Forbidden");
-			return "";
-		}
-		updateErrorStatus(ctx, 404, "Not found in approveextension()");
+	if (starts_with_upload_store && ctx.method == "DELETE") {
+		updateErrorStatus(ctx, 400, "Bad Request");
 		return "";
 	}
+
+	if (starts_with_upload_store && ctx.method == "POST") {
+		return path_to_check;
+	}
+	updateErrorStatus(ctx, 404, "Not found in approveextension()");
+	return "";
 
 	return path_to_check;
 }
