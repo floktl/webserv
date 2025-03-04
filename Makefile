@@ -25,6 +25,7 @@ $(GREEN)Task at the end:$(X)\n\
 $(X)	🦄 wildcard checken....\n\
 $(X)	🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
 $(X)	🦄 adjust Jeberle_warner for upload path \n\
+$(X)	🦄 manchmal taucht double free nach download auf... \n\
 $(X)	🦄 error code pruefen gegen statuses.... \n\
 $(X)	🐑 bei zugriff auf nciht definierte location http://localhost:9090/team kein error.... 404\n\
 $(X)	🐑 bei zugriff auf nciht definierte location http://localhost:9090/team/ kein error.... 404\n\
@@ -86,7 +87,7 @@ NAME=webserv
 #------------------------------------------------------------------------------#
 
 CC=c++
-CFLAGS = -Wall -Wextra -Werror -Wshadow -std=c++17 -include $(PCH)
+CFLAGS = -Wall -Wextra -Werror -Wshadow -std=c++17 -g -include $(PCH)
 #LDFLAGS=-flto=$(shell nproc)
 
 #ifeq ($(DEBUG), 1)
@@ -199,6 +200,20 @@ test: $(NAME)
 		exit 1; \
 	fi
 	@./$(NAME) config/test.conf
+
+leak: $(NAME)
+	@if [ -e "./webserv.log" ]; then \
+		echo "$(YELLOW)Clearing webserv.log$(X)"; \
+		> ./webserv.log; \
+	fi
+	@echo "$(GREEN)Running static analysis...$(X)"
+	@echo "$(GREEN)Total C++ Project Lines:$(X) $(shell find . -type f \( -name "*.cpp" -o -name "*.hpp" \) | xargs wc -l | tail -n 1 | awk '{print $$1}')"
+	@python3 src/Jeberle_warner.py
+	@if [ $$? -ne 0 ]; then \
+		echo "$(RED)Static analysis failed! Fix the issues before running the server.$(X)"; \
+		exit 1; \
+	fi
+	@valgrind -s --leak-check=full --show-leak-kinds=all ./$(NAME) config/test.conf
 
 
 sheeptest:
