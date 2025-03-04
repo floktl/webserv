@@ -202,6 +202,12 @@ bool Server::fileExists(const std::string& path) {
 	return (stat(path.c_str(), &st) == 0);
 }
 
+// Checks if a path is a directory
+bool Server::isDirectory(const std::string& path) {
+	struct stat st;
+	return (stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode));
+}
+
 // Checks if a file is readable
 bool Server::fileReadable(const std::string& path)
 {
@@ -279,18 +285,30 @@ bool isMethodAllowed(Context& ctx)
 	return isAllowed;
 }
 
+size_t Server::getFileSize(const std::string& path)
+{
+	struct stat st;
+	if (stat(path.c_str(), &st) == 0)
+		return static_cast<size_t>(st.st_size);
+	return 0;
+}
 
 std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 	size_t dot_pos = path_to_check.find_last_of('.');
 	bool starts_with_upload_store = false;
-
+	if (dot_pos == std::string::npos && isDirectory(path_to_check) && path_to_check.back() != '/' && ctx.location.autoindex != "on")
+	{
+		path_to_check = path_to_check + "/";
+	}
 	if (path_to_check.length() >= ctx.location.upload_store.length())
 	{
 		starts_with_upload_store = path_to_check.substr(0, ctx.location.upload_store.length()) == ctx.location.upload_store;
 	}
-	if (path_to_check.back() == '/')
+	if (!path_to_check.empty() && path_to_check.back() == '/'&& ctx.location.autoindex != "on")
 	{
+		path_to_check = concatenatePath(path_to_check, ctx.location.default_file);
 		starts_with_upload_store = false;
+		return path_to_check;
 	}
 	if (!ctx.location.return_url.empty() && ctx.method == "GET") {
 		if (std::find(ctx.blocks_location_paths.begin(), ctx.blocks_location_paths.end(),
@@ -331,7 +349,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 		}
 
 		ctx.multipart_file_path_up_down = path_to_check;
-
+		ctx.req.expected_body_length = getFileSize(ctx.multipart_file_path_up_down);
 		ctx.type = STATIC;
 		return path_to_check;
 	}

@@ -39,12 +39,13 @@ $(X)	🐑 Donwloads and HTML in CGI Locations\n\
 $(X)  \n\
 $(GREEN)Flos tasks:$(X)\n\
 $(GREEN)Jeberles Tasks:$(X)\n\
-$(X)	🐑 Set download flow ... some cgi call shsow set diownlaod... \n\
+$(X)	🐑 http://localhost:8080/team consida redirect on http://localhost:8080/team/ instead of default_file \n\
 $(X)  \n\
 $(GREEN)Thomas Bornheim's Tasks:$(X)\n\
 $(X)	🐑 Let the sheeps out \n\
 $(X)	🐖 Feed he pigs\n\
 $(X)	🦄 create unicorns at 42 \n\
+$(X)	🦄 Shrek wiggle image \n\
 #  ACTUNG DAS HIER SIND TODOS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 # $(X) bei delete auf folder.... probleme   read in hadnleRead\n\
