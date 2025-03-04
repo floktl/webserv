@@ -81,7 +81,6 @@ struct RequestBody
 	int			cgi_in_fd;
 	int			cgi_out_fd;
 	pid_t		cgi_pid;
-	bool		cgi_done;
 	bool		is_directory{false};
 	bool		cgiMethodChecked{false};
 	bool		clientMethodChecked{false};
@@ -190,6 +189,12 @@ struct Context
 	bool is_multipart = false;
     bool download_headers_sent = false;
     bool download_phase = false;
+    bool cgi_output_phase = false;
+    bool cgi_headers_send = false;
+    bool cgi_executed = false;
+    bool cgi_terminate = false;
+    bool cgi_terminated = false;
+
 };
 
 struct GlobalFDS
@@ -207,10 +212,10 @@ struct DirEntry {
 };
 
 struct Cookie {
-	std::string name;
-	std::string value;
-	std::string domain;
-	std::string path;
+	std::string name = "";
+	std::string value = "";
+	std::string domain = "";
+	std::string path = "";
 	time_t expires = 0;
 };
 

@@ -76,7 +76,6 @@ bool Server::executeCgi(Context& ctx) {
 	ctx.req.cgi_in_fd = input_pipe[1];
 	ctx.req.cgi_out_fd = output_pipe[0];
 	ctx.req.cgi_pid = pid;
-	ctx.req.cgi_done = false;
 	ctx.req.state = RequestBody::STATE_CGI_RUNNING;
 
 	Logger::file("CGI process started with PID: " + std::to_string(pid));
@@ -90,8 +89,10 @@ bool Server::executeCgi(Context& ctx) {
 	ctx.req.cgi_in_fd = -1;
 
 	ctx.last_activity = std::chrono::steady_clock::now();
-	Logger::file("executeCgi completed successfully");
+	Logger::yellow("executeCgi completed successfully");
 
+	ctx.cgi_executed = true;
+	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT | EPOLLET);
 	return true;
 }
 
@@ -144,4 +145,115 @@ std::string Server::extractQueryString(const std::string& path) {
 		return path.substr(pos + 1);
 	}
 	return "";
+}
+
+bool Server::sendCgiResponse(Context& ctx) {
+	Logger::yellow("sendCgiResponse - buffer size: " + std::to_string(ctx.write_buffer.size()));
+	Logger::yellow(std::to_string(ctx.cgi_output_phase));
+	std::stringstream response;
+
+	if (ctx.req.cgi_out_fd < 0 && ctx.cgi_terminated)
+	{
+		Logger::red("warum diese raus gehen");
+		Logger::green("prosieben die kanal in die fernsieher");
+		return true;
+	}
+
+	ctx.last_activity = std::chrono::steady_clock::now();
+
+	if (ctx.cgi_output_phase)
+	{
+		if (!ctx.cgi_headers_send)
+		{
+			Logger::magenta("read cgi headers prep");
+			response << "HTTP/1.1 200 OK\r\n"
+					<< "Content-Type: " << "text/html" << "\r\n"
+					//<< "Content-Length: " << ctx.req.expected_body_length << "\r\n"
+					//<< "Content-Disposition: attachment; filen
+					//ame=\"" << filename << "\"\r\n"
+					<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
+
+			for (const auto& cookiePair : ctx.setCookies) {
+				Cookie cookie;
+				cookie.name = cookiePair.first;
+				cookie.value = cookiePair.second;
+				cookie.path = "/";
+				response << generateSetCookieHeader(cookie) << "\r\n";
+			}
+
+			response << "\r\n";
+			ctx.cgi_headers_send = true;
+		}
+		Logger::magenta("read cgi pipe");
+		ctx.cgi_output_phase = false;
+		char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+		std::memset(buffer, 0, sizeof(buffer));
+		ssize_t bytes = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
+		if (bytes < 0) {
+			if (ctx.req.cgi_out_fd > 0) {
+				close(ctx.req.cgi_out_fd);
+				ctx.req.cgi_out_fd = -1;
+				ctx.write_buffer.clear();
+			}
+			return updateErrorStatus(ctx, 500, "Internal Server Error Wediellll");
+		}
+
+		if (bytes == 0) {
+			Logger::yellow("finished cgi output");
+			close(ctx.req.cgi_out_fd);
+			ctx.req.cgi_out_fd = -1;
+			Logger::blue("keepAlive: " + std::to_string(ctx.keepAlive));
+			Logger::blue("cgi_terminate: " + std::to_string(ctx.cgi_terminate));
+			Logger::blue("cgi_terminated: " + std::to_string(ctx.cgi_terminated));
+			const char* end_marker = "\r\n\r\n";
+			ctx.write_buffer.clear();
+			ctx.write_buffer.insert(ctx.write_buffer.end(), end_marker, end_marker + 4);
+			ctx.cgi_terminate = true;
+			Logger::blue("cgi_terminate: " + std::to_string(ctx.cgi_terminate));
+			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+			return true;
+		}
+		if (ctx.cgi_terminated)
+		{
+			if (ctx.keepAlive) {
+				resetContext(ctx);
+				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+			} else if (ctx.cgi_terminated) {
+				delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+			}
+			return true;
+		}
+		// Fixed: Convert the stringstream to a string and copy its contents
+		std::string responseStr = response.str();
+		ctx.write_buffer.clear();
+		ctx.write_buffer.insert(ctx.write_buffer.end(), responseStr.begin(), responseStr.end());
+		// Fixed: Use insert instead of append
+		ctx.write_buffer.insert(ctx.write_buffer.end(), buffer, buffer + bytes);
+
+		Logger::cyan(std::string(ctx.write_buffer.begin(), ctx.write_buffer.end()));
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		return true;
+	}
+	else
+	{
+		Logger::magenta("write cgi buffer");
+		//Logger::magenta("sending chunk to client");
+		if (send(ctx.client_fd, ctx.write_buffer.data(), ctx.write_buffer.size(), MSG_NOSIGNAL) < 0) {
+			close(ctx.req.cgi_out_fd);
+			ctx.req.cgi_out_fd = -1;
+			return updateErrorStatus(ctx, 500, "Failed to send file content");
+		}
+		ctx.req.current_body_length += ctx.write_buffer.size();
+		ctx.write_buffer.clear();
+		ctx.cgi_output_phase = true;
+		if(ctx.cgi_terminate)
+			ctx.cgi_terminated = true;
+		Logger::red("keepAlive: " + std::to_string(ctx.keepAlive));
+		Logger::red("cgi_terminate: " + std::to_string(ctx.cgi_terminate));
+		Logger::red("cgi_terminated: " + std::to_string(ctx.cgi_terminated));
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		return true;
+	}
+
+	return false;
 }
