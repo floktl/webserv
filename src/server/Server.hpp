@@ -115,6 +115,7 @@ class Server
 		bool parseContentDisposition(Context& ctx);
 		bool buildDownloadResponse(Context &ctx);
 		bool handleChunkedDownload(Context& ctx);
+		bool fileExists(const std::string& path);
 };
 
 std::string extractHostname(const std::string& header);
