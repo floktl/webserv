@@ -213,7 +213,14 @@ void Logger::progressBar(long long current, long long total, const std::string& 
 
 		int percent = progress * 100.0;
 		std::cout << " " << percent << "% ";
-		std::cout << std::to_string(current) + "/" + std::to_string(total);
+		if (current == total && total > 0)
+		{
+			std::cout << GREEN <<"completed!                  " << RESET;
+		}
+		else
+		{
+			std::cout << std::to_string(current) + "/" + std::to_string(total);
+		}
 		std::cout.flush();
 	}
 }

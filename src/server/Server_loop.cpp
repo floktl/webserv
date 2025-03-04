@@ -390,6 +390,7 @@ bool Server::handleWrite(Context& ctx) {
 	bool result = false;
 
 	if (ctx.is_download && ctx.multipart_fd_up_down > 0) {
+
 		return buildDownloadResponse(ctx);
 	}
 
@@ -415,12 +416,16 @@ bool Server::handleWrite(Context& ctx) {
 
 			if (written > 0) {
 				ctx.req.current_body_length += written;
+
+				Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "(" + std::to_string(ctx.multipart_fd_up_down) + ") Upload 8");
+
 				ctx.write_buffer.clear();
 			}
 
 			if (ctx.final_boundary_found ||
 				(ctx.req.expected_body_length > 0 && ctx.req.current_body_length >= ctx.req.expected_body_length)) {
 				upload_complete = true;
+				Logger::progressBar(ctx.req.expected_body_length, ctx.req.expected_body_length, "(" + std::to_string(ctx.multipart_fd_up_down) + ") Upload 8");
 			}
 		}
 
@@ -504,7 +509,7 @@ bool Server::buildDownloadResponse(Context &ctx) {
 
 		response << "\r\n";
 
-		Logger::magenta("send headers");
+		//Logger::magenta("send headers");
 		if (send(ctx.client_fd, response.str().c_str(), response.str().size(), MSG_NOSIGNAL) < 0) {
 			close(ctx.multipart_fd_up_down);
 			ctx.multipart_fd_up_down = -1;
@@ -519,21 +524,18 @@ bool Server::buildDownloadResponse(Context &ctx) {
 
 	// Alternate between reading and sending
 	if (ctx.download_phase) {
-		// READ PHASE
 		char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-		Logger::magenta("reading chunk from file");
+		//Logger::magenta("reading chunk from file");
 		ssize_t bytes_read = read(ctx.multipart_fd_up_down, buffer, sizeof(buffer));
 
 		if (bytes_read < 0) {
-			// Error reading
 			close(ctx.multipart_fd_up_down);
 			ctx.multipart_fd_up_down = -1;
 			return updateErrorStatus(ctx, 500, "Failed to read file");
 		}
 
 		if (bytes_read == 0) {
-			// End of file
-			Logger::yellow("finished download");
+			//Logger::yellow("finished download");
 			close(ctx.multipart_fd_up_down);
 			ctx.multipart_fd_up_down = -1;
 
@@ -552,13 +554,14 @@ bool Server::buildDownloadResponse(Context &ctx) {
 		return true;
 	} else {
 		if (ctx.write_buffer.size() > 0) {
-			Logger::magenta("sending chunk to client");
+			//Logger::magenta("sending chunk to client");
 			if (send(ctx.client_fd, ctx.write_buffer.data(), ctx.write_buffer.size(), MSG_NOSIGNAL) < 0) {
 				close(ctx.multipart_fd_up_down);
 				ctx.multipart_fd_up_down = -1;
 				return updateErrorStatus(ctx, 500, "Failed to send file content");
 			}
-
+			ctx.req.current_body_length += ctx.write_buffer.size();
+			Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "(" + std::to_string(ctx.multipart_fd_up_down) + ") Download 8");
 			ctx.write_buffer.clear();
 			ctx.download_phase = true; // Switch back to read phase
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
@@ -566,7 +569,6 @@ bool Server::buildDownloadResponse(Context &ctx) {
 		}
 	}
 
-	// Should never reach here
 	return false;
 }
 
