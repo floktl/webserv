@@ -1,5 +1,0 @@
-[2025-03-04 17:54:32]  [ERROR] Upload directory does not exist: uploads
-[2025-03-04 17:54:32]  [ERROR] ErrorHandler: Errorcode: 404 Upload directory not found
-[2025-03-04 17:54:32] executeCgi started
-[2025-03-04 17:54:32] CGI process started with PID: 24950
-[2025-03-04 17:54:32] Executing CGI script: /app/var/www/php/favicon.icoindex.php with interpreter: /usr/bin/php

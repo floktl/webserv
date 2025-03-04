@@ -251,6 +251,7 @@ void Server::parseAccessRights(Context& ctx)
 			return;
 		requestedPath = approveExtention(ctx, requestedPath);
 	}
+
 	if (ctx.type == ERROR)
 		return;
 	if (ctx.type != REDIRECT)
