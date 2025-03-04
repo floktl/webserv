@@ -40,6 +40,7 @@ $(X)  \n\
 $(GREEN)Flos tasks:$(X)\n\
 $(GREEN)Jeberles Tasks:$(X)\n\
 $(X)	🐑 http://localhost:8080/team consida redirect on http://localhost:8080/team/ instead of default_file \n\
+$(X)	🐑 http://localhost:8001/bier consida redirect on http://localhost:8080/bier/ instead of default_file  BETRIFFT AUCH PHP\n\
 $(X)  \n\
 $(GREEN)Thomas Bornheim's Tasks:$(X)\n\
 $(X)	🐑 Let the sheeps out \n\

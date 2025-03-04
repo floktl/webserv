@@ -296,20 +296,24 @@ size_t Server::getFileSize(const std::string& path)
 std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 	size_t dot_pos = path_to_check.find_last_of('.');
 	bool starts_with_upload_store = false;
+	Logger::yellow("=========D     path_to_check : " + path_to_check);
 	if (dot_pos == std::string::npos && isDirectory(path_to_check) && path_to_check.back() != '/' && ctx.location.autoindex != "on")
 	{
 		path_to_check = path_to_check + "/";
 	}
+	Logger::yellow("=========D     path_to_check : " + path_to_check);
 	if (path_to_check.length() >= ctx.location.upload_store.length())
 	{
 		starts_with_upload_store = path_to_check.substr(0, ctx.location.upload_store.length()) == ctx.location.upload_store;
 	}
+	Logger::yellow("=========D     path_to_check : " + path_to_check);
 	if (!path_to_check.empty() && path_to_check.back() == '/'&& ctx.location.autoindex != "on")
 	{
 		path_to_check = concatenatePath(path_to_check, ctx.location.default_file);
 		starts_with_upload_store = false;
 		return path_to_check;
 	}
+	Logger::yellow("=========D     path_to_check : " + path_to_check);
 	if (!ctx.location.return_url.empty() && ctx.method == "GET") {
 		if (std::find(ctx.blocks_location_paths.begin(), ctx.blocks_location_paths.end(),
 			ctx.location.return_url) != ctx.blocks_location_paths.end()) {
@@ -320,7 +324,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 		ctx.type = REDIRECT;
 		return path_to_check;
 	}
-
+	Logger::yellow("=========D     path_to_check : " + path_to_check);
 	if (ctx.method == "GET" && starts_with_upload_store) {
 		ctx.is_download = true;
 		if (!fileExists(path_to_check)) {
@@ -356,9 +360,14 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 
 	std::string extension = path_to_check.substr(dot_pos + 1);
 
+	Logger::yellow("=========D     path_to_check : " + path_to_check);
 	if (("." + extension) == ctx.location.cgi_filetype && ctx.type == CGI)
+	{
+		ctx.requested_path = path_to_check;
 		return path_to_check;
+	}
 
+	Logger::yellow("=========D     path_to_check : " + path_to_check);
 	if (ctx.method == "GET" && ctx.location.return_url.empty())
 		return path_to_check;
 

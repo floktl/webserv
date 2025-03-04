@@ -45,24 +45,23 @@ bool Server::executeCgi(Context& ctx) {
 			env_pointers.push_back(const_cast<char*>(var.c_str()));
 		}
 		env_pointers.push_back(nullptr);
-
-		std::string script_path = ctx.root + ctx.path + "index.php";
+		logContext(ctx, "CGI");
 		std::string interpreter;
 		if (ctx.location.cgi_filetype == ".py") {
 			interpreter = "/usr/bin/python";
 		} else if (ctx.location.cgi_filetype == ".php") {
 			interpreter = "/usr/bin/php";
 		} else {
-			interpreter = script_path;
+			interpreter = ctx.requested_path;
 		}
 
 		char* args[] = {
 			const_cast<char*>(interpreter.c_str()),
-			const_cast<char*>(script_path.c_str()),
+			const_cast<char*>(ctx.requested_path.c_str()),
 			nullptr
 		};
 
-		Logger::file("Executing CGI script: " + script_path + " with interpreter: " + interpreter);
+		Logger::file("Executing CGI script: " + ctx.requested_path + " with interpreter: " + interpreter);
 		execve(interpreter.c_str(), args, env_pointers.data());
 
 		Logger::file("execve failed for CGI execution");
