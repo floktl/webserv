@@ -197,6 +197,12 @@ std::string Server::requestTypeToString(RequestType type)
 }
 
 // Checks if a file is readable
+bool Server::fileExists(const std::string& path) {
+	struct stat st;
+	return (stat(path.c_str(), &st) == 0);
+}
+
+// Checks if a file is readable
 bool Server::fileReadable(const std::string& path)
 {
 	struct stat st;
@@ -306,6 +312,10 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 		ctx.is_download = true;
 
 		Logger::red("path_to_check before return: " + path_to_check);
+		if (!fileExists(path_to_check)) {
+			updateErrorStatus(ctx, 404, "Not found");
+			return "";
+		}
 		if (!fileReadable(path_to_check)) {
 			updateErrorStatus(ctx, 403, "Forbidden fileReadable");
 			return "";
