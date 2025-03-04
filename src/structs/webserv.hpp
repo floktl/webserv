@@ -188,6 +188,8 @@ struct Context
 	bool headers_complete = false;
 	bool keepAlive = false;
 	bool is_multipart = false;
+    bool download_headers_sent = false;
+    bool download_phase = false;
 };
 
 struct GlobalFDS

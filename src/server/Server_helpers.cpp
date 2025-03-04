@@ -233,7 +233,6 @@ bool Server::dirWritable(const std::string& path)
 // Verifies Access Permissions for a Given Path Based on the Request Context
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
-	Logger::green(path);
 	if (!fileReadable(path) && ctx.method == "GET")
 		return updateErrorStatus(ctx, 404, "Not found in 1. checkaccessright()");
 	if (!fileReadable(path) && ctx.method == "DELETE")
@@ -282,18 +281,15 @@ bool isMethodAllowed(Context& ctx)
 
 
 std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
-	Logger::green("approveExtention() path to check: " + path_to_check);
 	size_t dot_pos = path_to_check.find_last_of('.');
 	bool starts_with_upload_store = false;
 
-	Logger::yellow("ctx.location.upload_store.length(): " + ctx.location.upload_store);
 	if (path_to_check.length() >= ctx.location.upload_store.length())
 	{
 		starts_with_upload_store = path_to_check.substr(0, ctx.location.upload_store.length()) == ctx.location.upload_store;
 	}
 	if (path_to_check.back() == '/')
 	{
-		Logger::red("Detected a folder! Resetting `starts_with_upload_store`.");
 		starts_with_upload_store = false;
 	}
 	if (!ctx.location.return_url.empty() && ctx.method == "GET") {
@@ -308,10 +304,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 	}
 
 	if (ctx.method == "GET" && starts_with_upload_store) {
-		Logger::yellow(" -- Processing download request: " + path_to_check);
 		ctx.is_download = true;
-
-		Logger::red("path_to_check before return: " + path_to_check);
 		if (!fileExists(path_to_check)) {
 			updateErrorStatus(ctx, 404, "Not found");
 			return "";
@@ -331,6 +324,11 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 			updateErrorStatus(ctx, 500, "Internal Server Error");
 			return "";
 		}
+		if (ctx.multipart_fd_up_down > 0) {
+			if (setNonBlocking(ctx.multipart_fd_up_down) < 0) {
+				updateErrorStatus(ctx, 500, "Internal Server Error");
+			}
+		}
 
 		ctx.multipart_file_path_up_down = path_to_check;
 
@@ -338,7 +336,6 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 		return path_to_check;
 	}
 
-	Logger::red("fall here " + path_to_check);
 	std::string extension = path_to_check.substr(dot_pos + 1);
 
 	if (("." + extension) == ctx.location.cgi_filetype && ctx.type == CGI)

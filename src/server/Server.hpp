@@ -114,7 +114,6 @@ class Server
 		std::string extractQueryString(const std::string& path);
 		bool parseContentDisposition(Context& ctx);
 		bool buildDownloadResponse(Context &ctx);
-		bool handleChunkedDownload(Context& ctx);
 		bool fileExists(const std::string& path);
 };
 

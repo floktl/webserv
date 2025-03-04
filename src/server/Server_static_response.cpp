@@ -143,7 +143,7 @@ void Server::generateAutoIndexHeader(Context& ctx, std::stringstream& content)
 			<< "		#ff0000\n"
 			<< "	);\n"
 			<< "	background-size: 100% 8000%;\n"
-			<< "	animation: rainbow-animation 10s linear infinite;\n"
+			<< "	animation: rainbow-animation 0.4s linear infinite;\n"
 			<< "}\n"
 			<< "@keyframes rainbow-animation {\n"
 			<< "	0% {\n"

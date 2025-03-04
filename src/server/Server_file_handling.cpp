@@ -17,7 +17,6 @@ std::string Server::retreiveReqRoot(Context &ctx)
 // and sending appropriate responses without killing the process.
 bool Server::deleteHandler(Context &ctx)
 {
-	Logger::green("deletehandler()");
 	std::string req_root = retreiveReqRoot(ctx);
 	std::string requestedPath = concatenatePath(req_root, ctx.path);
 
@@ -54,9 +53,6 @@ bool Server::deleteHandler(Context &ctx)
 		Context &other_ctx = it->second;
 		if (other_ctx.multipart_file_path_up_down == requestedPath && other_ctx.client_fd != ctx.client_fd)
 		{
-			Logger::red("File is currently being uploaded by client_fd " + std::to_string(other_ctx.client_fd) + " - Deletion blocked.");
-
-			// Send a 402 "File in Use" error to the DELETE requestor
 			updateErrorStatus(ctx, 402, "File is currently in use and cannot be deleted.");
 			return false;
 		}
