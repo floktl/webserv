@@ -227,6 +227,36 @@ bool Server::extractFileContent(const std::string& boundary, const std::string& 
 	return true;
 }
 
+bool Server::parseCGIBody(Context& ctx)
+{
+	Logger::cyan(std::string(ctx.read_buffer.begin(), ctx.read_buffer.end()));
+	ctx.body += ctx.read_buffer;
+	Logger::magenta(ctx.body);
+
+	bool finished = false;
+
+	if (ctx.headers.count("Content-Length")) {
+		unsigned long expected_length = std::stol(ctx.headers["Content-Length"]);
+		if (ctx.body.length() >= expected_length) {
+			finished = true;
+			Logger::green("Body complete based on Content-Length");
+		}
+	} else if (ctx.read_buffer.empty()) {
+		finished = true;
+		Logger::green("Body complete (no Content-Length, empty buffer)");
+	}
+
+	if (finished) {
+		Logger::green("POST body complete, switching to CGI execution mode");
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		return true;
+	} else {
+		Logger::green("Waiting for more POST data...");
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
+		return true;
+	}
+}
+
 // Handles Reading Request Data from the Client and Processing It Accordingly
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
 	Logger::green("handleRead");
@@ -296,6 +326,21 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
 			return true;
 		}
+	}
+
+	if (ctx.type == CGI) {
+		Logger::magenta("Wir sind im CGI Parsing");
+		if (ctx.method == "POST")
+		{
+			Logger::magenta("Wir parsen den naechsten teil des Bodies in ctx. body");
+			if (parseCGIBody(ctx)) {
+				return true;
+			}
+			return updateErrorStatus(ctx, 500, "Internal Server Error");
+		}
+		Logger::magenta("Wir haben das CGI Parsing beendet und geben frei");
+		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		return true;
 	}
 
 	if (ctx.is_download && ctx.multipart_fd_up_down > 0) {

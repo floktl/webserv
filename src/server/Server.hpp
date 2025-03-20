@@ -118,6 +118,7 @@ class Server
 		bool isDirectory(const std::string& path);
 		size_t getFileSize(const std::string& path);
 		bool sendCgiResponse(Context& ctx);
+		bool parseCGIBody(Context& ctx);
 };
 
 std::string extractHostname(const std::string& header);
