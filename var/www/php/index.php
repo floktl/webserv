@@ -93,7 +93,7 @@
 	}
 
 	// Create folder for uploaded files
-	$filesDir = __DIR__ . '/upload';
+	$filesDir = __DIR__ . '/uploads';
 	if (!is_dir($filesDir)) {
 		mkdir($filesDir, 0777, true);
 	}
@@ -149,7 +149,7 @@
 		<ul>
 			<?php foreach ($uploadedFiles as $fileName): ?>
 				<li>
-					<?php echo htmlspecialchars($fileName); ?>
+					<a href="<?php echo htmlspecialchars($fileName); ?>"><?php echo htmlspecialchars($fileName); ?></a>
 					<button onclick="deleteFile('<?php echo htmlspecialchars($fileName); ?>')" style="display: inline;">X</button>
 				</li>
 			<?php endforeach; ?>
