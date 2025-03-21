@@ -124,6 +124,7 @@ bool Server::executeCgi(Context& ctx) {
 	Logger::file("CGI process started with PID: " + std::to_string(pid));
 
 	// Write POST data to the CGI input if it exists
+	Logger::red("\n" + ctx.body + "\n");
 	if (!ctx.body.empty()) {
 		// For PHP, make sure we're writing properly formatted POST data
 		ssize_t written = write(ctx.req.cgi_in_fd, ctx.body.c_str(), ctx.body.length());

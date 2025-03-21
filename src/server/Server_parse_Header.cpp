@@ -180,6 +180,10 @@ void Server::prepareUploadPingPong(Context& ctx)
 		}
 	}
 
+	if (!(ctx.multipart_file_path_up_down.size() >= ctx.root.size() && ctx.multipart_file_path_up_down.substr(0, ctx.root.size()) == ctx.root)) {
+		ctx.multipart_file_path_up_down = concatenatePath(ctx.root, ctx.multipart_file_path_up_down);
+	}
+	Logger::magenta(ctx.multipart_file_path_up_down);
 	std::string upload_dir = ctx.multipart_file_path_up_down.substr(0, ctx.multipart_file_path_up_down.find_last_of("/"));
 
 	struct stat dir_stat;

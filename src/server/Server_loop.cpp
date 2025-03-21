@@ -293,7 +293,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
 			return false;
 	}
 
-	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong && ctx.type != CGI) {
+	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong) {
 		if (!parseContentDisposition(ctx)) {
 			Logger::errorLog("Content Disposition parsing failed");
 			return false;
@@ -319,8 +319,8 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
 		}
 	}
 
-	if (ctx.type == CGI) {
-		if (ctx.method == "POST")
+	if (ctx.type == CGI && !ctx.is_multipart) {
+		if (ctx.method == "POST" && !ctx.is_multipart)
 		{
 			if (parseCGIBody(ctx)) {
 				return true;
