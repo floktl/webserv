@@ -240,9 +240,9 @@ bool Server::dirWritable(const std::string& path)
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	if (!fileReadable(path) && ctx.method == "GET")
-		return updateErrorStatus(ctx, 404, "Not found in 1. checkaccessright()");
+		return updateErrorStatus(ctx, 404, path + " Not found in 1. checkaccessright()");
 	if (!fileReadable(path) && ctx.method == "DELETE")
-		return updateErrorStatus(ctx, 404, "Not found in 2. checkaccessright()");
+		return updateErrorStatus(ctx, 404, path + " Not found in 2. checkaccessright()");
 	if (!fileReadable(path) && ctx.method != "POST")
 		return updateErrorStatus(ctx, 403, "Forbidden in 1. checkAccessRights()");
 

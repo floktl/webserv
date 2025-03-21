@@ -70,7 +70,7 @@ bool Server::deleteHandler(Context &ctx)
 	// Redirect the original DELETE request client to a success page
 	std::stringstream response;
 	response << "HTTP/1.1 303 See Other\r\n"
-			 << "Location: /success/delete-confirmation.html\r\n"
+			 << "Location: /\r\n"
 			 << "Content-Length: 0\r\n"
 			 << "Connection: close\r\n\r\n";
 

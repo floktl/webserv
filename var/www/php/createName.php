@@ -1,7 +1,7 @@
 <?php
 	// createName.php
 
-	$dataDir = __DIR__ . '/data';
+	$dataDir = __DIR__ . '/uploads/data';
 	if (!is_dir($dataDir)) {
 		mkdir($dataDir, 0777, true);
 	}

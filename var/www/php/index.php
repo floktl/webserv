@@ -73,7 +73,7 @@
 <?php
 	// index.php
 
-	$dataDir = __DIR__ . '/data';
+	$dataDir = __DIR__ . '/uploads/data';
 	$names = [];
 	// Create 'data' folder if it doesn't exist
 	if (!is_dir($dataDir)) {
@@ -134,7 +134,7 @@
 			<?php foreach ($names as $entry): ?>
 				<li>
 					<?php echo htmlspecialchars($entry['name']) . " (Age: " . htmlspecialchars($entry['age']) . ")"; ?>
-					<button onclick="deleteName('<?php echo htmlspecialchars($entry['name']); ?>')" style="display: inline;">X</button>
+					<button class="deleteName" data-value="<?php echo htmlspecialchars($entry['name']); ?>" style="display: inline;">X</button>
 				</li>
 			<?php endforeach; ?>
 		</ul>
@@ -148,47 +148,61 @@
 		</form>
 		<ul>
 			<?php foreach ($uploadedFiles as $fileName): ?>
-				<li>
-					<a href="<?php echo htmlspecialchars($fileName); ?>"><?php echo htmlspecialchars($fileName); ?></a>
-					<button onclick="deleteFile('<?php echo htmlspecialchars($fileName); ?>')" style="display: inline;">X</button>
-				</li>
+				<?php if ($fileName != "data"): ?>
+					<li>
+						<a href="<?php echo htmlspecialchars($fileName); ?>"><?php echo htmlspecialchars($fileName); ?></a>
+						<button class="deleteFile" data-value="<?php echo htmlspecialchars($fileName); ?>" style="display: inline;">X</button>
+					</li>
+				<?php endif; ?>
 			<?php endforeach; ?>
 		</ul>
 
 		<a href="/about.php">About Us</a>
 
 		<script>
-			function deleteName(name) {
-				fetch("./data/" + name + ".name", {
-					method: 'DELETE',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({ nameToDelete: name })
-				})
-				.then(response => {
-					if (response.ok) {
-						window.location.reload();
-					}
-				})
-				.catch(error => console.error('Error:', error));
-			}
+			document.addEventListener("DOMContentLoaded", function(){
+				// Event listeners for name deletion
+				var delNames = document.querySelectorAll('.deleteName');
+				delNames.forEach(delName => {
+					delName.addEventListener("click", function(){
+						var name = this.getAttribute('data-value');
+						fetch("./data/" + name + ".name", {
+							method: 'DELETE',
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({ nameToDelete: name })
+						})
+						.then(response => {
+							if (response.ok) {
+								window.location.reload();
+							}
+						})
+						.catch(error => console.error('Error:', error));
+					});
+				});
 
-			function deleteFile(name) {
-				fetch("./" . $_SERVER["UPLOAD_STORE"] . "/" + name, {
-					method: 'DELETE',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({ nameToDelete: name })
-				})
-				.then(response => {
-					if (response.ok) {
-						window.location.reload();
-					}
-				})
-				.catch(error => console.error('Error:', error));
-			}
+				// Event listeners for file deletion - using the same approach as delName
+				var delFiles = document.querySelectorAll('.deleteFile');
+				delFiles.forEach(delFile => {
+					delFile.addEventListener("click", function(){
+						var fileName = this.getAttribute('data-value');
+						fetch("./uploads/" + fileName, {
+							method: 'DELETE',
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({ fileToDelete: fileName })
+						})
+						.then(response => {
+							if (response.ok) {
+								window.location.reload();
+							}
+						})
+						.catch(error => console.error('Error:', error));
+					});
+				});
+			});
 		</script>
 	</main>
 </body>

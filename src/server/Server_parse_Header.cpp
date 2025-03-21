@@ -220,7 +220,15 @@ void Server::parseAccessRights(Context& ctx)
 {
 	std::string req_root = retreiveReqRoot(ctx);
 	if (ctx.method == "DELETE")
-		ctx.path = "/uploads" + ctx.path;
+	{
+		ctx.path = "/" + ctx.location.upload_store + ctx.path;
+		ctx.requested_path = ctx.path;
+		if (ctx.type == CGI)
+		{
+			ctx.wasCgiDel = true;
+			ctx.type = STATIC;
+		}
+	}
 	std::string requestedPath = concatenatePath(req_root, ctx.path);
 	if (ctx.index.empty() && ctx.method != "DELETE")
 		ctx.index = DEFAULT_FILE;
@@ -254,7 +262,7 @@ void Server::parseAccessRights(Context& ctx)
 
 	if (ctx.type == ERROR)
 		return;
-	if (ctx.type != REDIRECT)
+	if (ctx.type != REDIRECT && !ctx.wasCgiDel)
 		checkAccessRights(ctx, requestedPath);
 	if (ctx.type == ERROR)
 		return;
