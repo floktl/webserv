@@ -322,8 +322,8 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 	}
 
 	std::string extension = path_to_check.substr(dot_pos + 1);
-
-	if (ctx.method == "GET" && (starts_with_upload_store || ("." + extension != ctx.location.cgi_filetype && ctx.type == CGI))) {
+	Logger::red(path_to_check);
+	if (ctx.method == "GET" && starts_with_upload_store && ("." + extension != ctx.location.cgi_filetype && ctx.type == CGI)) {
 		ctx.type = STATIC;
 		ctx.is_download = true;
 		if (!fileExists(path_to_check)) {

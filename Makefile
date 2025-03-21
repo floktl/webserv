@@ -24,31 +24,22 @@ SUCCESS := \n\
 $(GREEN)Task at the end:$(X)\n\
 $(X)	🦄 wildcard checken....\n\
 $(X)	🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
-$(X)	🦄 adjust Jeberle_warner for upload path \n\
 $(X)	🦄 manchmal taucht double free nach download auf... \n\
 $(X)	🦄 error code pruefen gegen statuses.... \n\
 $(X)	🐑 bei zugriff auf nciht definierte location http://localhost:9090/team kein error.... 404\n\
 $(X)	🐑 bei zugriff auf nciht definierte location http://localhost:9090/team/ kein error.... 404\n\
 $(X)  \n\
-$(GREEN)Needs CGI ready:$(X)\n\
+$(GREEN)Others:$(X)\n\
 $(X)	🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
 $(X)	🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
 $(X)	🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
 $(X)	🐑 Random plain text header prarsing problem CGI\n\
 $(X)	🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
-$(X)	🐑 Donwloads and HTML in CGI Locations\n\
+$(X)	🐖 CGI Python\n\
 $(X)	🐑 sendCGIResponse evneutell ueberdenken\n\
-$(X)  \n\
-$(GREEN)Flos tasks:$(X)\n\
-$(GREEN)Jeberles Tasks:$(X)\n\
 $(X)	🐑 http://localhost:8080/team consida redirect on http://localhost:8080/team/ instead of default_file \n\
 $(X)	🐑 http://localhost:8001/bier consida redirect on http://localhost:8080/bier/ instead of default_file  BETRIFFT AUCH PHP\n\
 $(X)  \n\
-$(GREEN)Thomas Bornheim's Tasks:$(X)\n\
-$(X)	🐑 Let the sheeps out \n\
-$(X)	🐖 Feed he pigs\n\
-$(X)	🦄 create unicorns at 42 \n\
-$(X)	🦄 Shrek wiggle image \n\
 #  ACTUNG DAS HIER SIND TODOS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 # $(X) bei delete auf folder.... probleme   read in hadnleRead\n\
