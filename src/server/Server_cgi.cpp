@@ -1,9 +1,6 @@
 #include "Server.hpp"
 
 bool Server::executeCgi(Context& ctx) {
-	Logger::green("executeCgi");
-	Logger::file("executeCgi started");
-
 	if (ctx.requested_path.empty()) {
 		Logger::error("Empty script path for CGI execution");
 		Logger::file("Empty script path for CGI execution");
@@ -86,7 +83,6 @@ bool Server::executeCgi(Context& ctx) {
 			if (fileExecutable(ctx.requested_path)) {
 				interpreter = ctx.requested_path;
 			} else {
-				Logger::file("No valid interpreter for CGI script: " + ctx.requested_path);
 				exit(1);
 			}
 		}
@@ -103,11 +99,8 @@ bool Server::executeCgi(Context& ctx) {
 			args[1] = nullptr;
 		}
 
-		Logger::file("Executing CGI script: " + ctx.requested_path + " with interpreter: " + interpreter);
 		execve(interpreter.c_str(), args, env_pointers.data());
 
-		// If we get here, execve failed
-		Logger::file("execve failed for CGI execution: " + std::string(strerror(errno)));
 		exit(1);
 	}
 
@@ -121,18 +114,11 @@ bool Server::executeCgi(Context& ctx) {
 	ctx.req.cgi_pid = pid;
 	ctx.req.state = RequestBody::STATE_CGI_RUNNING;
 
-	Logger::file("CGI process started with PID: " + std::to_string(pid));
 
 	// Write POST data to the CGI input if it exists
-	Logger::red("\n" + ctx.body + "\n");
 	if (!ctx.body.empty()) {
 		// For PHP, make sure we're writing properly formatted POST data
-		ssize_t written = write(ctx.req.cgi_in_fd, ctx.body.c_str(), ctx.body.length());
-		if (written < 0) {
-			Logger::file("Failed to write to CGI input pipe: " + std::string(strerror(errno)));
-		} else {
-			Logger::file("CGI input written: " + std::to_string(written) + " bytes");
-		}
+		write(ctx.req.cgi_in_fd, ctx.body.c_str(), ctx.body.length());
 	}
 
 	// Close the input pipe after writing all data
@@ -140,7 +126,6 @@ bool Server::executeCgi(Context& ctx) {
 	ctx.req.cgi_in_fd = -1;
 
 	ctx.last_activity = std::chrono::steady_clock::now();
-	Logger::yellow("executeCgi completed successfully");
 
 	ctx.cgi_executed = true;
 	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT | EPOLLET);
@@ -154,7 +139,6 @@ std::vector<std::string> Server::prepareCgiEnvironment(const Context& ctx) {
 	// Validate that we have a valid script path
 	if (ctx.requested_path.empty()) {
 		Logger::error("Empty script path for CGI environment");
-		Logger::file("Empty script path for CGI environment");
 		return env; // Return empty environment if path is invalid
 	}
 
@@ -191,7 +175,6 @@ std::vector<std::string> Server::prepareCgiEnvironment(const Context& ctx) {
 	env.push_back("PATH_INFO=" + scriptPath);
 	env.push_back("SCRIPT_NAME=" + scriptPath);
 	env.push_back("SCRIPT_FILENAME=" + ctx.requested_path);
-	Logger::file("SCRIPT_FILENAME=" + ctx.requested_path);
 
 	// Extract query string properly
 	std::string queryString = extractQueryString(ctx.path);
@@ -201,7 +184,6 @@ std::vector<std::string> Server::prepareCgiEnvironment(const Context& ctx) {
 	env.push_back("REDIRECT_STATUS=200");
 	env.push_back("REQUEST_URI=" + ctx.path);
 
-	Logger::file("REQUEST_METHOD=" + ctx.method);
 
 	// For PHP POST requests, these are critical
 	if (ctx.method == "POST") {
@@ -211,7 +193,6 @@ std::vector<std::string> Server::prepareCgiEnvironment(const Context& ctx) {
 			contentType = ctx.headers.at("Content-Type");
 		}
 		env.push_back("CONTENT_TYPE=" + contentType);
-		Logger::file("CONTENT_TYPE=" + contentType);
 
 		// Set content length directly (not as HTTP_ header)
 		std::string contentLength = std::to_string(ctx.body.length());
@@ -219,7 +200,6 @@ std::vector<std::string> Server::prepareCgiEnvironment(const Context& ctx) {
 			contentLength = ctx.headers.at("Content-Length");
 		}
 		env.push_back("CONTENT_LENGTH=" + contentLength);
-		Logger::file("CONTENT_LENGTH=" + contentLength);
 	}
 
 	// Process other HTTP headers (excluding the ones we already handled specially)
@@ -265,7 +245,6 @@ std::string Server::extractQueryString(const std::string& path) {
 bool Server::sendCgiResponse(Context& ctx) {
 	// Handle case where the CGI process has been terminated
 	if (ctx.req.cgi_out_fd < 0 && ctx.cgi_terminated) {
-		Logger::file("CGI process already terminated, cleaning up");
 		return true;
 	}
 
@@ -274,7 +253,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 	if (ctx.cgi_output_phase) {
 		// First phase: Read from CGI output
 		if (!ctx.cgi_headers_send) {
-			Logger::file("Preparing CGI response headers");
 
 			// Read from CGI output pipe first to get any headers
 			char buffer[DEFAULT_REQUESTBUFFER_SIZE];
@@ -284,7 +262,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 
 			if (bytes < 0) {
 				if (errno == EAGAIN || errno == EWOULDBLOCK) {
-					Logger::file("No data available from CGI, will retry");
 					modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 					return true;
 				}
@@ -298,7 +275,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 			}
 
 			if (bytes == 0) {
-				Logger::file("Empty CGI output");
 				close(ctx.req.cgi_out_fd);
 				ctx.req.cgi_out_fd = -1;
 				ctx.cgi_terminate = true;
@@ -389,7 +365,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 			// Convert to string and store in buffer
 			std::string responseStr = response.str();
 			ctx.write_buffer.assign(responseStr.begin(), responseStr.end());
-			Logger::file("Processed CGI response:\n" + responseStr);
 
 			// Switch to send phase
 			ctx.cgi_output_phase = false;
@@ -406,7 +381,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 			return true;
 		}
 
-		Logger::file("Reading from CGI output pipe");
 		ctx.cgi_output_phase = false;
 		char buffer[DEFAULT_REQUESTBUFFER_SIZE];
 		std::memset(buffer, 0, sizeof(buffer));
@@ -416,8 +390,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 		if (bytes < 0) {
 			// Handle read error
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				// No data available right now, try again later
-				Logger::file("No data available from CGI, will retry");
 				ctx.cgi_output_phase = true;
 				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 				return true;
@@ -433,8 +405,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 		}
 
 		if (bytes == 0) {
-			// End of CGI output
-			Logger::file("End of CGI output, closing pipe");
 			close(ctx.req.cgi_out_fd);
 			ctx.req.cgi_out_fd = -1;
 
@@ -445,7 +415,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 			}
 
 			ctx.cgi_terminate = true;
-			Logger::file("CGI output complete, terminal flag set: " + std::to_string(ctx.cgi_terminate));
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 			return true;
 		}
@@ -463,9 +432,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 
 		// Append new data to existing buffer
 		ctx.write_buffer.insert(ctx.write_buffer.end(), buffer, buffer + bytes);
-		Logger::file("THE CGI RESPONSE:\n" + std::string(ctx.write_buffer.begin(), ctx.write_buffer.end()));
-
-		Logger::file("Read " + std::to_string(bytes) + " bytes from CGI output");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 		return true;
 	}
@@ -484,8 +450,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 		if (sent < 0) {
 			// Handle send error
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				// Would block, try again later
-				Logger::file("Send would block, will retry");
 				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 				return true;
 			}

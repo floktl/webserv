@@ -195,7 +195,6 @@ struct Context
     bool cgi_terminate = false;
     bool cgi_terminated = false;
     bool wasCgiDel = false;
-
 };
 
 struct GlobalFDS

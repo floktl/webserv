@@ -1,10 +1,4 @@
-[2025-03-21 14:33:48] executeCgi started
-[2025-03-21 14:33:48] CGI process started with PID: 257
-[2025-03-21 14:33:48] SCRIPT_FILENAME=/app/var/www/php/index.php
-[2025-03-21 14:33:48] REQUEST_METHOD=GET
-[2025-03-21 14:33:48] Preparing CGI response headers
-[2025-03-21 14:33:48] No data available from CGI, will retry
-[2025-03-21 14:33:48] Context [CGI]:
+[2025-03-21 14:52:29] Context [CGI]:
 FDs: epoll=3 server=11 client=18
 Type: CGI
 Method: GET
@@ -32,179 +26,291 @@ Body: [empty]
 Location Path: [empty]
 Requested Path: /app/var/www/php/index.php
 Location: Defined
-Last Activity: 6641 seconds since epoch
-[2025-03-21 14:33:48] Preparing CGI response headers
-[2025-03-21 14:33:48] Executing CGI script: /app/var/www/php/index.php with interpreter: /usr/bin/php-cgi
-[2025-03-21 14:33:48] No data available from CGI, will retry
-[2025-03-21 14:33:48] Preparing CGI response headers
-[2025-03-21 14:33:48] Processed CGI response:
-HTTP/1.1 200 OK
+Last Activity: 7764 seconds since epoch
+[2025-03-21 14:52:30] Context [CGI]:
+FDs: epoll=3 server=11 client=19
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
 Connection: keep-alive
-Content-type: text/html; charset=UTF-8
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Welcome to My PHP Page</title>
-	<style>
-		body {
-			font-family: Arial, sans-serif;
-			text-align: center;
-			background-color: #f4f4f9;
-			margin: 0;
-			padding: 0;
-		}
-		header {
-			background-color: #4CAF50;
-			color: white;
-			padding: 20px 0;
-			font-size: 2em;
-		}
-		main {
-			padding: 20px;
-		}
-		a {
-			color: #4CAF50;
-			text-decoration: none;
-			font-weight: bold;
-		}
-		a:hover {
-			text-decoration: underline;
-		}
-		form {
-			margin: 20px 0;
-		}
-		input[type="text"],
-		input[type="number"] {
-			padding: 10px;
-			margin: 5px;
-		}
-		input[type="submit"] {
-			background-color: #4CAF50;
-			color: #fff;
-			border: none;
-			padding: 10px;
-			cursor: pointer;
-		}
-		input[type="submit"]:hover {
-			background-color: #45a049;
-		}
-		ul {
-			padding: 0;
-			list-style-type: none;
-		}
-		ul li {
-			width: 50%;
-			display: flex;
-			gap: 20px;
-			box-sizing: border-box;
-			padding: 10px;
-			margin: auto;
-			justify-content: space-between;
-		}
-		ul li:nth-of-type(1n) {
-			background-color: #ddd;
-		}
-		ul li:nth-of-type(2n) {
-			background-color: white;
-		}
-	</style>
-</head>
-<body>
-	<header>
-		Welcome to My PHP Page
-	</header>
-	<main>
-		<h1>Hello, World!</h1>
-
-		<h2>Cookie Test:</h2>
-					<p>Cookie Value: <strong>Take a cookie and shove it</strong></p>
-		
-		<form action="createCookie.php" method="post">
-			<input type="submit" value="Request Fresh Cookie">
-		</form>
-
-		<h2>Add Name and Age:</h2>
-		<form action="createName.php" method="post">
-			<input type="text" name="name" placeholder="name" required>
-			<input type="number" name="age" placeholder="age" required>
-			<input type="submit" value="Add">
-		</form>
-		<ul>
-					</ul>
-
-		<hr>
-
-		<h2>File Upload (Test):</h2>
-		<form action="uploadFile.php" method="post" enctype="multipart/form-data">
-			<input type="file" name="uploadedFile" required>
-			<input type="submit" value="Upload File">
-		</form>
-		<ul>
-												<li>
-						<a href="/uploads/100MB.bin">100MB.bin</a>
-						<button class="deleteFile" data-value="100MB.bin" style="display: inline;">X</button>
-					</li>
-																							<li>
-						<a href="/uploads/numbered_lines.txt">numbered_lines.txt</a>
-						<button class="deleteFile" data-value="numbered_lines.txt" style="display: inline;">X</button>
-					</li>
-									</ul>
-
-		<a href="/about.php">About Us</a>
-
-		<script>
-			document.addEventListener("DOMContentLoaded", function(){
-				// Event listeners for name deletion
-				var delNames = document.querySelectorAll('.deleteName');
-				delNames.forEach(delName => {
-					delName.addEventListener("click", function(){
-						var name = this.getAttribute('data-value');
-						fetch("./data/" + name + ".name", {
-							method: 'DELETE',
-							headers: {
-								'Content-Type': 'application/json',
-							},
-							body: JSON.stringify({ nameToDelete: name })
-						})
-						.then(response => {
-							if (response.ok) {
-								window.location.reload();
-							}
-						})
-						.catch(error => console.error('Error:', error));
-					});
-				});
-
-				// Event listeners for file deletion - using the same approach as delName
-				var delFiles = document.querySelectorAll('.deleteFile');
-				delFiles.forEach(delFile => {
-					delFile.addEventListener("click", function(){
-						var fileName = this.getAttribute('data-value');
-						fetch(fileName, {
-							method: 'DELETE',
-							headers: {
-								'Content-Type': 'application/json',
-							},
-							body: JSON.stringify({ fileToDelete: fileName })
-						})
-						.then(response => {
-							console.log(response)
-							if (response.ok) {
-								window.location.reload();
-							}
-						})
-						.catch(error => console.error('Error:', error));
-					});
-				});
-			});
-		</script>
-	</main>
-</body>
-</html>
-[2025-03-21 14:33:48] Reading from CGI output pipe
-[2025-03-21 14:33:48] End of CGI output, closing pipe
-[2025-03-21 14:33:48] CGI output complete, terminal flag set: 1
+Cookie: PHPSESSID=95heveovc6q084jso00n90splg; test_cookie=Take a cookie and shove it; WEBSERV_SESSION=s11c18t5103022
+Host: localhost:8001
+Referer: http://localhost:8001/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7764 seconds since epoch
+[2025-03-21 14:52:30] Context [CGI]:
+FDs: epoll=3 server=11 client=18
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: PHPSESSID=95heveovc6q084jso00n90splg; test_cookie=Take a cookie and shove it; WEBSERV_SESSION=s11c18t5103022
+Host: localhost:8001
+Referer: http://localhost:8001/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7764 seconds since epoch
+[2025-03-21 14:52:30] Context [CGI]:
+FDs: epoll=3 server=11 client=19
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: PHPSESSID=95heveovc6q084jso00n90splg; test_cookie=Take a cookie and shove it; WEBSERV_SESSION=s11c18t5103022
+Host: localhost:8001
+Referer: http://localhost:8001/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7765 seconds since epoch
+[2025-03-21 14:52:30] Context [CGI]:
+FDs: epoll=3 server=11 client=18
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: PHPSESSID=95heveovc6q084jso00n90splg; test_cookie=Take a cookie and shove it; WEBSERV_SESSION=s11c18t5103022
+Host: localhost:8001
+Referer: http://localhost:8001/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7765 seconds since epoch
+[2025-03-21 14:52:31] Context [CGI]:
+FDs: epoll=3 server=11 client=19
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: PHPSESSID=95heveovc6q084jso00n90splg; test_cookie=Take a cookie and shove it; WEBSERV_SESSION=s11c18t5103022
+Host: localhost:8001
+Referer: http://localhost:8001/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7766 seconds since epoch
+[2025-03-21 14:52:32] Context [CGI]:
+FDs: epoll=3 server=11 client=18
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: PHPSESSID=95heveovc6q084jso00n90splg; test_cookie=Take a cookie and shove it; WEBSERV_SESSION=s11c18t5103022
+Host: localhost:8001
+Referer: http://localhost:8001/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7766 seconds since epoch
+[2025-03-21 14:52:32] Context [CGI]:
+FDs: epoll=3 server=11 client=19
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: PHPSESSID=95heveovc6q084jso00n90splg; test_cookie=Take a cookie and shove it; WEBSERV_SESSION=s11c18t5103022
+Host: localhost:8001
+Referer: http://localhost:8001/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7766 seconds since epoch
+[2025-03-21 14:52:56] Context [CGI]:
+FDs: epoll=3 server=11 client=18
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: PHPSESSID=95heveovc6q084jso00n90splg; test_cookie=Take a cookie and shove it; WEBSERV_SESSION=s11c18t5103022
+Host: localhost:8001
+Referer: http://localhost:8001/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7790 seconds since epoch
+[2025-03-21 14:53:15] Context [CGI]:
+FDs: epoll=3 server=11 client=19
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: */*
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Connection: keep-alive
+Cookie: PHPSESSID=95heveovc6q084jso00n90splg; test_cookie=Take a cookie and shove it; WEBSERV_SESSION=s11c18t5103022
+Host: localhost:8001
+Referer: http://localhost:8001/
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7809 seconds since epoch
+[2025-03-21 14:53:15] Context [CGI]:
+FDs: epoll=3 server=11 client=19
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: PHPSESSID=95heveovc6q084jso00n90splg; test_cookie=Take a cookie and shove it; WEBSERV_SESSION=s11c18t5103022
+Host: localhost:8001
+Referer: http://localhost:8001/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7809 seconds since epoch

@@ -343,9 +343,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 	{
 		path_to_check = path_to_check + "/";
 	}
-	Logger::yellow("path_to_check " + path_to_check);
-	Logger::yellow("ctx.location.upload_store " + ctx.location.upload_store);
-	Logger::yellow("starts_with_upload_store " + std::to_string(starts_with_upload_store));
+
 	if (!path_to_check.empty() && path_to_check.back() == '/'&& ctx.location.autoindex != "on")
 	{
 		path_to_check = concatenatePath(path_to_check, ctx.location.default_file);
