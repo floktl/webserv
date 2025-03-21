@@ -119,6 +119,7 @@ class Server
 		size_t getFileSize(const std::string& path);
 		bool sendCgiResponse(Context& ctx);
 		bool parseCGIBody(Context& ctx);
+		bool isPathInUploadStore(Context& ctx, const std::string& path_to_check);
 };
 
 std::string extractHostname(const std::string& header);

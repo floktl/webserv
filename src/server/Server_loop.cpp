@@ -104,12 +104,10 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 		Context		&ctx = contextIter->second;
 		ctx.last_activity = std::chrono::steady_clock::now();
 		if (ev & EPOLLIN) {
-			Logger::white("EPOLLIN");
 			status = handleRead(ctx, configs);
 		}
 		if ((ev & EPOLLOUT))
 		{
-			Logger::white("EPOLLOUT");
 			status = handleWrite(ctx);
 			if (status == false)
 				delFromEpoll(epoll_fd, client_fd);
@@ -229,9 +227,7 @@ bool Server::extractFileContent(const std::string& boundary, const std::string& 
 
 bool Server::parseCGIBody(Context& ctx)
 {
-	//Logger::cyan(std::string(ctx.read_buffer.begin(), ctx.read_buffer.end()));
 	ctx.body += ctx.read_buffer;
-	//Logger::magenta(ctx.body);
 
 	bool finished = false;
 
@@ -239,19 +235,15 @@ bool Server::parseCGIBody(Context& ctx)
 		unsigned long expected_length = std::stol(ctx.headers["Content-Length"]);
 		if (ctx.body.length() >= expected_length) {
 			finished = true;
-			//Logger::green("Body complete based on Content-Length");
 		}
 	} else if (ctx.read_buffer.empty()) {
 		finished = true;
-		//Logger::green("Body complete (no Content-Length, empty buffer)");
 	}
 
 	if (finished) {
-		//Logger::green("POST body complete, switching to CGI execution mode");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 		return true;
 	} else {
-		//Logger::green("Waiting for more POST data...");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
 		return true;
 	}
@@ -259,7 +251,6 @@ bool Server::parseCGIBody(Context& ctx)
 
 // Handles Reading Request Data from the Client and Processing It Accordingly
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
-	Logger::green("handleRead");
 	if (!ctx.is_multipart || ctx.req.parsing_phase != RequestBody::PARSING_BODY) {
 		ctx.read_buffer.clear();
 	}
@@ -324,23 +315,18 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
 
 		if (ctx.method == "GET" || ctx.method == "DELETE") {
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
-			Logger::yellow("session cookiesssssssssssssssssssssssssssss");
 			return true;
 		}
 	}
 
-	Logger::magenta("BIER !!        !!!!!!! "+ ctx.path);
 	if (ctx.type == CGI) {
-		Logger::magenta("Wir sind im CGI Parsing");
 		if (ctx.method == "POST")
 		{
-			Logger::magenta("Wir parsen den naechsten teil des Bodies in ctx. body");
 			if (parseCGIBody(ctx)) {
 				return true;
 			}
 			return updateErrorStatus(ctx, 500, "Internal Server Error");
 		}
-		Logger::magenta("Wir haben das CGI Parsing beendet und geben frei");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 		return true;
 	}
@@ -432,7 +418,6 @@ void Server::handleSessionCookies(Context& ctx) {
 
 
 bool Server::handleWrite(Context& ctx) {
-	Logger::green("handleWrite");
 	bool result = false;
 
 	if (ctx.is_download && ctx.multipart_fd_up_down > 0) {
@@ -510,7 +495,6 @@ bool Server::handleWrite(Context& ctx) {
 				}
 			}
 			result = sendCgiResponse(ctx);
-			Logger::magenta(std::to_string(ctx.cgi_terminated));
 			if (ctx.cgi_terminated)
 			{
 				delFromEpoll(ctx.epoll_fd, ctx.client_fd);
@@ -573,7 +557,6 @@ bool Server::buildDownloadResponse(Context &ctx) {
 
 		response << "\r\n";
 
-		//Logger::magenta("send headers");
 		if (send(ctx.client_fd, response.str().c_str(), response.str().size(), MSG_NOSIGNAL) < 0) {
 			close(ctx.multipart_fd_up_down);
 			ctx.multipart_fd_up_down = -1;
@@ -589,7 +572,6 @@ bool Server::buildDownloadResponse(Context &ctx) {
 	// Alternate between reading and sending
 	if (ctx.download_phase) {
 		char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-		//Logger::magenta("reading chunk from file");
 		ssize_t bytes_read = read(ctx.multipart_fd_up_down, buffer, sizeof(buffer));
 
 		if (bytes_read < 0) {
@@ -599,7 +581,6 @@ bool Server::buildDownloadResponse(Context &ctx) {
 		}
 
 		if (bytes_read == 0) {
-			//Logger::yellow("finished download");
 			close(ctx.multipart_fd_up_down);
 			ctx.multipart_fd_up_down = -1;
 
@@ -618,7 +599,6 @@ bool Server::buildDownloadResponse(Context &ctx) {
 		return true;
 	} else {
 		if (ctx.write_buffer.size() > 0) {
-			//Logger::magenta("sending chunk to client");
 			if (send(ctx.client_fd, ctx.write_buffer.data(), ctx.write_buffer.size(), MSG_NOSIGNAL) < 0) {
 				close(ctx.multipart_fd_up_down);
 				ctx.multipart_fd_up_down = -1;

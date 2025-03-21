@@ -2,7 +2,6 @@
 
 
 bool Server::staticHandler(Context& ctx) {
-	Logger::red("staticHandler");
 	if (ctx.method == "POST") {
 		return (true);
 	}

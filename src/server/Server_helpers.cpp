@@ -293,17 +293,59 @@ size_t Server::getFileSize(const std::string& path)
 	return 0;
 }
 
+bool Server::isPathInUploadStore(Context& ctx, const std::string& path_to_check) {
+    // Case 1: Check if upload_store already contains the root
+    std::string full_upload_store;
+
+    if (ctx.location.upload_store.find(ctx.root) != std::string::npos) {
+        // Upload store already contains root, use it directly
+        full_upload_store = ctx.location.upload_store;
+    } else {
+        // Upload store does not contain root, concatenate them
+        full_upload_store = concatenatePath(ctx.root, ctx.location.upload_store);
+    }
+
+    // Normalize paths to ensure consistent comparison
+    // Remove trailing slash if it exists
+    std::string normalized_upload_store = full_upload_store;
+    std::string normalized_path = path_to_check;
+
+    if (!normalized_upload_store.empty() && normalized_upload_store.back() == '/') {
+        normalized_upload_store.pop_back();
+    }
+
+    if (!normalized_path.empty() && normalized_path.back() == '/') {
+        normalized_path.pop_back();
+    }
+
+    // Check if path_to_check starts with the upload store path
+    bool starts_with_upload_store = false;
+
+    if (normalized_path.length() >= normalized_upload_store.length()) {
+        // Direct string comparison for path prefix
+        starts_with_upload_store = (normalized_path.substr(0, normalized_upload_store.length()) == normalized_upload_store);
+
+        // If paths match exactly, or the next character in path is a slash, it's valid
+        if (starts_with_upload_store &&
+            normalized_path.length() > normalized_upload_store.length() &&
+            normalized_path[normalized_upload_store.length()] != '/') {
+            starts_with_upload_store = false;
+        }
+    }
+
+    return starts_with_upload_store;
+}
+
 std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 	size_t dot_pos = path_to_check.find_last_of('.');
-	bool starts_with_upload_store = false;
+	bool starts_with_upload_store = isPathInUploadStore(ctx, path_to_check);
 	if (dot_pos == std::string::npos && isDirectory(path_to_check) && path_to_check.back() != '/' && ctx.location.autoindex != "on")
 	{
 		path_to_check = path_to_check + "/";
 	}
-	if (path_to_check.length() >= ctx.location.upload_store.length())
-	{
-		starts_with_upload_store = path_to_check.substr(0, ctx.location.upload_store.length()) == ctx.location.upload_store;
-	}
+	Logger::yellow("path_to_check " + path_to_check);
+	Logger::yellow("ctx.location.upload_store " + ctx.location.upload_store);
+	Logger::yellow("starts_with_upload_store " + std::to_string(starts_with_upload_store));
 	if (!path_to_check.empty() && path_to_check.back() == '/'&& ctx.location.autoindex != "on")
 	{
 		path_to_check = concatenatePath(path_to_check, ctx.location.default_file);
@@ -322,7 +364,6 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 	}
 
 	std::string extension = path_to_check.substr(dot_pos + 1);
-	Logger::red(path_to_check);
 	if (ctx.method == "GET" && starts_with_upload_store && ("." + extension != ctx.location.cgi_filetype && ctx.type == CGI)) {
 		ctx.type = STATIC;
 		ctx.is_download = true;

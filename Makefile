@@ -23,6 +23,9 @@ SUCCESS := \n\
 🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\n\
 $(GREEN)Task at the end:$(X)\n\
 $(X)	🦄 wildcard checken....\n\
+$(X)	🦄 forbidden fucntions\n\
+$(X)	🦄 einmal read write send....\n\
+$(X)	🦄 file logs und logs checken....\n\
 $(X)	🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
 $(X)	🦄 manchmal taucht double free nach download auf... \n\
 $(X)	🦄 error code pruefen gegen statuses.... \n\
@@ -40,27 +43,6 @@ $(X)	🐑 sendCGIResponse evneutell ueberdenken\n\
 $(X)	🐑 http://localhost:8080/team consida redirect on http://localhost:8080/team/ instead of default_file \n\
 $(X)	🐑 http://localhost:8001/bier consida redirect on http://localhost:8080/bier/ instead of default_file  BETRIFFT AUCH PHP\n\
 $(X)  \n\
-#  ACTUNG DAS HIER SIND TODOS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-# $(X) bei delete auf folder.... probleme   read in hadnleRead\n\
-# $(X) /app/var/www/staticupload/success$(X)\n\
-# $(X) $(X)\n\
-# $(X) epoll event$(X)\n\
-# $(X) handleWrite$(X)\n\
-# $(X) /app/var/www/staticupload/success$(X)\n\
-# $(X) $(X)\n\
-# $(X) Cleaning up server resources...$(X)\n\
-# $(X) Error: filesystem error: cannot remove: Directory not empty [/app/var/www/staticupload/success]$(X)\n\
-# $(X) make: *** [Makefile:171: test] Error 1 \n\
-#
-# $(X) handleRead \n\
-# $(X) read in hadnleRead \n\
-# $(X) /app/var/www/staticupload/success/delete-confirmation.html \n\
-# $(X) [2025-02-25 21:51:13]  [ERROR] ErrorHandler: Errorcode: 404 Not found \n\
-# $(X) send \n\
-
-#  ACTUNG DAS HIER SIND TODOS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 
 # helper command to search for fucntions with more than 40 lines
 #find . -type f -name "*.cpp" | xargs awk '

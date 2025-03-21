@@ -267,7 +267,6 @@ void Server::parseAccessRights(Context& ctx)
 	if (ctx.type == ERROR)
 		return;
 	ctx.approved_req_path = requestedPath;
-	//Logger::blue(ctx.approved_req_path);
 }
 
 // Extracts The Port Number from the Http Host Header, Defaulting to 80 IF Missing
