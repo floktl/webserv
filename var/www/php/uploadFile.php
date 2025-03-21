@@ -6,7 +6,7 @@
  *
  */
 
-$uploadStore = isset($_SERVER["UPLOAD_STORE"]) ? $_SERVER["UPLOAD_STORE"] : "/upload";
+$uploadStore = isset($_SERVER["UPLOAD_STORE"]) ? $_SERVER["UPLOAD_STORE"] : "/uploads";
 
 $targetDir = __DIR__ . $uploadStore;
 

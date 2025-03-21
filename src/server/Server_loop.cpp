@@ -229,9 +229,9 @@ bool Server::extractFileContent(const std::string& boundary, const std::string& 
 
 bool Server::parseCGIBody(Context& ctx)
 {
-	Logger::cyan(std::string(ctx.read_buffer.begin(), ctx.read_buffer.end()));
+	//Logger::cyan(std::string(ctx.read_buffer.begin(), ctx.read_buffer.end()));
 	ctx.body += ctx.read_buffer;
-	Logger::magenta(ctx.body);
+	//Logger::magenta(ctx.body);
 
 	bool finished = false;
 
@@ -239,19 +239,19 @@ bool Server::parseCGIBody(Context& ctx)
 		unsigned long expected_length = std::stol(ctx.headers["Content-Length"]);
 		if (ctx.body.length() >= expected_length) {
 			finished = true;
-			Logger::green("Body complete based on Content-Length");
+			//Logger::green("Body complete based on Content-Length");
 		}
 	} else if (ctx.read_buffer.empty()) {
 		finished = true;
-		Logger::green("Body complete (no Content-Length, empty buffer)");
+		//Logger::green("Body complete (no Content-Length, empty buffer)");
 	}
 
 	if (finished) {
-		Logger::green("POST body complete, switching to CGI execution mode");
+		//Logger::green("POST body complete, switching to CGI execution mode");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 		return true;
 	} else {
-		Logger::green("Waiting for more POST data...");
+		//Logger::green("Waiting for more POST data...");
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN);
 		return true;
 	}
@@ -302,7 +302,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
 			return false;
 	}
 
-	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong) {
+	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong && ctx.type != CGI) {
 		if (!parseContentDisposition(ctx)) {
 			Logger::errorLog("Content Disposition parsing failed");
 			return false;
@@ -324,10 +324,12 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs) {
 
 		if (ctx.method == "GET" || ctx.method == "DELETE") {
 			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLOUT | EPOLLET);
+			Logger::yellow("session cookiesssssssssssssssssssssssssssss");
 			return true;
 		}
 	}
 
+	Logger::magenta("BIER !!        !!!!!!! "+ ctx.path);
 	if (ctx.type == CGI) {
 		Logger::magenta("Wir sind im CGI Parsing");
 		if (ctx.method == "POST")

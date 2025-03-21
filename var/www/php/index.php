@@ -150,7 +150,7 @@
 			<?php foreach ($uploadedFiles as $fileName): ?>
 				<?php if ($fileName != "data"): ?>
 					<li>
-						<a href="<?php echo htmlspecialchars($fileName); ?>"><?php echo htmlspecialchars($fileName); ?></a>
+						<a href="/uploads/<?php echo htmlspecialchars($fileName); ?>"><?php echo htmlspecialchars($fileName); ?></a>
 						<button class="deleteFile" data-value="<?php echo htmlspecialchars($fileName); ?>" style="display: inline;">X</button>
 					</li>
 				<?php endif; ?>
@@ -187,7 +187,7 @@
 				delFiles.forEach(delFile => {
 					delFile.addEventListener("click", function(){
 						var fileName = this.getAttribute('data-value');
-						fetch("./uploads/" + fileName, {
+						fetch(fileName, {
 							method: 'DELETE',
 							headers: {
 								'Content-Type': 'application/json',
@@ -195,6 +195,7 @@
 							body: JSON.stringify({ fileToDelete: fileName })
 						})
 						.then(response => {
+							console.log(response)
 							if (response.ok) {
 								window.location.reload();
 							}

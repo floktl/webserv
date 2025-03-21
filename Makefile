@@ -34,8 +34,10 @@ $(GREEN)Needs CGI ready:$(X)\n\
 $(X)	🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
 $(X)	🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
 $(X)	🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
+$(X)	🐑 Random plain text header prarsing problem CGI\n\
 $(X)	🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
 $(X)	🐑 Donwloads and HTML in CGI Locations\n\
+$(X)	🐑 sendCGIResponse evneutell ueberdenken\n\
 $(X)  \n\
 $(GREEN)Flos tasks:$(X)\n\
 $(GREEN)Jeberles Tasks:$(X)\n\

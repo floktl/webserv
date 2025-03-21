@@ -46,7 +46,7 @@ bool Server::deleteHandler(Context &ctx)
 	{
 		return updateErrorStatus(ctx, 400, "Bad Request");
 	}
-
+	Logger::red("DELETING requestedPath: " + requestedPath);
 	// Check if another context is currently uploading the file
 	for (auto it = globalFDS.context_map.begin(); it != globalFDS.context_map.end(); ++it)
 	{

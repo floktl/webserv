@@ -320,7 +320,11 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 		ctx.type = REDIRECT;
 		return path_to_check;
 	}
-	if (ctx.method == "GET" && starts_with_upload_store) {
+
+	std::string extension = path_to_check.substr(dot_pos + 1);
+
+	if (ctx.method == "GET" && (starts_with_upload_store || ("." + extension != ctx.location.cgi_filetype && ctx.type == CGI))) {
+		ctx.type = STATIC;
 		ctx.is_download = true;
 		if (!fileExists(path_to_check)) {
 			updateErrorStatus(ctx, 404, "Not found");
@@ -352,8 +356,6 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check) {
 		ctx.type = STATIC;
 		return path_to_check;
 	}
-
-	std::string extension = path_to_check.substr(dot_pos + 1);
 
 	if (("." + extension) == ctx.location.cgi_filetype && ctx.type == CGI)
 	{

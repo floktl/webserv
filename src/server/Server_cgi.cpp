@@ -10,13 +10,13 @@ bool Server::executeCgi(Context& ctx) {
 		return updateErrorStatus(ctx, 404, "Not Found - Empty CGI Path");
 	}
 
-	if (!fileExists(ctx.requested_path) && ctx.method != "DELETE") {
+	if (!fileExists(ctx.requested_path)) {
 		Logger::error("CGI script not found: " + ctx.requested_path);
 		Logger::file("CGI script not found: " + ctx.requested_path);
 		return updateErrorStatus(ctx, 404, "Not Found - CGI Script");
 	}
 
-	if (!fileReadable(ctx.requested_path) && ctx.method != "DELETE") {
+	if (!fileReadable(ctx.requested_path)) {
 		Logger::error("CGI script not readable: " + ctx.requested_path);
 		Logger::file("CGI script not readable: " + ctx.requested_path);
 		return updateErrorStatus(ctx, 403, "Forbidden - Cannot read CGI script");
@@ -247,10 +247,7 @@ std::vector<std::string> Server::prepareCgiEnvironment(const Context& ctx) {
 		env.push_back(cookie_str);
 	}
 
-	// Debug output for environment variables
-	for (const auto& var : env) {
-		Logger::file("CGI ENV: " + var);
-	}
+
 
 	return env;
 }
@@ -375,6 +372,15 @@ bool Server::sendCgiResponse(Context& ctx) {
 				// No data, just end headers
 				response << "\r\n";
 			}
+
+			// // Add any session cookies
+			// for (const auto& cookiePair : ctx.setCookies) {
+			// 	Cookie cookie;
+			// 	cookie.name = cookiePair.first;
+			// 	cookie.value = cookiePair.second;
+			// 	cookie.path = "/";
+			// 	response << generateSetCookieHeader(cookie) << "\r\n";
+			// }
 
 			// Set headers as sent
 			ctx.cgi_headers_send = true;
