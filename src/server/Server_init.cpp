@@ -28,11 +28,6 @@ void Server::cleanup()
 	removeAddedServerNamesFromHosts();
 }
 
-// CGISCHAUSLER* Server :: Getcgihandler (void)
-// None
-// Return Cgihandler;
-// None
-
 // Returns a Pointer to the Error Handler Instance
 ErrorHandler *Server::getErrorHandler(void)
 {
@@ -60,41 +55,44 @@ int Server::server_init(std::vector<ServerBlock> configs)
 }
 
 // Creates to Epoll Instance and Stores Its File Descriptor in Globalfds
-int Server::initEpoll() {
+int Server::initEpoll()
+{
 
 	int epoll_fd = epoll_create(1);
-	if (epoll_fd < 0) {
+	if (epoll_fd < 0)
+	{
 		Logger::errorLog("Failed to create epoll: " + std::string(strerror(errno)));
 		return -1;
 	}
 
 	int flags = fcntl(epoll_fd, F_GETFD);
 
-	if (flags != -1) {
+	if (flags != -1)
+	{
 		flags |= FD_CLOEXEC;
-		if (fcntl(epoll_fd, F_SETFD, flags) == -1) {
+		if (fcntl(epoll_fd, F_SETFD, flags) == -1)
+		{
 			Logger::errorLog("Failed to set FD_CLOEXEC: " + std::string(strerror(errno)));
 			close(epoll_fd);
 			return -1;
 		}
-	} else {
-		Logger::errorLog("Failed to get initial flags: " + std::string(strerror(errno)));
 	}
+	else
+		Logger::errorLog("Failed to get initial flags: " + std::string(strerror(errno)));
 
 	int verify_flags = fcntl(epoll_fd, F_GETFD);
 
-	if (verify_flags == -1) {
+	if (verify_flags == -1)
+	{
 		Logger::errorLog("epoll_fd invalid after creation: " + std::string(strerror(errno)));
 		close(epoll_fd);
 		return -1;
 	}
 
-	if (!(verify_flags & FD_CLOEXEC)) {
+	if (!(verify_flags & FD_CLOEXEC))
 		Logger::errorLog("WARNING: FD_CLOEXEC not set in verification");
-	}
 
 	globalFDS.epoll_fd = epoll_fd;
-
 	return epoll_fd;
 }
 

@@ -1,6 +1,8 @@
 #include "Server.hpp"
 #include <filesystem>
 
+// Retrieves the request root from the context, using the location's root if available
+// otherwise falls back to the server's root.
 std::string Server::retreiveReqRoot(Context &ctx)
 {
 	ctx.useLocRoot = false;
@@ -30,56 +32,31 @@ bool Server::deleteHandler(Context &ctx)
 		std::string adjustedPath = ctx.path;
 		if (!ctx.useLocRoot)
 			adjustedPath = subtractLocationPath(ctx.path, ctx.location);
-
 		requestedPath = concatenatePath(req_root, adjustedPath);
 	}
-
 	if (!requestedPath.empty() && requestedPath.back() == '/')
 		requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
-
 	if (ctx.location_inited && requestedPath == ctx.location.upload_store && dirWritable(requestedPath))
 		return false;
-
-	// Prevent DELETE of a file that matches DEFAULT_FILE
 	if (requestedPath.length() >= std::string(DEFAULT_FILE).length() &&
 		requestedPath.substr(requestedPath.length() - std::string(DEFAULT_FILE).length()) == DEFAULT_FILE)
-	{
 		return updateErrorStatus(ctx, 400, "Bad Request");
-	}
-	// Check if another context is currently uploading the file
 	for (auto it = globalFDS.context_map.begin(); it != globalFDS.context_map.end(); ++it)
 	{
-		Context &other_ctx = it->second;
-		if (other_ctx.multipart_file_path_up_down == requestedPath && other_ctx.client_fd != ctx.client_fd)
-		{
-			updateErrorStatus(ctx, 402, "File is currently in use and cannot be deleted.");
-			return false;
-		}
+		if (it->second.multipart_file_path_up_down == requestedPath && it->second.client_fd != ctx.client_fd)
+			return (updateErrorStatus(ctx, 402, "File is currently in use and cannot be deleted."));
 	}
-
-	// Delete the requested file
 	std::filesystem::remove(requestedPath);
-
-	// Verify if deletion was successful
 	if (std::filesystem::exists(requestedPath))
-	{
 		return updateErrorStatus(ctx, 500, "Internal Server Error");
-	}
-
-	// Redirect the original DELETE request client to a success page
 	std::stringstream response;
 	response << "HTTP/1.1 303 See Other\r\n"
-			 << "Location: /\r\n"
-			 << "Content-Length: 0\r\n"
-			 << "Connection: close\r\n\r\n";
+			<< "Location: /\r\n"
+			<< "Content-Length: 0\r\n"
+			<< "Connection: close\r\n\r\n";
 
-	sendHandler(ctx, response.str());
-
-	return true;
+	return (sendHandler(ctx, response.str()));
 }
-
-
-
 
 // Splits a given path into components, removing empty segment
 std::vector<std::string> splitPath(const std::string& path)
@@ -95,24 +72,28 @@ std::vector<std::string> splitPath(const std::string& path)
 	return components;
 }
 
-std::vector<std::string> Server::splitPathLoc(const std::string& path) {
+// Splits the given path string into segments based on the '/' delimiter
+std::vector<std::string> Server::splitPathLoc(const std::string& path)
+{
 	std::vector<std::string> segments;
 	std::string segment;
 
-	for (size_t i = 0; i < path.length(); ++i) {
-		if (path[i] == '/') {
-			if (!segment.empty()) {
+	for (size_t i = 0; i < path.length(); ++i)
+	{
+		if (path[i] == '/')
+		{
+			if (!segment.empty())
+			{
 				segments.push_back(segment);
 				segment.clear();
 			}
-		} else {
-			segment += path[i];
 		}
+		else
+			segment += path[i];
 	}
 
-	if (!segment.empty()) {
+	if (!segment.empty())
 		segments.push_back(segment);
-	}
 
 	return segments;
 }

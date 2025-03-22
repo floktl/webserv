@@ -30,10 +30,10 @@ class Server
 		char **environment;
 		bool signal_end;
 		int &g_shutdown_requested;
-
+		void removeAddedServerNamesFromHosts();
 // server_helpers
-		void modEpoll(int epfd, int fd, uint32_t events);
-		void delFromEpoll(int epfd, int fd);
+		bool modEpoll(int epfd, int fd, uint32_t events);
+		bool delFromEpoll(int epfd, int fd);
 		int setNonBlocking(int fd);
 		void setTimeout(int t);
 		void cleanup();
@@ -46,6 +46,7 @@ class Server
 		bool dirWritable(const std::string& path);
 		bool sendHandler(Context& ctx, std::string http_response);
 		bool handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, std::vector<ServerBlock> &configs);
+
 
 	private:
 		GlobalFDS& globalFDS;
@@ -61,7 +62,6 @@ class Server
 // server_helpers
 		bool findServerBlock(const std::vector<ServerBlock> &configs, int fd);
 		bool addServerNameToHosts(const std::string &server_name);
-		void removeAddedServerNamesFromHosts();
 
 // server_event_handlers
 		bool staticHandler(Context& ctx);
@@ -102,7 +102,7 @@ class Server
 		bool parseRequestLine(Context& ctx, std::istringstream& stream);
 		std::vector<std::string> splitPathLoc(const std::string& path);
 		std::vector<std::string> getBlocksLocsPath(const std::vector<Location>& locations);
-		void prepareUploadPingPong(Context& ctx);
+		bool prepareUploadPingPong(Context& ctx);
 		void handleSessionCookies(Context& ctx);
 		std::string retreiveReqRoot(Context &ctx);
 		bool isMultipart(Context& ctx);
@@ -134,5 +134,5 @@ void log_server_configs(const std::vector<ServerBlock>& configs);
 bool updateErrorStatus(Context &ctx, int error_code, std::string error_string);
 int extractPort(const std::string& header);
 std::string determineContentType(const std::string& path);
-
+bool isPathMatch(const std::vector<std::string>& requestSegments, const std::vector<std::string>& locationSegments);
 #endif

@@ -1,6 +1,7 @@
 #include "Server.hpp"
 
-bool Server::executeCgi(Context& ctx) {
+bool Server::executeCgi(Context& ctx)
+{
 	if (ctx.requested_path.empty()) {
 		Logger::error("Empty script path for CGI execution");
 		Logger::file("Empty script path for CGI execution");
@@ -128,8 +129,7 @@ bool Server::executeCgi(Context& ctx) {
 	ctx.last_activity = std::chrono::steady_clock::now();
 
 	ctx.cgi_executed = true;
-	modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT | EPOLLET);
-	return true;
+	return (modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT | EPOLLET));
 }
 
 
@@ -261,10 +261,8 @@ bool Server::sendCgiResponse(Context& ctx) {
 			ssize_t bytes = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
 
 			if (bytes < 0) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) {
-					modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-					return true;
-				}
+				if (errno == EAGAIN || errno == EWOULDBLOCK)
+					return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 
 				Logger::error("Failed to read from CGI output: " + std::string(strerror(errno)));
 				if (ctx.req.cgi_out_fd > 0) {
@@ -377,8 +375,7 @@ bool Server::sendCgiResponse(Context& ctx) {
 				ctx.cgi_terminate = true;
 			}
 
-			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-			return true;
+			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 		}
 
 		ctx.cgi_output_phase = false;
@@ -391,8 +388,7 @@ bool Server::sendCgiResponse(Context& ctx) {
 			// Handle read error
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
 				ctx.cgi_output_phase = true;
-				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-				return true;
+				return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 			}
 
 			// Some other error occurred
@@ -415,15 +411,15 @@ bool Server::sendCgiResponse(Context& ctx) {
 			}
 
 			ctx.cgi_terminate = true;
-			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-			return true;
+			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 		}
 
 		if (ctx.cgi_terminated) {
 			// We've already sent all the data, process is terminated
-			if (ctx.keepAlive) {
+			if (ctx.keepAlive)
+			{
 				resetContext(ctx);
-				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+				return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
 			} else {
 				delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 			}
@@ -432,16 +428,14 @@ bool Server::sendCgiResponse(Context& ctx) {
 
 		// Append new data to existing buffer
 		ctx.write_buffer.insert(ctx.write_buffer.end(), buffer, buffer + bytes);
-		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-		return true;
+		return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 	}
 	else {
 		// Second phase: Send data to client
 		if (ctx.write_buffer.empty()) {
 			// No data to send, go back to reading phase
 			ctx.cgi_output_phase = true;
-			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-			return true;
+			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 		}
 
 		// Try to send all the data
@@ -449,14 +443,13 @@ bool Server::sendCgiResponse(Context& ctx) {
 
 		if (sent < 0) {
 			// Handle send error
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-				return true;
-			}
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 
 			// Some other error occurred
 			Logger::error("Failed to send CGI response: " + std::string(strerror(errno)));
-			if (ctx.req.cgi_out_fd > 0) {
+			if (ctx.req.cgi_out_fd > 0)
+			{
 				close(ctx.req.cgi_out_fd);
 				ctx.req.cgi_out_fd = -1;
 			}
@@ -471,8 +464,7 @@ bool Server::sendCgiResponse(Context& ctx) {
 			// We sent some but not all data, keep remaining data in buffer
 			ctx.write_buffer.erase(ctx.write_buffer.begin(), ctx.write_buffer.begin() + sent);
 			// Continue in send phase
-			modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-			return true;
+			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 		}
 
 		// All data sent, clear buffer
@@ -485,8 +477,7 @@ bool Server::sendCgiResponse(Context& ctx) {
 
 		// Go back to reading phase
 		ctx.cgi_output_phase = true;
-		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-		return true;
+		return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 	}
 
 	return false;

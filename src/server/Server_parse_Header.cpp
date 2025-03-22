@@ -18,25 +18,27 @@ bool Server::parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs)
 
 	auto content_type_it = ctx.headers.find("Content-Type");
 	if (content_type_it != ctx.headers.end() &&
-		content_type_it->second.find("multipart/form-data") != std::string::npos) {
+			content_type_it->second.find("multipart/form-data") != std::string::npos)
 		parseMultipartHeaders(ctx);
-	}
 
 	std::string requested_host = extractHostname(ctx.read_buffer);
 	int requested_port = extractPort(ctx.read_buffer);
 	bool server_match_found = false;
 
-	for (const auto& config : configs) {
-		if (((config.name == requested_host && config.port == requested_port) ||
-			(config.name == "localhost" && (requested_host == "localhost" || requested_host == "127.0.0.1")) ||
-			(requested_host.empty() && config.port == requested_port)))
+	for (const auto& config : configs)
+	{
+		if (((config.name == requested_host && config.port == requested_port)
+			|| (config.name == "localhost" && (requested_host == "localhost"
+			|| requested_host == "127.0.0.1"))
+			|| (requested_host.empty() && config.port == requested_port)))
 		{
 			server_match_found = true;
 			break;
 		}
 	}
 
-	if (!server_match_found) {
+	if (!server_match_found)
+	{
 		Logger::errorLog("No matching server block found - Closing connection");
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 		return false;
@@ -45,9 +47,8 @@ bool Server::parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs)
 	ctx.headers_complete = true;
 	ctx.is_multipart = isMultipart(ctx);
 	if (!ctx.is_multipart)
-	{
 		ctx.ready_for_ping_pong = 1;
-	}
+
 	if (ctx.method == "POST" && ctx.headers.find("Content-Length") == ctx.headers.end() &&
 		ctx.headers.find("Transfer-Encoding") == ctx.headers.end())
 		return updateErrorStatus(ctx, 411, "Length Required");
@@ -58,41 +59,48 @@ bool Server::parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs)
 }
 
 // New Function to Handle Multipart Form Data Headers
-void Server::parseMultipartHeaders(Context& ctx) {
+void Server::parseMultipartHeaders(Context& ctx)
+{
 	std::string boundary;
 	auto content_type_it = ctx.headers.find("Content-Type");
 	auto it = ctx.headers.find("Content-Length");
-	if (it != ctx.headers.end()) {
-		try {
+	if (it != ctx.headers.end())
+	{
+		try
+		{
 			ctx.req.expected_body_length = std::stoull(it->second);
-		} catch (const std::invalid_argument& e) {
+		}
+		catch (const std::invalid_argument& e)
+		{
 			ctx.req.expected_body_length = 0;
 			std::cerr << "Invalid Content-Length value" << std::endl;
 		}
 	}
-	if (content_type_it != ctx.headers.end()) {
+	if (content_type_it != ctx.headers.end())
+	{
 		size_t boundary_pos = content_type_it->second.find("boundary=");
-		if (boundary_pos != std::string::npos) {
+		if (boundary_pos != std::string::npos)
+		{
 			boundary = content_type_it->second.substr(boundary_pos + 9);
 			ctx.headers["Content-Boundary"] = boundary;
 		}
 	}
 
 	size_t boundary_start = ctx.read_buffer.find("--" + boundary);
-	if (boundary_start == std::string::npos) {
+	if (boundary_start == std::string::npos)
 		return;
-	}
 
 	size_t disp_pos = ctx.read_buffer.find("Content-Disposition: form-data", boundary_start);
-	if (disp_pos == std::string::npos) {
+	if (disp_pos == std::string::npos)
 		return;
-	}
 
 	size_t filename_pos = ctx.read_buffer.find("filename=\"", disp_pos);
-	if (filename_pos != std::string::npos) {
+	if (filename_pos != std::string::npos)
+	{
 		filename_pos += 10;
 		size_t filename_end = ctx.read_buffer.find("\"", filename_pos);
-		if (filename_end != std::string::npos) {
+		if (filename_end != std::string::npos)
+		{
 			std::string filename = ctx.read_buffer.substr(filename_pos, filename_end - filename_pos);
 			ctx.headers["Content-Disposition-Filename"] = filename;
 			ctx.multipart_file_path_up_down = concatenatePath(ctx.location.upload_store, filename);
@@ -100,40 +108,45 @@ void Server::parseMultipartHeaders(Context& ctx) {
 	}
 
 	size_t headers_end = ctx.read_buffer.find("\r\n\r\n", disp_pos);
-	if (headers_end != std::string::npos) {
+	if (headers_end != std::string::npos)
 		ctx.header_offset = headers_end + 4;
-	} else {
+	else
 		ctx.header_offset = 0;
-	}
 }
 
 // Parses and stores individual header Fields in the Request Context
-bool Server::parseHeaderFields(Context& ctx, std::istringstream& stream) {
+bool Server::parseHeaderFields(Context& ctx, std::istringstream& stream)
+{
 	std::string line;
-	while (std::getline(stream, line)) {
+
+	while (std::getline(stream, line))
+	{
 		if (line.empty() || line == "\r")
 			break;
 		if (line.back() == '\r')
 			line.pop_back();
 
 		size_t colon = line.find(':');
-		if (colon != std::string::npos) {
+		if (colon != std::string::npos)
+		{
 			std::string key = line.substr(0, colon);
 			std::string value = line.substr(colon + 1);
 			value = value.substr(value.find_first_not_of(" "));
 			ctx.headers[key] = value;
 
-			if (key == "Content-Length") {
-				try {
+			if (key == "Content-Length")
+			{
+				try
+				{
 					ctx.content_length = std::stoull(value);
-				} catch (const std::exception& e) {
-					updateErrorStatus(ctx, 400, "Bad Request - Invalid Content-Length");
-					return false;
+				}
+				catch (const std::exception& e)
+				{
+					return (updateErrorStatus(ctx, 400, "Bad Request - Invalid Content-Length"));
 				}
 			}
-			else if (key == "Cookie") {
+			else if (key == "Cookie")
 				parseCookies(ctx, value);
-			}
 		}
 	}
 	return true;
@@ -145,10 +158,7 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 	std::string line;
 
 	if (!std::getline(stream, line))
-	{
-		updateErrorStatus(ctx, 400, "Bad Request - Empty Request");
-		return false;
-	}
+		return (updateErrorStatus(ctx, 400, "Bad Request - Empty Request"));
 
 	if (line.back() == '\r')
 		line.pop_back();
@@ -157,66 +167,41 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 	request_line >> ctx.method >> ctx.path >> ctx.version;
 
 	if (ctx.method.empty() || ctx.path.empty() || ctx.version.empty())
-	{
-		updateErrorStatus(ctx, 400, "Bad Request - Invalid Request Line");
-		return false;
-	}
+		return (updateErrorStatus(ctx, 400, "Bad Request - Invalid Request Line"));
 
 	return true;
 }
 
-void Server::prepareUploadPingPong(Context& ctx)
+bool Server::prepareUploadPingPong(Context& ctx)
 {
-	if (ctx.multipart_fd_up_down >= 0) {
-		return;
-	}
+	if (ctx.multipart_fd_up_down >= 0)
+		return false;
 
 	struct stat prev_stat;
-	if (stat(ctx.multipart_file_path_up_down.c_str(), &prev_stat) == 0) {
-		if (S_ISDIR(prev_stat.st_mode)) {
-			Logger::errorLog("Upload file is a directory: " + ctx.multipart_file_path_up_down);
-			updateErrorStatus(ctx, 400, "Bad Request");
-			return;
-		}
-	}
+	if (stat(ctx.multipart_file_path_up_down.c_str(), &prev_stat) == 0 && S_ISDIR(prev_stat.st_mode))
+			return updateErrorStatus(ctx, 400, "Bad Request Upload file is a directory: " + ctx.multipart_file_path_up_down);
 
-	if (!(ctx.multipart_file_path_up_down.size() >= ctx.root.size() && ctx.multipart_file_path_up_down.substr(0, ctx.root.size()) == ctx.root)) {
+	if (!(ctx.multipart_file_path_up_down.size() >= ctx.root.size()
+			&& ctx.multipart_file_path_up_down.substr(0, ctx.root.size()) == ctx.root))
 		ctx.multipart_file_path_up_down = concatenatePath(ctx.root, ctx.multipart_file_path_up_down);
-	}
 	Logger::magenta(ctx.multipart_file_path_up_down);
 	std::string upload_dir = ctx.multipart_file_path_up_down.substr(0, ctx.multipart_file_path_up_down.find_last_of("/"));
 
 	struct stat dir_stat;
-	if (stat(upload_dir.c_str(), &dir_stat) < 0) {
-		Logger::errorLog("Upload directory does not exist: " + upload_dir);
-		updateErrorStatus(ctx, 404, "Upload directory not found");
-		return;
-	}
 
-	if (!S_ISDIR(dir_stat.st_mode)) {
-		Logger::errorLog("Upload path is not a directory: " + upload_dir);
-		updateErrorStatus(ctx, 400, "Bad Request");
-		return;
-	}
-
-	if (access(upload_dir.c_str(), W_OK) < 0) {
-		Logger::errorLog("Upload directory not writable: " + upload_dir);
-		updateErrorStatus(ctx, 403, "Upload directory not writable");
-		return;
-	}
-	// Check IF File Already Exists
-	if (access(ctx.multipart_file_path_up_down.c_str(), F_OK) == 0) {
-		Logger::errorLog("File already exists: " + ctx.multipart_file_path_up_down);
-		updateErrorStatus(ctx, 409, "File already exists");
-		return;
-	}
+	if (stat(upload_dir.c_str(), &dir_stat) < 0)
+		return updateErrorStatus(ctx, 404, "Upload directory not found" + upload_dir);
+	if (!S_ISDIR(dir_stat.st_mode))
+		return updateErrorStatus(ctx, 400, "Bad Request" + upload_dir);
+	if (access(upload_dir.c_str(), W_OK) < 0)
+		return updateErrorStatus(ctx, 403, "Upload directory not writable" + upload_dir);
+	if (access(ctx.multipart_file_path_up_down.c_str(), F_OK) == 0)
+		return updateErrorStatus(ctx, 409, "File already exists");
 
 	ctx.multipart_fd_up_down = open(ctx.multipart_file_path_up_down.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
-	if (ctx.multipart_fd_up_down < 0) {
-		updateErrorStatus(ctx, 500, "Failed to create upload file");
-		return;
-	}
-
+	if (ctx.multipart_fd_up_down < 0)
+		return updateErrorStatus(ctx, 500, "Failed to create upload file");
+	return true;
 }
 
 // Parses and Sets Access Rights for a Request Based on Server Configuration
@@ -242,20 +227,15 @@ void Server::parseAccessRights(Context& ctx)
 	std::string adjustedPath = ctx.path;
 	if (ctx.method != "DELETE")
 	{
-		if (!ctx.useLocRoot) {
+		if (!ctx.useLocRoot)
 			adjustedPath = subtractLocationPath(ctx.path, ctx.location);
-		}
 		if (!requestedPath.empty() && requestedPath.back() == '/' && ctx.location.autoindex == "on")
 		{
 			std::string tmppath = concatenatePath(requestedPath, ctx.location.default_file);
 			if (fileReadable(tmppath))
-			{
 				requestedPath = tmppath;
-			}
 			else
-			{
 				ctx.doAutoIndex = requestedPath;
-			}
 		}
 		else if (!requestedPath.empty() && requestedPath.back() == '/')
 			requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
@@ -307,27 +287,6 @@ int extractPort(const std::string& header)
 			return 80;
 	}
 	return -1;
-}
-
-// Extracts the hostname from the http host header, return on emty string if missing
-std::string extractHostname(const std::string& header)
-{
-	std::string hostname;
-	size_t host_pos = header.find("Host: ");
-	if (host_pos != std::string::npos)
-	{
-		size_t start = host_pos + 6;
-		size_t end_pos = header.find("\r\n", start);
-		if (end_pos != std::string::npos)
-		{
-			size_t colon_pos = header.find(":", start);
-			if (colon_pos != std::string::npos && colon_pos < end_pos)
-				hostname = header.substr(start, colon_pos - start);
-			else
-				hostname = header.substr(start, end_pos - start);
-		}
-	}
-	return hostname;
 }
 
 // Validates Content-Lengh Header and Checks Against Server-Configureded Limits

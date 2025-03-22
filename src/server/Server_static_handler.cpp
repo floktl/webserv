@@ -1,16 +1,19 @@
 #include "Server.hpp"
 
 
-bool Server::staticHandler(Context& ctx) {
-	if (ctx.method == "POST") {
+bool Server::staticHandler(Context& ctx)
+{
+	if (ctx.method == "POST")
+	{
 		return (true);
 	}
-	else if (ctx.method == "GET") {
-		if (ctx.is_download && ctx.multipart_fd_up_down > 0) {
+	else if (ctx.method == "GET")
+	{
+		if (ctx.is_download && ctx.multipart_fd_up_down > 0)
 			return buildDownloadResponse(ctx);
-		}
 
-		if (!ctx.doAutoIndex.empty()) {
+		if (!ctx.doAutoIndex.empty())
+		{
 			std::stringstream ss;
 			buildAutoIndexResponse(ctx, &ss);
 			if (ctx.type == ERROR)
@@ -20,7 +23,8 @@ bool Server::staticHandler(Context& ctx) {
 			return sendHandler(ctx, response);
 		}
 
-		else {
+		else
+		{
 			buildStaticResponse(ctx);
 			if (ctx.type == ERROR)
 				return (false);
@@ -29,9 +33,8 @@ bool Server::staticHandler(Context& ctx) {
 			return (true);
 		}
 	}
-	else if (ctx.method == "DELETE") {
+	else if (ctx.method == "DELETE")
 		return deleteHandler(ctx);
-	}
 	return (false);
 }
 
