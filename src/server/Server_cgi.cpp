@@ -2,16 +2,16 @@
 
 bool Server::executeCgi(Context& ctx)
 {
-    Logger::green("executeCgi");
+	Logger::green("executeCgi " + ctx.requested_path);
 
-    // Vorhandene Validierungen beibehalten...
-    if (ctx.requested_path.empty() || !fileExists(ctx.requested_path) || !fileReadable(ctx.requested_path)) {
-        Logger::error("CGI script validation failed: " + ctx.requested_path);
-        return updateErrorStatus(ctx, 404, "Not Found - CGI Script");
-    }
+	// Validierung wie bisher...
+	if (ctx.requested_path.empty() || !fileExists(ctx.requested_path) || !fileReadable(ctx.requested_path)) {
+		Logger::error("CGI script validation failed: " + ctx.requested_path);
+		return updateErrorStatus(ctx, 404, "Not Found - CGI Script");
+	}
 
-    int input_pipe[2];
-    int output_pipe[2];
+	int input_pipe[2];
+	int output_pipe[2];
 
 	if (pipe(input_pipe) < 0 || pipe(output_pipe) < 0) {
 		Logger::error("Failed to create pipes for CGI");
@@ -43,6 +43,7 @@ bool Server::executeCgi(Context& ctx)
 	}
 
 	if (pid == 0) { // Child process
+		// Child-Prozess-Code bleibt unverändert
 		// Redirect stdin to input_pipe
 		dup2(input_pipe[0], STDIN_FILENO);
 		// Redirect stdout to output_pipe
@@ -89,6 +90,8 @@ bool Server::executeCgi(Context& ctx)
 		}
 
 		execve(interpreter.c_str(), args, env_pointers.data());
+		// Falls execve fehlschlägt, mit einem Fehler beenden
+		exit(1);
 	}
 
 	// Parent process
@@ -101,9 +104,26 @@ bool Server::executeCgi(Context& ctx)
 	ctx.req.cgi_pid = pid;
 	ctx.req.state = RequestBody::STATE_CGI_RUNNING;
 
-    ctx.cgi_pipe_ready = false;
-    ctx.cgi_read_attempts = 0;
-    ctx.cgi_start_time = std::chrono::steady_clock::now();
+	ctx.cgi_pipe_ready = false;
+	ctx.cgi_read_attempts = 0;
+	ctx.cgi_start_time = std::chrono::steady_clock::now();
+
+	// Speichere Zuordnungen in den globalen Maps
+	globalFDS.cgi_pipe_to_client_fd[ctx.req.cgi_out_fd] = ctx.client_fd;
+	globalFDS.cgi_pid_to_client_fd[ctx.req.cgi_pid] = ctx.client_fd;
+
+	// NEUES FEATURE: CGI output pipe zum epoll-Set hinzufügen
+	struct epoll_event ev;
+	std::memset(&ev, 0, sizeof(ev)); // Um Speicherprobleme zu vermeiden
+	ev.events = EPOLLIN | EPOLLET;
+	ev.data.fd = ctx.req.cgi_out_fd;
+	if (epoll_ctl(ctx.epoll_fd, EPOLL_CTL_ADD, ctx.req.cgi_out_fd, &ev) < 0) {
+		Logger::error("Failed to add CGI output pipe to epoll: " + std::string(strerror(errno)));
+		// Wir machen hier weiter, auch wenn die epoll-Registrierung fehlgeschlagen ist
+		// Der normale non-blocking Poll-Mechanismus wird als Fallback funktionieren
+	} else {
+		Logger::green("Added CGI output pipe " + std::to_string(ctx.req.cgi_out_fd) + " to epoll");
+	}
 
 	// Write POST data to the CGI input if it exists
 	if (!ctx.body.empty()) {
@@ -232,278 +252,139 @@ std::string Server::extractQueryString(const std::string& path)
 }
 
 bool Server::sendCgiResponse(Context& ctx) {
-    Logger::green("sendCgiResponse");
-
+	// If the CGI pipe is ready, read from it
 	if (ctx.cgi_pipe_ready) {
-		if (ctx.cgi_output_phase) {
-			return readCgiOutput(ctx);
-		} else {
-			return sendCgiBuffer(ctx);
+		if (checkAndReadCgiPipe(ctx)) {
+			ctx.cgi_pipe_ready = false; // Reset until next epoll event
 		}
 	}
-    Logger::yellow("mach anal lyse was mit pipe");
 
-	int status;
-	pid_t result = waitpid(ctx.req.cgi_pid, &status, WNOHANG);
+	// If we have no data, check status
+	if (ctx.write_buffer.empty()) {
+		// If pipe is closed and no output, CGI has terminated
+		if (ctx.req.cgi_out_fd <= 0) {
+			ctx.cgi_terminated = true;
+			cleanupCgiResources(ctx);
 
-	if (result > 0) {
-		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-			Logger::error("CGI-Prozess beendet mit Fehlercode: " + std::to_string(WEXITSTATUS(status)));
-			close(ctx.req.cgi_out_fd);
-			ctx.req.cgi_out_fd = -1;
-			return updateErrorStatus(ctx, 500, "Internal Server Error");
+			if (ctx.keepAlive) {
+				resetContext(ctx);
+				return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+			}
+			return false; // Close connection
 		}
-		ctx.cgi_pipe_ready = true;
+		// Waiting for more data
+		return true;
 	}
+
+	// Send data from the buffer
+	if (!ctx.write_buffer.empty()) {
+		Logger::magenta("send CGI response data");
+		ssize_t sent = send(ctx.client_fd, &ctx.write_buffer[0], ctx.write_buffer.size(), MSG_NOSIGNAL);
+
+		if (sent < 0) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				return true; // Try again later
+			}
+			cleanupCgiResources(ctx);
+			return false;
+		} else if (sent > 0) {
+			// Remove sent data from buffer
+			ctx.write_buffer.erase(
+				ctx.write_buffer.begin(),
+				ctx.write_buffer.begin() + sent
+			);
+		}
+	}
+
+	// Clean up if CGI terminated and all data sent
+	if (ctx.cgi_terminated && ctx.write_buffer.empty()) {
+		cleanupCgiResources(ctx);
+
+		if (ctx.keepAlive) {
+			resetContext(ctx);
+			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+		}
+		return false;
+	}
+
 	return true;
 }
 
-bool Server::readCgiOutput(Context& ctx) {
-    Logger::green("readCgiOutput");
+bool Server::checkAndReadCgiPipe(Context& ctx) {
+	Logger::green("checkAndReadCgiPipe");
+	if (ctx.req.cgi_out_fd <= 0) {
+		return false;
+	}
 
-    // Update activity timestamp
-    ctx.last_activity = std::chrono::steady_clock::now();
+	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+	ssize_t bytes_read = 0;
 
-    // If the CGI process has been terminated
-    if (ctx.req.cgi_out_fd < 0 && ctx.cgi_terminated) {
-        return true;
-    }
+	// Non-blocking read from CGI output pipe
+	Logger::magenta("read checkAndReadCgiPipe");
+	bytes_read = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
 
-    // Handle headers if not sent yet
-    if (!ctx.cgi_headers_send) {
-        return processAndPrepareHeaders(ctx);
-    }
+	if (bytes_read > 0) {
+		// Erfolgreich Daten gelesen - zum Buffer hinzufügen
+		ctx.write_buffer.insert(ctx.write_buffer.end(), buffer, buffer + bytes_read);
 
-    // Read additional CGI output
-    char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-    std::memset(buffer, 0, sizeof(buffer));
-
-    Logger::magenta("read CGI output");
-    ssize_t bytes = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
-
-    if (bytes < 0) {
-        // Handle read error
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-        }
-
-        // Some other error occurred
-        Logger::error("Failed to read from CGI output: " + std::string(strerror(errno)));
-        if (ctx.req.cgi_out_fd > 0) {
-            close(ctx.req.cgi_out_fd);
-            ctx.req.cgi_out_fd = -1;
-        }
-        return updateErrorStatus(ctx, 500, "Internal Server Error - CGI Read Failed");
-    }
-
-    if (bytes == 0) {
-        // End of CGI output
-        close(ctx.req.cgi_out_fd);
-        ctx.req.cgi_out_fd = -1;
-
-        // If we haven't sent any data yet, add a marker to show we're done
-        if (ctx.write_buffer.empty()) {
-            const char* end_marker = "\r\n\r\n"; // Empty response
-            ctx.write_buffer.assign(end_marker, end_marker + 4);
-        }
-
-        ctx.cgi_terminate = true;
-    } else {
-        // Append new data to existing buffer
-        ctx.write_buffer.insert(ctx.write_buffer.end(), buffer, buffer + bytes);
-    }
-
-    // Switch to send phase
-    ctx.cgi_output_phase = false;
-    return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		Logger::yellow(std::string(ctx.write_buffer.begin(), ctx.write_buffer.end()));
+		// Activity-Timer zurücksetzen
+		ctx.last_activity = std::chrono::steady_clock::now();
+		return true;
+	}
+	else if (bytes_read == 0) {
+		// End of file - CGI-Prozess hat sein Write-Ende geschlossen
+		Logger::green("CGI process finished output");
+		if (ctx.req.cgi_out_fd > 0) {
+			int fd_to_remove = ctx.req.cgi_out_fd; // Store the fd before changing it
+			epoll_ctl(ctx.epoll_fd, EPOLL_CTL_DEL, fd_to_remove, nullptr);
+			close(fd_to_remove);
+			globalFDS.cgi_pipe_to_client_fd.erase(fd_to_remove); // Use the stored fd
+			ctx.req.cgi_out_fd = -1; // Now set to -1 after using the original value
+			ctx.cgi_terminated = true; // Mark as terminated
+		}
+		return true;
+	}
+	else {
+		Logger::red("would block");
+		return false;
+	}
 }
 
-bool Server::processAndPrepareHeaders(Context& ctx) {
-    // Read from CGI output pipe first to get headers
-    char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-    std::memset(buffer, 0, sizeof(buffer));
 
-    Logger::magenta("reading headers from CGI");
-    ssize_t bytes = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
+void Server::cleanupCgiResources(Context& ctx) {
+	if (ctx.req.cgi_out_fd > 0) {
+		epoll_ctl(ctx.epoll_fd, EPOLL_CTL_DEL, ctx.req.cgi_out_fd, nullptr);
+		globalFDS.cgi_pipe_to_client_fd.erase(ctx.req.cgi_out_fd);
+		close(ctx.req.cgi_out_fd);
+		ctx.req.cgi_out_fd = -1;
+	}
 
-    if (bytes < 0) {
-        Logger::error("Failed to read CGI headers: " + std::string(strerror(errno)));
-        if (ctx.req.cgi_out_fd > 0) {
-            close(ctx.req.cgi_out_fd);
-            ctx.req.cgi_out_fd = -1;
-        }
-        return updateErrorStatus(ctx, 500, "Internal Server Error - CGI Headers Read Failed");
-    }
+	globalFDS.cgi_pid_to_client_fd.erase(ctx.req.cgi_pid);
 
-    if (bytes == 0) {
-        close(ctx.req.cgi_out_fd);
-        ctx.req.cgi_out_fd = -1;
-        ctx.cgi_terminate = true;
-
-        // Send a basic response
-        std::string basic_response = "HTTP/1.1 200 OK\r\nConnection: " +
-            std::string(ctx.keepAlive ? "keep-alive" : "close") + "\r\n\r\n";
-        ctx.write_buffer.assign(basic_response.begin(), basic_response.end());
-
-        ctx.cgi_headers_send = true;
-        ctx.cgi_output_phase = false;
-        return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-    }
-
-    Logger::yellow("CGI header buffer:");
-    Logger::yellow(buffer);
-
-    // Convert the buffer to a string for easier processing
-    std::string response_data(buffer, bytes);
-
-    // Look for Status header which PHP-CGI uses for redirects
-    std::string status_line = "Status: ";
-    size_t status_pos = response_data.find(status_line);
-    std::string status_code = "200 OK";
-
-    if (status_pos != std::string::npos) {
-        size_t status_end = response_data.find("\r\n", status_pos);
-        if (status_end != std::string::npos) {
-            status_code = response_data.substr(status_pos + status_line.length(),
-                                status_end - (status_pos + status_line.length()));
-        }
-    }
-
-    // Start building HTTP response with proper status code
-    std::stringstream response;
-    response << "HTTP/1.1 " << status_code << "\r\n";
-
-    // Add connection header
-    response << "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
-
-    // Check if we need to copy original headers from CGI output
-    if (bytes > 0) {
-        // Find the separation between headers and body
-        size_t header_end = response_data.find("\r\n\r\n");
-
-        if (header_end != std::string::npos) {
-            // Process and copy headers (except Status which we already handled)
-            std::string headers_section = response_data.substr(0, header_end);
-            std::istringstream headers_stream(headers_section);
-            std::string line;
-
-            while (std::getline(headers_stream, line)) {
-                // Remove carriage return if present
-                if (!line.empty() && line.back() == '\r') {
-                    line.pop_back();
-                }
-
-                // Skip Status header as we've already processed it
-                if (line.find("Status:") != 0) {
-                    response << line << "\r\n";
-                }
-            }
-
-            // Add the body part if any
-            if (header_end + 4 < response_data.length()) {
-                response << "\r\n" << response_data.substr(header_end + 4);
-            } else {
-                response << "\r\n"; // Just end the headers if no body
-            }
-        } else {
-            // No clear header/body separation, treat whole response as body
-            response << "\r\n" << response_data;
-        }
-    } else {
-        // No data, just end headers
-        response << "\r\n";
-    }
-
-    // Add any session cookies
-    for (const auto& cookiePair : ctx.setCookies) {
-        Cookie cookie;
-        cookie.name = cookiePair.first;
-        cookie.value = cookiePair.second;
-        cookie.path = "/";
-        response << generateSetCookieHeader(cookie) << "\r\n";
-    }
-
-    // Set headers as sent
-    ctx.cgi_headers_send = true;
-
-    // Convert to string and store in buffer
-    std::string responseStr = response.str();
-    ctx.write_buffer.assign(responseStr.begin(), responseStr.end());
-
-    // If this appears to be a redirect (has Location header and 3xx status)
-    if ((status_code.find("30") == 0) && (response_data.find("Location:") != std::string::npos)) {
-        // For redirects, we don't need to read more data
-        close(ctx.req.cgi_out_fd);
-        ctx.req.cgi_out_fd = -1;
-        ctx.cgi_terminate = true;
-    }
-
-    // Switch to send phase
-    ctx.cgi_output_phase = false;
-    return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+	ctx.cgi_terminate = true;
+	ctx.cgi_terminated = true;
 }
 
-bool Server::sendCgiBuffer(Context& ctx) {
-    Logger::green("sendCgiBuffer");
 
-    // If we're done with the CGI process
-    if (ctx.cgi_terminated) {
-        // Process is terminated, decide what to do based on keep-alive
-        if (ctx.keepAlive) {
-            resetContext(ctx);
-            return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
-        } else {
-            delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-            return true;
-        }
-    }
+bool Server::handleCgiPipeEvent(int incoming_fd) {
+	Logger::yellow("handleCgiPipeEvent");
+	auto pipe_iter = globalFDS.cgi_pipe_to_client_fd.find(incoming_fd);
+	if (pipe_iter != globalFDS.cgi_pipe_to_client_fd.end()) {
+		int client_fd = pipe_iter->second;
 
-    // If there's no data to send, go back to reading
-    if (ctx.write_buffer.empty()) {
-        ctx.cgi_output_phase = true;
-        return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-    }
+		auto ctx_iter = globalFDS.context_map.find(client_fd);
+		if (ctx_iter != globalFDS.context_map.end()) {
+			Context& ctx = ctx_iter->second;
 
-    // Try to send all the data
-    Logger::magenta("sending CGI data");
-    ssize_t sent = send(ctx.client_fd, ctx.write_buffer.data(), ctx.write_buffer.size(), MSG_NOSIGNAL);
+			Logger::green("CGI Pipe " + std::to_string(incoming_fd) + " ready for client " + std::to_string(client_fd));
 
-    if (sent < 0) {
-        // Handle send error
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-        }
+			ctx.cgi_pipe_ready = true;
+			ctx.cgi_output_phase = true;
 
-        // Some other error occurred
-        Logger::error("Failed to send CGI response: " + std::string(strerror(errno)));
-        if (ctx.req.cgi_out_fd > 0) {
-            close(ctx.req.cgi_out_fd);
-            ctx.req.cgi_out_fd = -1;
-        }
-        return updateErrorStatus(ctx, 500, "Failed to send CGI response");
-    }
+			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		}
+	}
 
-    // Update our tracking of how much we've sent
-    ctx.req.current_body_length += sent;
-
-    // Remove the data we've sent from the buffer
-    if (static_cast<size_t>(sent) < ctx.write_buffer.size()) {
-        // We sent some but not all data, keep remaining data in buffer
-        ctx.write_buffer.erase(ctx.write_buffer.begin(), ctx.write_buffer.begin() + sent);
-        // Continue in send phase
-        return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-    }
-
-    // All data sent, clear buffer
-    ctx.write_buffer.clear();
-
-    // If we're done with the CGI process, mark as terminated
-    if (ctx.cgi_terminate) {
-        ctx.cgi_terminated = true;
-        return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-    }
-
-    // Go back to reading phase
-    ctx.cgi_output_phase = true;
-    return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+	return false;
 }

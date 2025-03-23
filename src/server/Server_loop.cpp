@@ -1,34 +1,5 @@
 #include "Server.hpp"
 
-bool Server::handleCgiPipeEvent(int epoll_fd, int incoming_fd, uint32_t events, std::vector<ServerBlock> &configs) {
-    // Prüfe zuerst, ob das eingehende FD ein CGI-Pipe ist
-    auto pipe_iter = globalFDS.cgi_pipe_to_client_fd.find(incoming_fd);
-    if (pipe_iter != globalFDS.cgi_pipe_to_client_fd.end()) {
-        int client_fd = pipe_iter->second;
-
-        // Suche den zugehörigen Context
-        auto ctx_iter = globalFDS.context_map.find(client_fd);
-        if (ctx_iter != globalFDS.context_map.end()) {
-            Context& ctx = ctx_iter->second;
-
-            // CGI-Pipe ist bereit zum Lesen
-            Logger::green("CGI Pipe " + std::to_string(incoming_fd) + " ready for client " + std::to_string(client_fd));
-
-            ctx.cgi_pipe_ready = true;
-            ctx.cgi_output_phase = true;
-
-            // Verarbeite die CGI-Ausgabe
-            checkAndReadCgiPipe(ctx);
-
-            // Versuche direkt, die Daten zu senden
-            return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-        }
-    }
-
-    // Falls es kein CGI-Pipe war, normalen Event-Loop-Code fortsetzen
-    return false;
-}
-
 int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 {
 	struct epoll_event events[MAX_EVENTS];
@@ -56,10 +27,10 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 		{
 			incoming_fd = events[eventIter].data.fd;
 
-            if (globalFDS.cgi_pipe_to_client_fd.find(incoming_fd) != globalFDS.cgi_pipe_to_client_fd.end()) {
-                handleCgiPipeEvent(epoll_fd, incoming_fd, events[eventIter].events, configs);
-                continue;
-            }
+			if (globalFDS.cgi_pipe_to_client_fd.find(incoming_fd) != globalFDS.cgi_pipe_to_client_fd.end()) {
+				handleCgiPipeEvent(incoming_fd);
+				continue;
+			}
 
 			auto ctx_iter = globalFDS.context_map.find(incoming_fd);
 			bool is_active_upload = false;

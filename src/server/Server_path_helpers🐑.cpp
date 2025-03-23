@@ -107,32 +107,32 @@ std::string Server::subtractLocationPath(const std::string& path, const Location
 
 bool Server::isPathInUploadStore(Context& ctx, const std::string& path_to_check)
 {
-    std::string full_upload_store;
+	std::string full_upload_store;
 
-    if (ctx.location.upload_store.find(ctx.root) != std::string::npos)
-        full_upload_store = ctx.location.upload_store;
-    else
-        full_upload_store = concatenatePath(ctx.root, ctx.location.upload_store);
+	if (ctx.location.upload_store.find(ctx.root) != std::string::npos)
+		full_upload_store = ctx.location.upload_store;
+	else
+		full_upload_store = concatenatePath(ctx.root, ctx.location.upload_store);
 
-    std::string normalized_upload_store = full_upload_store;
-    std::string normalized_path = path_to_check;
+	std::string normalized_upload_store = full_upload_store;
+	std::string normalized_path = path_to_check;
 
-    if (!normalized_upload_store.empty() && normalized_upload_store.back() == '/')
-        normalized_upload_store.pop_back();
-    if (!normalized_path.empty() && normalized_path.back() == '/')
-        normalized_path.pop_back();
+	if (!normalized_upload_store.empty() && normalized_upload_store.back() == '/')
+		normalized_upload_store.pop_back();
+	if (!normalized_path.empty() && normalized_path.back() == '/')
+		normalized_path.pop_back();
 
-    bool starts_with_upload_store = false;
+	bool starts_with_upload_store = false;
 
-    if (normalized_path.length() >= normalized_upload_store.length())
+	if (normalized_path.length() >= normalized_upload_store.length())
 	{
-        starts_with_upload_store = (normalized_path.substr(0, normalized_upload_store.length()) == normalized_upload_store);
-        if (starts_with_upload_store &&
-            normalized_path.length() > normalized_upload_store.length() &&
-            normalized_path[normalized_upload_store.length()] != '/') {
-            starts_with_upload_store = false;
-        }
-    }
+		starts_with_upload_store = (normalized_path.substr(0, normalized_upload_store.length()) == normalized_upload_store);
+		if (starts_with_upload_store &&
+			normalized_path.length() > normalized_upload_store.length() &&
+			normalized_path[normalized_upload_store.length()] != '/') {
+			starts_with_upload_store = false;
+		}
+	}
 
-    return starts_with_upload_store;
+	return starts_with_upload_store;
 }

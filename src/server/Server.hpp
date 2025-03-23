@@ -123,7 +123,9 @@ class Server
 		bool readCgiOutput(Context& ctx);
 		bool processAndPrepareHeaders(Context& ctx);
 		bool sendCgiBuffer(Context& ctx);
-		bool handleCgiPipeEvent(int epoll_fd, int incoming_fd, uint32_t events, std::vector<ServerBlock> &configs);
+		bool handleCgiPipeEvent(int incoming_fd);
+		void cleanupCgiResources(Context& ctx);
+		bool checkAndReadCgiPipe(Context& ctx);
 };
 
 std::string extractHostname(const std::string& header);

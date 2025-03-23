@@ -187,16 +187,16 @@ struct Context
 	bool headers_complete = false;
 	bool keepAlive = false;
 	bool is_multipart = false;
-    bool download_headers_sent = false;
-    bool download_phase = false;
-    bool cgi_output_phase = false;
-    bool cgi_headers_send = false;
-    bool cgi_executed = false;
-    bool cgi_terminate = false;
-    bool cgi_terminated = false;
-    bool wasCgiDel = false;
+	bool download_headers_sent = false;
+	bool download_phase = false;
+	bool cgi_output_phase = false;
+	bool cgi_headers_send = false;
+	bool cgi_executed = false;
+	bool cgi_terminate = false;
+	bool cgi_terminated = false;
+	bool wasCgiDel = false;
 	bool cgi_pipe_ready = false;
-    int cgi_read_attempts = 0;
+	int cgi_read_attempts = 0;
 	std::chrono::steady_clock::time_point cgi_start_time = std::chrono::steady_clock::time_point();
 };
 
@@ -205,8 +205,8 @@ struct GlobalFDS
 	int epoll_fd = -1;
 	std::map<int, Context> context_map;
 	std::map<int, int> clFD_to_svFD_map;
-    std::map<int, int> cgi_pipe_to_client_fd;
-    std::map<pid_t, int> cgi_pid_to_client_fd;
+	std::map<int, int> cgi_pipe_to_client_fd;
+	std::map<pid_t, int> cgi_pid_to_client_fd;
 };
 
 struct DirEntry {
