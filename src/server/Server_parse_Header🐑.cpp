@@ -1,6 +1,5 @@
 #include "Server.hpp"
 
-
 // Extracts and Validates http Headers from the Request, Updating the Request Context
 bool Server::parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs)
 {
@@ -53,12 +52,12 @@ bool Server::parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs)
 		ctx.headers.find("Transfer-Encoding") == ctx.headers.end())
 		return updateErrorStatus(ctx, 411, "Length Required");
 
-	if (!checkMaxContentLength(ctx, configs))
+	if (!checkMaxContentLength(ctx, configs) || ctx.error_code)
 		return false;
 	return true;
 }
 
-// New Function to Handle Multipart Form Data Headers
+// Function to Handle Multipart Form Data Headers
 void Server::parseMultipartHeaders(Context& ctx)
 {
 	std::string boundary;
@@ -174,7 +173,9 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 
 bool Server::prepareUploadPingPong(Context& ctx)
 {
-	if (ctx.multipart_fd_up_down >= 0)
+	if (ctx.multipart_file_path_up_down.empty())
+		return true;
+	if (ctx.error_code || ctx.multipart_fd_up_down >= 0)
 		return false;
 
 	struct stat prev_stat;
@@ -201,6 +202,9 @@ bool Server::prepareUploadPingPong(Context& ctx)
 	ctx.multipart_fd_up_down = open(ctx.multipart_file_path_up_down.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (ctx.multipart_fd_up_down < 0)
 		return updateErrorStatus(ctx, 500, "Failed to create upload file");
+	if (ctx.error_code)
+		return false;
+	ctx.ready_for_ping_pong = true;
 	return true;
 }
 
@@ -210,7 +214,10 @@ void Server::parseAccessRights(Context& ctx)
 	std::string req_root = retreiveReqRoot(ctx);
 	if (ctx.method == "DELETE")
 	{
-		ctx.path = "/" + ctx.location.upload_store + ctx.path;
+		if (!ctx.path.empty() && ctx.path[0] == '/')
+			ctx.path = ctx.location.upload_store + ctx.path;
+		else
+			ctx.path =  "/" +  ctx.location.upload_store + ctx.path;
 		ctx.requested_path = ctx.path;
 		if (ctx.type == CGI)
 		{
@@ -218,7 +225,12 @@ void Server::parseAccessRights(Context& ctx)
 			ctx.type = STATIC;
 		}
 	}
-	std::string requestedPath = concatenatePath(req_root, ctx.path);
+	std::string requestedPath;
+
+	if (ctx.path.rfind(req_root, 0) == 0)
+		requestedPath = ctx.path;
+	else
+		requestedPath = concatenatePath(req_root, ctx.path);
 	if (ctx.index.empty() && ctx.method != "DELETE")
 		ctx.index = DEFAULT_FILE;
 	if (ctx.location.default_file.empty())
@@ -301,6 +313,55 @@ bool Server::checkMaxContentLength(Context& ctx, std::vector<ServerBlock>& confi
 		getMaxBodySizeFromConfig(ctx, configs);
 		if (content_length > ctx.client_max_body_size)
 			return updateErrorStatus(ctx, 413, "Payload too large");
+	}
+	return true;
+}
+
+bool Server::parseContentDisposition(Context& ctx)
+{
+	if (!ctx.is_multipart)
+		return true;
+
+	if (ctx.boundary.empty())
+	{
+		auto content_type_it = ctx.headers.find("Content-Type");
+		if (content_type_it != ctx.headers.end())
+		{
+			size_t boundary_pos = content_type_it->second.find("boundary=");
+			if (boundary_pos != std::string::npos)
+			{
+				ctx.boundary = "--" + content_type_it->second.substr(boundary_pos + 9);
+				size_t end_pos = ctx.boundary.find(';');
+				if (end_pos != std::string::npos)
+					ctx.boundary = ctx.boundary.substr(0, end_pos);
+			}
+		}
+	}
+
+	size_t boundary_start = ctx.read_buffer.find(ctx.boundary);
+	if (boundary_start == std::string::npos)
+		return true;
+	size_t disp_pos = ctx.read_buffer.find("Content-Disposition: form-data", boundary_start);
+	if (disp_pos == std::string::npos)
+		return true;
+
+	size_t filename_pos = ctx.read_buffer.find("filename=\"", disp_pos);
+	if (filename_pos != std::string::npos)
+	{
+		filename_pos += 10;
+		size_t filename_end = ctx.read_buffer.find("\"", filename_pos);
+		if (filename_end != std::string::npos)
+		{
+			std::string filename = ctx.read_buffer.substr(filename_pos, filename_end - filename_pos);
+			ctx.headers["Content-Disposition-Filename"] = filename;
+			ctx.multipart_file_path_up_down = concatenatePath(ctx.location.upload_store, filename);
+
+			size_t headers_end = ctx.read_buffer.find("\r\n\r\n", disp_pos);
+			if (headers_end != std::string::npos)
+				ctx.header_offset = headers_end + 4;
+			else
+				ctx.header_offset = 0;
+		}
 	}
 	return true;
 }

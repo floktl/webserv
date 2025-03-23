@@ -1,0 +1,283 @@
+[2025-03-23 12:33:51]  [ERROR] ErrorHandler: Errorcode: 409 File already exists
+[2025-03-23 12:34:59]  [ERROR] Failed to determine request type
+[2025-03-23 12:34:59]  [ERROR] ErrorHandler: Errorcode: 404 /app/var/www/staticupload/uploads/cpp_09_eval.tgz Not found in 2. checkaccessright()
+[2025-03-23 12:35:16] Context [CGI]:
+FDs: epoll=3 server=11 client=20
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s14c18t7418340
+Host: localhost:8001
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7424 seconds since epoch
+[2025-03-23 12:35:17] Context [CGI]:
+FDs: epoll=3 server=11 client=21
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s14c18t7418340
+Host: localhost:8001
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7424 seconds since epoch
+[2025-03-23 12:35:17] Context [CGI]:
+FDs: epoll=3 server=11 client=20
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s14c18t7418340
+Host: localhost:8001
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7424 seconds since epoch
+[2025-03-23 12:35:18] Context [CGI]:
+FDs: epoll=3 server=11 client=21
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s14c18t7418340
+Host: localhost:8001
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7425 seconds since epoch
+[2025-03-23 12:35:18] Context [CGI]:
+FDs: epoll=3 server=11 client=20
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s14c18t7418340
+Host: localhost:8001
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7425 seconds since epoch
+[2025-03-23 12:35:18] Context [CGI]:
+FDs: epoll=3 server=11 client=21
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s14c18t7418340
+Host: localhost:8001
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7426 seconds since epoch
+[2025-03-23 12:35:19] Context [CGI]:
+FDs: epoll=3 server=11 client=20
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s14c18t7418340
+Host: localhost:8001
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7426 seconds since epoch
+[2025-03-23 12:35:19] Context [CGI]:
+FDs: epoll=3 server=11 client=21
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s14c18t7418340
+Host: localhost:8001
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7426 seconds since epoch
+[2025-03-23 12:35:19] Context [CGI]:
+FDs: epoll=3 server=11 client=20
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s14c18t7418340
+Host: localhost:8001
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7426 seconds since epoch
+[2025-03-23 12:35:21] Context [CGI]:
+FDs: epoll=3 server=11 client=21
+Type: CGI
+Method: GET
+Path: /app/var/www/php/index.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s14c18t7418340
+Host: localhost:8001
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/index.php
+Location: Defined
+Last Activity: 7428 seconds since epoch

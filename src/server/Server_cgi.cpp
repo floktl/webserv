@@ -233,7 +233,8 @@ std::vector<std::string> Server::prepareCgiEnvironment(const Context& ctx) {
 	return env;
 }
 
-std::string Server::extractQueryString(const std::string& path) {
+std::string Server::extractQueryString(const std::string& path)
+{
 	size_t pos = path.find('?');
 	if (pos != std::string::npos) {
 		return path.substr(pos + 1);
@@ -242,7 +243,8 @@ std::string Server::extractQueryString(const std::string& path) {
 }
 
 
-bool Server::sendCgiResponse(Context& ctx) {
+bool Server::sendCgiResponse(Context& ctx)
+{
 	// Handle case where the CGI process has been terminated
 	if (ctx.req.cgi_out_fd < 0 && ctx.cgi_terminated) {
 		return true;

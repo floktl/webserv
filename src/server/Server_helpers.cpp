@@ -239,6 +239,8 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 		else
 			ctx.type = STATIC;
 		parseAccessRights(ctx);
+		if (ctx.error_code)
+			return false;
 		return true;
 	}
 	return (updateErrorStatus(ctx, 500, "Internal Server Error"));
