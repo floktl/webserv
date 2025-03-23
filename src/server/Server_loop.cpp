@@ -1,5 +1,34 @@
 #include "Server.hpp"
 
+bool Server::handleCgiPipeEvent(int epoll_fd, int incoming_fd, uint32_t events, std::vector<ServerBlock> &configs) {
+    // Prüfe zuerst, ob das eingehende FD ein CGI-Pipe ist
+    auto pipe_iter = globalFDS.cgi_pipe_to_client_fd.find(incoming_fd);
+    if (pipe_iter != globalFDS.cgi_pipe_to_client_fd.end()) {
+        int client_fd = pipe_iter->second;
+
+        // Suche den zugehörigen Context
+        auto ctx_iter = globalFDS.context_map.find(client_fd);
+        if (ctx_iter != globalFDS.context_map.end()) {
+            Context& ctx = ctx_iter->second;
+
+            // CGI-Pipe ist bereit zum Lesen
+            Logger::green("CGI Pipe " + std::to_string(incoming_fd) + " ready for client " + std::to_string(client_fd));
+
+            ctx.cgi_pipe_ready = true;
+            ctx.cgi_output_phase = true;
+
+            // Verarbeite die CGI-Ausgabe
+            checkAndReadCgiPipe(ctx);
+
+            // Versuche direkt, die Daten zu senden
+            return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+        }
+    }
+
+    // Falls es kein CGI-Pipe war, normalen Event-Loop-Code fortsetzen
+    return false;
+}
+
 int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 {
 	struct epoll_event events[MAX_EVENTS];
@@ -26,6 +55,11 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 		for (int eventIter = 0; eventIter < eventNum; eventIter++)
 		{
 			incoming_fd = events[eventIter].data.fd;
+
+            if (globalFDS.cgi_pipe_to_client_fd.find(incoming_fd) != globalFDS.cgi_pipe_to_client_fd.end()) {
+                handleCgiPipeEvent(epoll_fd, incoming_fd, events[eventIter].events, configs);
+                continue;
+            }
 
 			auto ctx_iter = globalFDS.context_map.find(incoming_fd);
 			bool is_active_upload = false;
@@ -108,10 +142,13 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 	{
 		Context		&ctx = contextIter->second;
 		ctx.last_activity = std::chrono::steady_clock::now();
-		if (ev & EPOLLIN)
+		if (ev & EPOLLIN){
+			Logger::white("EPOLLIN");
 			status = handleRead(ctx, configs);
+		}
 		if ((ev & EPOLLOUT))
 		{
+			Logger::white("EPOLLOUT");
 			status = handleWrite(ctx);
 			if (status == false)
 				delFromEpoll(epoll_fd, client_fd);
@@ -132,6 +169,7 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 // Handles Reading Request Data from the Client and Processing It Accordingly
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 {
+	Logger::green("handleRead");
 	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
 
 	if (!ctx.is_multipart || ctx.req.parsing_phase != RequestBody::PARSING_BODY)
@@ -139,6 +177,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 	ctx.write_buffer.clear();
 
 	std::memset(buffer, 0, sizeof(buffer));
+	Logger::magenta("read handleRead");
 	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
 	if (bytes < 0)
 	{
@@ -197,6 +236,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 
 bool Server::handleWrite(Context& ctx)
 {
+	Logger::green("handleWrite");
 	bool result = false;
 
 	if (ctx.is_download && ctx.multipart_fd_up_down > 0)
@@ -213,6 +253,7 @@ bool Server::handleWrite(Context& ctx)
 
 		if (!ctx.write_buffer.empty())
 		{
+			Logger::magenta("write handleWrite");
 			ssize_t written = write(ctx.multipart_fd_up_down, ctx.write_buffer.data(), ctx.write_buffer.size());
 			if (written < 0)
 			{

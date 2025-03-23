@@ -120,6 +120,10 @@ class Server
 		bool sendCgiResponse(Context& ctx);
 		bool parseCGIBody(Context& ctx);
 		bool isPathInUploadStore(Context& ctx, const std::string& path_to_check);
+		bool readCgiOutput(Context& ctx);
+		bool processAndPrepareHeaders(Context& ctx);
+		bool sendCgiBuffer(Context& ctx);
+		bool handleCgiPipeEvent(int epoll_fd, int incoming_fd, uint32_t events, std::vector<ServerBlock> &configs);
 };
 
 std::string extractHostname(const std::string& header);

@@ -69,9 +69,44 @@ int Server::setNonBlocking(int fd)
 }
 
 // Checks and removes inactive connections that Extred the Timeout Threshold
-void Server::checkAndCleanupTimeouts()
-{
-	auto now = std::chrono::steady_clock::now();
+void Server::checkAndCleanupTimeouts() {
+    auto now = std::chrono::steady_clock::now();
+
+    for (auto it = globalFDS.cgi_pid_to_client_fd.begin(); it != globalFDS.cgi_pid_to_client_fd.end(); /* increment in body */) {
+        pid_t pid = it->first;
+        int client_fd = it->second;
+
+        auto ctx_iter = globalFDS.context_map.find(client_fd);
+        if (ctx_iter != globalFDS.context_map.end()) {
+            Context& ctx = ctx_iter->second;
+
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - ctx.cgi_start_time).count();
+            if (elapsed > 30) {
+                Logger::error("Timeout for CGI process " + std::to_string(pid));
+
+                kill(pid, SIGTERM);
+
+                int status;
+                if (waitpid(pid, &status, WNOHANG) == 0) {
+                    kill(pid, SIGKILL);
+                }
+
+                cleanupCgiResources(ctx);
+
+                updateErrorStatus(ctx, 504, "Gateway Timeout - CGI Process Timeout");
+
+                modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+
+                auto currentIt = it++;
+                globalFDS.cgi_pid_to_client_fd.erase(currentIt);
+            } else {
+                ++it;
+            }
+        } else {
+            auto currentIt = it++;
+            globalFDS.cgi_pid_to_client_fd.erase(currentIt);
+        }
+    }
 
 	auto it = globalFDS.context_map.begin();
 	while (it != globalFDS.context_map.end())
@@ -89,3 +124,23 @@ void Server::checkAndCleanupTimeouts()
 			++it;
 	}
 }
+//void Server::checkAndCleanupTimeouts()
+//{
+//	auto now = std::chrono::steady_clock::now();
+
+//	auto it = globalFDS.context_map.begin();
+//	while (it != globalFDS.context_map.end())
+//	{
+//		Context& ctx = it->second;
+//		auto duration = std::chrono::duration_cast<std::chrono::seconds>(
+//			now - ctx.last_activity).count();
+
+//		if (duration > Context::TIMEOUT_DURATION.count())
+//		{
+//			delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+//			it = globalFDS.context_map.erase(it);
+//		}
+//		else
+//			++it;
+//	}
+//}

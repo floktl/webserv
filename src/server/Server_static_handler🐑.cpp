@@ -41,7 +41,7 @@ bool Server::staticHandler(Context& ctx)
 // Send to http response to the client and handles Connection Cleanup if necessary
 bool Server::sendHandler(Context& ctx, std::string http_response)
 {
-	//Logger::magenta("send");
+	Logger::magenta("send sendHandler");
 	ssize_t bytes_sent = send(ctx.client_fd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
 	if (bytes_sent < 0)
 	{

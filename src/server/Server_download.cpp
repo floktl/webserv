@@ -48,6 +48,7 @@ bool Server::buildDownloadResponse(Context &ctx)
 	// Alternate between reading and sending
 	if (ctx.download_phase) {
 		char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+		Logger::magenta("read buildDownloadResposne");
 		ssize_t bytes_read = read(ctx.multipart_fd_up_down, buffer, sizeof(buffer));
 
 		if (bytes_read < 0) {

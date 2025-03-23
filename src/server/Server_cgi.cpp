@@ -2,26 +2,16 @@
 
 bool Server::executeCgi(Context& ctx)
 {
-	if (ctx.requested_path.empty()) {
-		Logger::error("Empty script path for CGI execution");
-		Logger::file("Empty script path for CGI execution");
-		return updateErrorStatus(ctx, 404, "Not Found - Empty CGI Path");
-	}
+    Logger::green("executeCgi");
 
-	if (!fileExists(ctx.requested_path)) {
-		Logger::error("CGI script not found: " + ctx.requested_path);
-		Logger::file("CGI script not found: " + ctx.requested_path);
-		return updateErrorStatus(ctx, 404, "Not Found - CGI Script");
-	}
+    // Vorhandene Validierungen beibehalten...
+    if (ctx.requested_path.empty() || !fileExists(ctx.requested_path) || !fileReadable(ctx.requested_path)) {
+        Logger::error("CGI script validation failed: " + ctx.requested_path);
+        return updateErrorStatus(ctx, 404, "Not Found - CGI Script");
+    }
 
-	if (!fileReadable(ctx.requested_path)) {
-		Logger::error("CGI script not readable: " + ctx.requested_path);
-		Logger::file("CGI script not readable: " + ctx.requested_path);
-		return updateErrorStatus(ctx, 403, "Forbidden - Cannot read CGI script");
-	}
-
-	int input_pipe[2];
-	int output_pipe[2];
+    int input_pipe[2];
+    int output_pipe[2];
 
 	if (pipe(input_pipe) < 0 || pipe(output_pipe) < 0) {
 		Logger::error("Failed to create pipes for CGI");
@@ -83,8 +73,6 @@ bool Server::executeCgi(Context& ctx)
 			// If no specific CGI filetype is matched, check if the file itself is executable
 			if (fileExecutable(ctx.requested_path)) {
 				interpreter = ctx.requested_path;
-			} else {
-				exit(1);
 			}
 		}
 
@@ -101,8 +89,6 @@ bool Server::executeCgi(Context& ctx)
 		}
 
 		execve(interpreter.c_str(), args, env_pointers.data());
-
-		exit(1);
 	}
 
 	// Parent process
@@ -115,6 +101,9 @@ bool Server::executeCgi(Context& ctx)
 	ctx.req.cgi_pid = pid;
 	ctx.req.state = RequestBody::STATE_CGI_RUNNING;
 
+    ctx.cgi_pipe_ready = false;
+    ctx.cgi_read_attempts = 0;
+    ctx.cgi_start_time = std::chrono::steady_clock::now();
 
 	// Write POST data to the CGI input if it exists
 	if (!ctx.body.empty()) {
@@ -242,245 +231,279 @@ std::string Server::extractQueryString(const std::string& path)
 	return "";
 }
 
+bool Server::sendCgiResponse(Context& ctx) {
+    Logger::green("sendCgiResponse");
 
-bool Server::sendCgiResponse(Context& ctx)
-{
-	// Handle case where the CGI process has been terminated
-	if (ctx.req.cgi_out_fd < 0 && ctx.cgi_terminated) {
-		return true;
+	if (ctx.cgi_pipe_ready) {
+		if (ctx.cgi_output_phase) {
+			return readCgiOutput(ctx);
+		} else {
+			return sendCgiBuffer(ctx);
+		}
 	}
+    Logger::yellow("mach anal lyse was mit pipe");
 
-	ctx.last_activity = std::chrono::steady_clock::now();
+	int status;
+	pid_t result = waitpid(ctx.req.cgi_pid, &status, WNOHANG);
 
-	if (ctx.cgi_output_phase) {
-		// First phase: Read from CGI output
-		if (!ctx.cgi_headers_send) {
-
-			// Read from CGI output pipe first to get any headers
-			char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-			std::memset(buffer, 0, sizeof(buffer));
-
-			ssize_t bytes = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
-
-			if (bytes < 0) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK)
-					return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-
-				Logger::error("Failed to read from CGI output: " + std::string(strerror(errno)));
-				if (ctx.req.cgi_out_fd > 0) {
-					close(ctx.req.cgi_out_fd);
-					ctx.req.cgi_out_fd = -1;
-				}
-				return updateErrorStatus(ctx, 500, "Internal Server Error - CGI Read Failed");
-			}
-
-			if (bytes == 0) {
-				close(ctx.req.cgi_out_fd);
-				ctx.req.cgi_out_fd = -1;
-				ctx.cgi_terminate = true;
-
-				// Send a basic response
-				std::string basic_response = "HTTP/1.1 200 OK\r\nConnection: " +
-					std::string(ctx.keepAlive ? "keep-alive" : "close") + "\r\n\r\n";
-				ctx.write_buffer.assign(basic_response.begin(), basic_response.end());
-
-				ctx.cgi_headers_send = true;
-				ctx.cgi_output_phase = false;
-				return true;
-			}
-
-			// Convert the buffer to a string for easier processing
-			std::string response_data(buffer, bytes);
-
-			// Look for Status header which PHP-CGI uses for redirects
-			std::string status_line = "Status: ";
-			size_t status_pos = response_data.find(status_line);
-			std::string status_code = "200 OK";
-
-			if (status_pos != std::string::npos) {
-				size_t status_end = response_data.find("\r\n", status_pos);
-				if (status_end != std::string::npos) {
-					status_code = response_data.substr(status_pos + status_line.length(),
-											status_end - (status_pos + status_line.length()));
-				}
-			}
-
-			// Start building HTTP response with proper status code
-			std::stringstream response;
-			response << "HTTP/1.1 " << status_code << "\r\n";
-
-			// Add connection header
-			response << "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
-
-			// Check if we need to copy original headers from CGI output
-			if (bytes > 0) {
-				// Find the separation between headers and body
-				size_t header_end = response_data.find("\r\n\r\n");
-
-				if (header_end != std::string::npos) {
-					// Process and copy headers (except Status which we already handled)
-					std::string headers_section = response_data.substr(0, header_end);
-					std::istringstream headers_stream(headers_section);
-					std::string line;
-
-					while (std::getline(headers_stream, line)) {
-						// Remove carriage return if present
-						if (!line.empty() && line.back() == '\r') {
-							line.pop_back();
-						}
-
-						// Skip Status header as we've already processed it
-						if (line.find("Status:") != 0) {
-							response << line << "\r\n";
-						}
-					}
-
-					// Add the body part if any
-					if (header_end + 4 < response_data.length()) {
-						response << "\r\n" << response_data.substr(header_end + 4);
-					} else {
-						response << "\r\n"; // Just end the headers if no body
-					}
-				} else {
-					// No clear header/body separation, treat whole response as body
-					response << "\r\n" << response_data;
-				}
-			} else {
-				// No data, just end headers
-				response << "\r\n";
-			}
-
-			// // Add any session cookies
-			// for (const auto& cookiePair : ctx.setCookies) {
-			// 	Cookie cookie;
-			// 	cookie.name = cookiePair.first;
-			// 	cookie.value = cookiePair.second;
-			// 	cookie.path = "/";
-			// 	response << generateSetCookieHeader(cookie) << "\r\n";
-			// }
-
-			// Set headers as sent
-			ctx.cgi_headers_send = true;
-
-			// Convert to string and store in buffer
-			std::string responseStr = response.str();
-			ctx.write_buffer.assign(responseStr.begin(), responseStr.end());
-
-			// Switch to send phase
-			ctx.cgi_output_phase = false;
-
-			// If this appears to be a redirect (has Location header and 3xx status)
-			if ((status_code.find("30") == 0) && (response_data.find("Location:") != std::string::npos)) {
-				// For redirects, we don't need to read more data
-				close(ctx.req.cgi_out_fd);
-				ctx.req.cgi_out_fd = -1;
-				ctx.cgi_terminate = true;
-			}
-
-			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-		}
-
-		ctx.cgi_output_phase = false;
-		char buffer[DEFAULT_REQUESTBUFFER_SIZE];
-		std::memset(buffer, 0, sizeof(buffer));
-
-		ssize_t bytes = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
-
-		if (bytes < 0) {
-			// Handle read error
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				ctx.cgi_output_phase = true;
-				return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-			}
-
-			// Some other error occurred
-			Logger::error("Failed to read from CGI output: " + std::string(strerror(errno)));
-			if (ctx.req.cgi_out_fd > 0) {
-				close(ctx.req.cgi_out_fd);
-				ctx.req.cgi_out_fd = -1;
-			}
-			return updateErrorStatus(ctx, 500, "Internal Server Error - CGI Read Failed");
-		}
-
-		if (bytes == 0) {
+	if (result > 0) {
+		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+			Logger::error("CGI-Prozess beendet mit Fehlercode: " + std::to_string(WEXITSTATUS(status)));
 			close(ctx.req.cgi_out_fd);
 			ctx.req.cgi_out_fd = -1;
-
-			// If we haven't sent any data yet, add a marker to show we're done
-			if (ctx.write_buffer.empty()) {
-				const char* end_marker = "\r\n\r\n"; // Empty response
-				ctx.write_buffer.assign(end_marker, end_marker + 4);
-			}
-
-			ctx.cgi_terminate = true;
-			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+			return updateErrorStatus(ctx, 500, "Internal Server Error");
 		}
-
-		if (ctx.cgi_terminated) {
-			// We've already sent all the data, process is terminated
-			if (ctx.keepAlive)
-			{
-				resetContext(ctx);
-				return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
-			} else {
-				delFromEpoll(ctx.epoll_fd, ctx.client_fd);
-			}
-			return true;
-		}
-
-		// Append new data to existing buffer
-		ctx.write_buffer.insert(ctx.write_buffer.end(), buffer, buffer + bytes);
-		return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		ctx.cgi_pipe_ready = true;
 	}
-	else {
-		// Second phase: Send data to client
-		if (ctx.write_buffer.empty()) {
-			// No data to send, go back to reading phase
-			ctx.cgi_output_phase = true;
-			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-		}
+	return true;
+}
 
-		// Try to send all the data
-		ssize_t sent = send(ctx.client_fd, ctx.write_buffer.data(), ctx.write_buffer.size(), MSG_NOSIGNAL);
+bool Server::readCgiOutput(Context& ctx) {
+    Logger::green("readCgiOutput");
 
-		if (sent < 0) {
-			// Handle send error
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-				return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+    // Update activity timestamp
+    ctx.last_activity = std::chrono::steady_clock::now();
 
-			// Some other error occurred
-			Logger::error("Failed to send CGI response: " + std::string(strerror(errno)));
-			if (ctx.req.cgi_out_fd > 0)
-			{
-				close(ctx.req.cgi_out_fd);
-				ctx.req.cgi_out_fd = -1;
-			}
-			return updateErrorStatus(ctx, 500, "Failed to send CGI response");
-		}
+    // If the CGI process has been terminated
+    if (ctx.req.cgi_out_fd < 0 && ctx.cgi_terminated) {
+        return true;
+    }
 
-		// Update our tracking of how much we've sent
-		ctx.req.current_body_length += sent;
+    // Handle headers if not sent yet
+    if (!ctx.cgi_headers_send) {
+        return processAndPrepareHeaders(ctx);
+    }
 
-		// Remove the data we've sent from the buffer
-		if (static_cast<size_t>(sent) < ctx.write_buffer.size()) {
-			// We sent some but not all data, keep remaining data in buffer
-			ctx.write_buffer.erase(ctx.write_buffer.begin(), ctx.write_buffer.begin() + sent);
-			// Continue in send phase
-			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-		}
+    // Read additional CGI output
+    char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+    std::memset(buffer, 0, sizeof(buffer));
 
-		// All data sent, clear buffer
-		ctx.write_buffer.clear();
+    Logger::magenta("read CGI output");
+    ssize_t bytes = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
 
-		// If we're done with the CGI process, mark as terminated
-		if (ctx.cgi_terminate) {
-			ctx.cgi_terminated = true;
-		}
+    if (bytes < 0) {
+        // Handle read error
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+        }
 
-		// Go back to reading phase
-		ctx.cgi_output_phase = true;
-		return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-	}
+        // Some other error occurred
+        Logger::error("Failed to read from CGI output: " + std::string(strerror(errno)));
+        if (ctx.req.cgi_out_fd > 0) {
+            close(ctx.req.cgi_out_fd);
+            ctx.req.cgi_out_fd = -1;
+        }
+        return updateErrorStatus(ctx, 500, "Internal Server Error - CGI Read Failed");
+    }
 
-	return false;
+    if (bytes == 0) {
+        // End of CGI output
+        close(ctx.req.cgi_out_fd);
+        ctx.req.cgi_out_fd = -1;
+
+        // If we haven't sent any data yet, add a marker to show we're done
+        if (ctx.write_buffer.empty()) {
+            const char* end_marker = "\r\n\r\n"; // Empty response
+            ctx.write_buffer.assign(end_marker, end_marker + 4);
+        }
+
+        ctx.cgi_terminate = true;
+    } else {
+        // Append new data to existing buffer
+        ctx.write_buffer.insert(ctx.write_buffer.end(), buffer, buffer + bytes);
+    }
+
+    // Switch to send phase
+    ctx.cgi_output_phase = false;
+    return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+}
+
+bool Server::processAndPrepareHeaders(Context& ctx) {
+    // Read from CGI output pipe first to get headers
+    char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+    std::memset(buffer, 0, sizeof(buffer));
+
+    Logger::magenta("reading headers from CGI");
+    ssize_t bytes = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
+
+    if (bytes < 0) {
+        Logger::error("Failed to read CGI headers: " + std::string(strerror(errno)));
+        if (ctx.req.cgi_out_fd > 0) {
+            close(ctx.req.cgi_out_fd);
+            ctx.req.cgi_out_fd = -1;
+        }
+        return updateErrorStatus(ctx, 500, "Internal Server Error - CGI Headers Read Failed");
+    }
+
+    if (bytes == 0) {
+        close(ctx.req.cgi_out_fd);
+        ctx.req.cgi_out_fd = -1;
+        ctx.cgi_terminate = true;
+
+        // Send a basic response
+        std::string basic_response = "HTTP/1.1 200 OK\r\nConnection: " +
+            std::string(ctx.keepAlive ? "keep-alive" : "close") + "\r\n\r\n";
+        ctx.write_buffer.assign(basic_response.begin(), basic_response.end());
+
+        ctx.cgi_headers_send = true;
+        ctx.cgi_output_phase = false;
+        return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+    }
+
+    Logger::yellow("CGI header buffer:");
+    Logger::yellow(buffer);
+
+    // Convert the buffer to a string for easier processing
+    std::string response_data(buffer, bytes);
+
+    // Look for Status header which PHP-CGI uses for redirects
+    std::string status_line = "Status: ";
+    size_t status_pos = response_data.find(status_line);
+    std::string status_code = "200 OK";
+
+    if (status_pos != std::string::npos) {
+        size_t status_end = response_data.find("\r\n", status_pos);
+        if (status_end != std::string::npos) {
+            status_code = response_data.substr(status_pos + status_line.length(),
+                                status_end - (status_pos + status_line.length()));
+        }
+    }
+
+    // Start building HTTP response with proper status code
+    std::stringstream response;
+    response << "HTTP/1.1 " << status_code << "\r\n";
+
+    // Add connection header
+    response << "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
+
+    // Check if we need to copy original headers from CGI output
+    if (bytes > 0) {
+        // Find the separation between headers and body
+        size_t header_end = response_data.find("\r\n\r\n");
+
+        if (header_end != std::string::npos) {
+            // Process and copy headers (except Status which we already handled)
+            std::string headers_section = response_data.substr(0, header_end);
+            std::istringstream headers_stream(headers_section);
+            std::string line;
+
+            while (std::getline(headers_stream, line)) {
+                // Remove carriage return if present
+                if (!line.empty() && line.back() == '\r') {
+                    line.pop_back();
+                }
+
+                // Skip Status header as we've already processed it
+                if (line.find("Status:") != 0) {
+                    response << line << "\r\n";
+                }
+            }
+
+            // Add the body part if any
+            if (header_end + 4 < response_data.length()) {
+                response << "\r\n" << response_data.substr(header_end + 4);
+            } else {
+                response << "\r\n"; // Just end the headers if no body
+            }
+        } else {
+            // No clear header/body separation, treat whole response as body
+            response << "\r\n" << response_data;
+        }
+    } else {
+        // No data, just end headers
+        response << "\r\n";
+    }
+
+    // Add any session cookies
+    for (const auto& cookiePair : ctx.setCookies) {
+        Cookie cookie;
+        cookie.name = cookiePair.first;
+        cookie.value = cookiePair.second;
+        cookie.path = "/";
+        response << generateSetCookieHeader(cookie) << "\r\n";
+    }
+
+    // Set headers as sent
+    ctx.cgi_headers_send = true;
+
+    // Convert to string and store in buffer
+    std::string responseStr = response.str();
+    ctx.write_buffer.assign(responseStr.begin(), responseStr.end());
+
+    // If this appears to be a redirect (has Location header and 3xx status)
+    if ((status_code.find("30") == 0) && (response_data.find("Location:") != std::string::npos)) {
+        // For redirects, we don't need to read more data
+        close(ctx.req.cgi_out_fd);
+        ctx.req.cgi_out_fd = -1;
+        ctx.cgi_terminate = true;
+    }
+
+    // Switch to send phase
+    ctx.cgi_output_phase = false;
+    return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+}
+
+bool Server::sendCgiBuffer(Context& ctx) {
+    Logger::green("sendCgiBuffer");
+
+    // If we're done with the CGI process
+    if (ctx.cgi_terminated) {
+        // Process is terminated, decide what to do based on keep-alive
+        if (ctx.keepAlive) {
+            resetContext(ctx);
+            return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+        } else {
+            delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+            return true;
+        }
+    }
+
+    // If there's no data to send, go back to reading
+    if (ctx.write_buffer.empty()) {
+        ctx.cgi_output_phase = true;
+        return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+    }
+
+    // Try to send all the data
+    Logger::magenta("sending CGI data");
+    ssize_t sent = send(ctx.client_fd, ctx.write_buffer.data(), ctx.write_buffer.size(), MSG_NOSIGNAL);
+
+    if (sent < 0) {
+        // Handle send error
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+        }
+
+        // Some other error occurred
+        Logger::error("Failed to send CGI response: " + std::string(strerror(errno)));
+        if (ctx.req.cgi_out_fd > 0) {
+            close(ctx.req.cgi_out_fd);
+            ctx.req.cgi_out_fd = -1;
+        }
+        return updateErrorStatus(ctx, 500, "Failed to send CGI response");
+    }
+
+    // Update our tracking of how much we've sent
+    ctx.req.current_body_length += sent;
+
+    // Remove the data we've sent from the buffer
+    if (static_cast<size_t>(sent) < ctx.write_buffer.size()) {
+        // We sent some but not all data, keep remaining data in buffer
+        ctx.write_buffer.erase(ctx.write_buffer.begin(), ctx.write_buffer.begin() + sent);
+        // Continue in send phase
+        return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+    }
+
+    // All data sent, clear buffer
+    ctx.write_buffer.clear();
+
+    // If we're done with the CGI process, mark as terminated
+    if (ctx.cgi_terminate) {
+        ctx.cgi_terminated = true;
+        return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+    }
+
+    // Go back to reading phase
+    ctx.cgi_output_phase = true;
+    return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 }
