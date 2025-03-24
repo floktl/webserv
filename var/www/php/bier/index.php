@@ -112,7 +112,9 @@
 	</header>
 	<main>
 		<h1>Hello, Beer!</h1>
-
+		<?php for($i = 0; $i < 1000 ; $i++):?>
+			<p><span style="color:red; font-weight:900;"><?php echo $i; ?></span> Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier Bier </p>
+		<?php endfor;?>
 	</main>
 </body>
 </html>

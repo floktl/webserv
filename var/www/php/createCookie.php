@@ -1,7 +1,19 @@
 <?php
 session_start();
+if (isset($_COOKIE["test_cookie"])) {
+	$cookieval = intval($_COOKIE["test_cookie"]);
+	$cookieval++;
+} else {
+	$cookieval = 0;
+}
+
 header('Cache-Control: no-cache');
-header('Set-Cookie: test_cookie=Take a cookie and shove it; Max-Age=3600; Path=/; HttpOnly', false);
+setcookie('test_cookie', $cookieval, [
+	'expires' => time() + 3600,
+	'path' => '/',
+	'httponly' => true
+]);
+
 header('Location: /');
 exit();
 ?>

@@ -121,7 +121,7 @@
 		<?php endif; ?>
 
 		<form action="createCookie.php" method="post">
-			<input type="submit" value="Request Fresh Cookie">
+			<input type="submit" value="Run the Cookie Counter">
 		</form>
 
 		<h2>Add Name and Age:</h2>

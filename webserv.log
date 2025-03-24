@@ -1,35 +1,18 @@
-[2025-03-24 14:17:06] GlobalFDS Snapshot:
-[2025-03-24 14:17:06] epoll_fd: 3
-[2025-03-24 14:17:06] 
-clFD_to_svFD_map:
-[2025-03-24 14:17:06] [
-[2025-03-24 14:17:06]    empty
-[2025-03-24 14:17:06] ]
-[2025-03-24 14:17:06] 
-cgi_pipe_to_client_fd:
-[2025-03-24 14:17:06] [
-[2025-03-24 14:17:06]    empty
-[2025-03-24 14:17:06] ]
-[2025-03-24 14:17:06] 
-cgi_pid_to_client_fd:
-[2025-03-24 14:17:06] [
-[2025-03-24 14:17:06]    empty
-[2025-03-24 14:17:06] ]
-
-[2025-03-24 14:17:07] Context [CGI]:
-FDs: epoll=3 server=10 client=17
+[2025-03-24 15:39:58] Context [CGI]:
+FDs: epoll=3 server=10 client=18
 Type: CGI
 Method: GET
-Path: /app/var/www/php/about.php
+Path: /app/var/www/php/bier/index.php
 Version: HTTP/1.1
 Headers:
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
 Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
-Cache-Control: max-age=0
+Accept-Language: en-US,en;q=0.9
+Cache-Control: no-cache
 Connection: keep-alive
-Cookie: WEBSERV_SESSION=s5c18t344918; PHPSESSID=au6knkifllikqvsksc4jssa70m; 111=111
+Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=175
 Host: localhost:8001
+Pragma: no-cache
 Sec-Fetch-Dest: document
 Sec-Fetch-Mode: navigate
 Sec-Fetch-Site: none
@@ -41,97 +24,6 @@ sec-ch-ua-mobile: ?0
 sec-ch-ua-platform: "macOS"
 Body: [empty]
 Location Path: [empty]
-Requested Path: /app/var/www/php/about.php
+Requested Path: /app/var/www/php/bier/index.php
 Location: Defined
-Last Activity: 19869 seconds since epoch
-[2025-03-24 14:17:08]  [ERROR] ErrorHandler: Errorcode: 504 Gateway Timeout - CGI Process Timeout
-[2025-03-24 14:17:09] GlobalFDS Snapshot:
-[2025-03-24 14:17:09] epoll_fd: 3
-[2025-03-24 14:17:09] 
-clFD_to_svFD_map:
-[2025-03-24 14:17:09] [
-[2025-03-24 14:17:09]    client_fd: 18 -> server_fd: 10
-[2025-03-24 14:17:09] ]
-[2025-03-24 14:17:09] 
-cgi_pipe_to_client_fd:
-[2025-03-24 14:17:09] [
-[2025-03-24 14:17:09]    empty
-[2025-03-24 14:17:09] ]
-[2025-03-24 14:17:09] 
-cgi_pid_to_client_fd:
-[2025-03-24 14:17:09] [
-[2025-03-24 14:17:09]    empty
-[2025-03-24 14:17:09] ]
-
-[2025-03-24 14:17:10] GlobalFDS Snapshot:
-[2025-03-24 14:17:10] epoll_fd: 3
-[2025-03-24 14:17:10] 
-clFD_to_svFD_map:
-[2025-03-24 14:17:10] [
-[2025-03-24 14:17:10]    client_fd: 18 -> server_fd: 10
-[2025-03-24 14:17:10] ]
-[2025-03-24 14:17:10] 
-cgi_pipe_to_client_fd:
-[2025-03-24 14:17:10] [
-[2025-03-24 14:17:10]    empty
-[2025-03-24 14:17:10] ]
-[2025-03-24 14:17:10] 
-cgi_pid_to_client_fd:
-[2025-03-24 14:17:10] [
-[2025-03-24 14:17:10]    empty
-[2025-03-24 14:17:10] ]
-
-[2025-03-24 14:17:11] GlobalFDS Snapshot:
-[2025-03-24 14:17:11] epoll_fd: 3
-[2025-03-24 14:17:11] 
-clFD_to_svFD_map:
-[2025-03-24 14:17:11] [
-[2025-03-24 14:17:11]    client_fd: 18 -> server_fd: 10
-[2025-03-24 14:17:11] ]
-[2025-03-24 14:17:11] 
-cgi_pipe_to_client_fd:
-[2025-03-24 14:17:11] [
-[2025-03-24 14:17:11]    empty
-[2025-03-24 14:17:11] ]
-[2025-03-24 14:17:11] 
-cgi_pid_to_client_fd:
-[2025-03-24 14:17:11] [
-[2025-03-24 14:17:11]    empty
-[2025-03-24 14:17:11] ]
-
-[2025-03-24 14:17:12] GlobalFDS Snapshot:
-[2025-03-24 14:17:12] epoll_fd: 3
-[2025-03-24 14:17:12] 
-clFD_to_svFD_map:
-[2025-03-24 14:17:12] [
-[2025-03-24 14:17:12]    client_fd: 18 -> server_fd: 10
-[2025-03-24 14:17:12] ]
-[2025-03-24 14:17:12] 
-cgi_pipe_to_client_fd:
-[2025-03-24 14:17:12] [
-[2025-03-24 14:17:12]    empty
-[2025-03-24 14:17:12] ]
-[2025-03-24 14:17:12] 
-cgi_pid_to_client_fd:
-[2025-03-24 14:17:12] [
-[2025-03-24 14:17:12]    empty
-[2025-03-24 14:17:12] ]
-
-[2025-03-24 14:17:13] GlobalFDS Snapshot:
-[2025-03-24 14:17:13] epoll_fd: 3
-[2025-03-24 14:17:13] 
-clFD_to_svFD_map:
-[2025-03-24 14:17:13] [
-[2025-03-24 14:17:13]    client_fd: 18 -> server_fd: 10
-[2025-03-24 14:17:13] ]
-[2025-03-24 14:17:13] 
-cgi_pipe_to_client_fd:
-[2025-03-24 14:17:13] [
-[2025-03-24 14:17:13]    empty
-[2025-03-24 14:17:13] ]
-[2025-03-24 14:17:13] 
-cgi_pid_to_client_fd:
-[2025-03-24 14:17:13] [
-[2025-03-24 14:17:13]    empty
-[2025-03-24 14:17:13] ]
-
+Last Activity: 4677 seconds since epoch
