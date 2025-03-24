@@ -10,28 +10,30 @@
 #include "../server/server.hpp"
 
 struct ServerBlock;
-
 class Server;
+
 class ConfigHandler
 {
 private:
 // Core configuration variables
-	Server *server;
-	char **env;
-	int linecount;
-	bool configFileValid;
-	bool inServerBlock;
-	bool inLocationBlock;
-	bool parsingErr;
-	std::string locBlockTar;
-	std::vector<ServerBlock> registeredServerConfs;
+	Server						*server;
+	char						**env;
+	int							linecount;
+	bool						configFileValid;
+	bool						inServerBlock;
+	bool						inLocationBlock;
+	bool						parsingErr;
+	std::string					locBlockTar;
+	std::vector<ServerBlock>	registeredServerConfs;
 
-// ** Setup.cpp: Constructor, Destructor, and Core Config Handling **
+	// Setup.cpp
 	bool parseConfigContent(std::string filename);
 	bool isConfigFile(const std::string& filepath);
+
+	// debug.cpp
 	void printRegisteredConfs(std::string filename);
 
-// ** Parseline.cpp: Parsing and Directive Handling **
+	// Parseline.cpp
 	bool parseErr(const std::string &str);
 	bool handleServerBlock(void);
 	bool handleLocationBlock(std::istringstream& stream);
@@ -48,20 +50,27 @@ private:
 	bool handleServerDirective(const std::string& keyword, const std::string& value);
 	bool handleLocationDirective(const std::string& keyword, const std::string& value);
 
-// ** sanitize.cpp: Configuration Validation **
+	// sanitize.cpp:
 	bool confErr(const std::string &str);
-	bool sanitizeConfData(void);
 	bool validateErrorPages();
 	bool validateLocationConfigs(ServerBlock& serverConf, size_t serverIndex);
+	bool sanitizeConfData(void);
 
-public:
-// ** public api **
+	public:
+	// de-/constructor
 	ConfigHandler(Server *_server);
 	~ConfigHandler();
 
-	std::vector<ServerBlock> get_registeredServerConfs(void);
-	bool getconfigFileValid(void) const;
-	void parseArgs(int argc, char **argv, char **envp);
-	bool parseLine(std::string line);
+	// setup.cpp
+	std::vector<ServerBlock>	get_registeredServerConfs(void);
+	bool						getconfigFileValid(void) const;
+	void						parseArgs(int argc, char **argv, char **envp);
 
+	// parseline.cpp
+	bool parseLine(std::string line);
 };
+
+// utils.cpp
+std::string					trim(const std::string& str);
+std::vector<std::string>	parseOptionsToVector(const std::string& opts);
+std::string					expandEnvironmentVariables(const std::string& value, char** env);
