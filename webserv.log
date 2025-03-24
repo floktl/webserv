@@ -1,8 +1,8 @@
-[2025-03-24 16:16:10] Context [CGI]:
-FDs: epoll=3 server=10 client=18
+[2025-03-24 17:15:48] Context [CGI]:
+FDs: epoll=3 server=12 client=17
 Type: CGI
 Method: GET
-Path: /app/var/www/php/bier/index.php
+Path: /app/var/www/python/index.py
 Version: HTTP/1.1
 Headers:
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
@@ -10,8 +10,8 @@ Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: en-US,en;q=0.9
 Cache-Control: max-age=0
 Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
+Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=241
+Host: localhost:8002
 Sec-Fetch-Dest: document
 Sec-Fetch-Mode: navigate
 Sec-Fetch-Site: none
@@ -23,14 +23,14 @@ sec-ch-ua-mobile: ?0
 sec-ch-ua-platform: "macOS"
 Body: [empty]
 Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
+Requested Path: /app/var/www/python/index.py
 Location: Defined
-Last Activity: 6851 seconds since epoch
-[2025-03-24 16:16:14] Context [CGI]:
-FDs: epoll=3 server=10 client=18
+Last Activity: 10431 seconds since epoch
+[2025-03-24 17:15:49] Context [CGI]:
+FDs: epoll=3 server=12 client=17
 Type: CGI
 Method: GET
-Path: /app/var/www/php/bier/index.php
+Path: /app/var/www/python/index.py
 Version: HTTP/1.1
 Headers:
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
@@ -38,8 +38,8 @@ Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: en-US,en;q=0.9
 Cache-Control: max-age=0
 Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
+Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=241
+Host: localhost:8002
 Sec-Fetch-Dest: document
 Sec-Fetch-Mode: navigate
 Sec-Fetch-Site: none
@@ -51,15 +51,15 @@ sec-ch-ua-mobile: ?0
 sec-ch-ua-platform: "macOS"
 Body: [empty]
 Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
+Requested Path: /app/var/www/python/index.py
 Location: Defined
-Last Activity: 6854 seconds since epoch
-[2025-03-24 16:16:14]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:14] Context [CGI]:
-FDs: epoll=3 server=10 client=18
+Last Activity: 10432 seconds since epoch
+[2025-03-24 17:15:49]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
+[2025-03-24 17:15:49] Context [CGI]:
+FDs: epoll=3 server=12 client=18
 Type: CGI
 Method: GET
-Path: /app/var/www/php/bier/index.php
+Path: /app/var/www/python/index.py
 Version: HTTP/1.1
 Headers:
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
@@ -67,8 +67,8 @@ Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: en-US,en;q=0.9
 Cache-Control: max-age=0
 Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
+Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=241
+Host: localhost:8002
 Sec-Fetch-Dest: document
 Sec-Fetch-Mode: navigate
 Sec-Fetch-Site: none
@@ -80,15 +80,15 @@ sec-ch-ua-mobile: ?0
 sec-ch-ua-platform: "macOS"
 Body: [empty]
 Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
+Requested Path: /app/var/www/python/index.py
 Location: Defined
-Last Activity: 6855 seconds since epoch
-[2025-03-24 16:16:14]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:14] Context [CGI]:
-FDs: epoll=3 server=10 client=18
+Last Activity: 10433 seconds since epoch
+[2025-03-24 17:15:49]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
+[2025-03-24 17:15:49] Context [CGI]:
+FDs: epoll=3 server=12 client=18
 Type: CGI
 Method: GET
-Path: /app/var/www/php/bier/index.php
+Path: /app/var/www/python/index.py
 Version: HTTP/1.1
 Headers:
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
@@ -96,8 +96,8 @@ Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: en-US,en;q=0.9
 Cache-Control: max-age=0
 Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
+Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=241
+Host: localhost:8002
 Sec-Fetch-Dest: document
 Sec-Fetch-Mode: navigate
 Sec-Fetch-Site: none
@@ -109,15 +109,15 @@ sec-ch-ua-mobile: ?0
 sec-ch-ua-platform: "macOS"
 Body: [empty]
 Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
+Requested Path: /app/var/www/python/index.py
 Location: Defined
-Last Activity: 6855 seconds since epoch
-[2025-03-24 16:16:14]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:14] Context [CGI]:
-FDs: epoll=3 server=10 client=18
+Last Activity: 10433 seconds since epoch
+[2025-03-24 17:15:49]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
+[2025-03-24 17:15:49] Context [CGI]:
+FDs: epoll=3 server=12 client=18
 Type: CGI
 Method: GET
-Path: /app/var/www/php/bier/index.php
+Path: /app/var/www/python/index.py
 Version: HTTP/1.1
 Headers:
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
@@ -125,8 +125,8 @@ Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: en-US,en;q=0.9
 Cache-Control: max-age=0
 Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
+Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=241
+Host: localhost:8002
 Sec-Fetch-Dest: document
 Sec-Fetch-Mode: navigate
 Sec-Fetch-Site: none
@@ -138,15 +138,15 @@ sec-ch-ua-mobile: ?0
 sec-ch-ua-platform: "macOS"
 Body: [empty]
 Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
+Requested Path: /app/var/www/python/index.py
 Location: Defined
-Last Activity: 6855 seconds since epoch
-[2025-03-24 16:16:14]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:14] Context [CGI]:
-FDs: epoll=3 server=10 client=18
+Last Activity: 10433 seconds since epoch
+[2025-03-24 17:15:49]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
+[2025-03-24 17:17:15] Context [CGI]:
+FDs: epoll=3 server=12 client=18
 Type: CGI
 Method: GET
-Path: /app/var/www/php/bier/index.php
+Path: /app/var/www/python/index.py
 Version: HTTP/1.1
 Headers:
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
@@ -154,8 +154,8 @@ Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: en-US,en;q=0.9
 Cache-Control: max-age=0
 Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
+Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=241
+Host: localhost:8002
 Sec-Fetch-Dest: document
 Sec-Fetch-Mode: navigate
 Sec-Fetch-Site: none
@@ -167,239 +167,6 @@ sec-ch-ua-mobile: ?0
 sec-ch-ua-platform: "macOS"
 Body: [empty]
 Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
+Requested Path: /app/var/www/python/index.py
 Location: Defined
-Last Activity: 6855 seconds since epoch
-[2025-03-24 16:16:14]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:14] Context [CGI]:
-FDs: epoll=3 server=10 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/bier/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: none
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
-Location: Defined
-Last Activity: 6855 seconds since epoch
-[2025-03-24 16:16:14]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:14] Context [CGI]:
-FDs: epoll=3 server=10 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/bier/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: none
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
-Location: Defined
-Last Activity: 6855 seconds since epoch
-[2025-03-24 16:16:15]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:15] Context [CGI]:
-FDs: epoll=3 server=10 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/bier/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: none
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
-Location: Defined
-Last Activity: 6856 seconds since epoch
-[2025-03-24 16:16:15]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:15] Context [CGI]:
-FDs: epoll=3 server=10 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/bier/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: none
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
-Location: Defined
-Last Activity: 6856 seconds since epoch
-[2025-03-24 16:16:15]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:15] Context [CGI]:
-FDs: epoll=3 server=10 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/bier/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: none
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
-Location: Defined
-Last Activity: 6856 seconds since epoch
-[2025-03-24 16:16:15]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:15] Context [CGI]:
-FDs: epoll=3 server=10 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/bier/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: none
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
-Location: Defined
-Last Activity: 6856 seconds since epoch
-[2025-03-24 16:16:15]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:15] Context [CGI]:
-FDs: epoll=3 server=10 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/bier/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: none
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
-Location: Defined
-Last Activity: 6856 seconds since epoch
-[2025-03-24 16:16:15]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
-[2025-03-24 16:16:15] Context [CGI]:
-FDs: epoll=3 server=10 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/bier/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s10c18t3189927; PHPSESSID=udrqinaedum7jsro7rhdbd6b9m; test_cookie=226
-Host: localhost:8001
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: none
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/bier/index.php
-Location: Defined
-Last Activity: 6856 seconds since epoch
-[2025-03-24 16:16:16]  [ERROR] ErrorHandler: Errorcode: 404 Not Found - CGI Script
+Last Activity: 10518 seconds since epoch

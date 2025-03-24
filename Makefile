@@ -35,21 +35,10 @@ $(GREEN)Others:$(X)\n\
 $(X)	🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
 $(X)	🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
 $(X)	🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
-$(X)	🐑 Random plain text header prarsing problem CGI\n\
-$(X)	🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
-$(X)	🐖 CGI Python\n\
-$(X)	🐑 sendCGIResponse evneutell ueberdenken\n\
+$(X)	🐑 CGI Python\n\
+$(X)	🐑 nochmaliger upload click in cgi content bei laufendem upload....\n\
 $(X)  \n\
 
-# helper command to search for fucntions with more than 40 lines
-#find . -type f -name "*.cpp" | xargs awk '
-#/^[a-zA-Z_].*\(/ { func_name = $0; line_count = 0; }
-#/{/ { inside_func = 1; }
-#/}/ { if (inside_func) { inside_func = 0; if (line_count > 40) print FILENAME ": " func_name " - " line_count " lines"; } }
-#inside_func { line_count++; }
-
-# coiunt lines in all cpp and hpp files
-#find . -type f \( -name "*.cpp" -o -name "*.hpp" \) | xargs wc -l
 #------------------------------------------------------------------------------#
 #--------------                      GENERAL                      -------------#
 #------------------------------------------------------------------------------#

@@ -59,28 +59,14 @@ bool Server::executeCgi(Context& ctx)
 		env_pointers.push_back(nullptr);
 
 		logContext(ctx, "CGI");
-		std::string interpreter;
-		if (ctx.location.cgi_filetype == ".py") {
-			interpreter = "/usr/bin/python";
-		} else if (ctx.location.cgi_filetype == ".php") {
-			interpreter = "/usr/bin/php-cgi";
-		} else {
-			if (fileExecutable(ctx.requested_path)) {
-				interpreter = ctx.requested_path;
-			}
-		}
 
 		char* args[3];
-		args[0] = const_cast<char*>(interpreter.c_str());
+		args[0] = const_cast<char*>(ctx.location.cgi.c_str());
 
-		if (ctx.location.cgi_filetype == ".php") {
-			args[1] = const_cast<char*>(ctx.requested_path.c_str());
-			args[2] = nullptr;
-		} else {
-			args[1] = nullptr;
-		}
+		args[1] = const_cast<char*>(ctx.requested_path.c_str());
+		args[2] = nullptr;
 
-		execve(interpreter.c_str(), args, env_pointers.data());
+		execve(ctx.location.cgi.c_str(), args, env_pointers.data());
 		exit(1);
 	}
 
@@ -483,6 +469,12 @@ bool Server::sendCgiResponse(Context& ctx) {
 		bool readComplete = checkAndReadCgiPipe(ctx);
 
 		if (readComplete) {
+			// If we had EAGAIN/EWOULDBLOCK but still need more data, go back to epoll
+			if (ctx.write_buffer.empty() && !ctx.cgi_terminated) {
+				// Just wait for more data from epoll, don't continue processing yet
+				return true;
+			}
+
 			std::string buffer_str(ctx.write_buffer.begin(), ctx.write_buffer.end());
 			bool hasLocationHeader = (buffer_str.find("Location:") != std::string::npos ||
 									buffer_str.find("location:") != std::string::npos);
@@ -505,8 +497,12 @@ bool Server::sendCgiResponse(Context& ctx) {
 				}
 			}
 
-			ctx.cgi_output_phase = false;
-			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT | EPOLLET);
+			// Only move to the next phase if we actually have data or process terminated
+			if (!ctx.write_buffer.empty() || ctx.cgi_terminated) {
+				ctx.cgi_output_phase = false;
+				return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT | EPOLLET);
+			}
+			return true;
 		}
 	} else {
 		Logger::magenta("send sendCGIResponse");
@@ -541,8 +537,14 @@ bool Server::sendCgiResponse(Context& ctx) {
 	}
 
 	Logger::yellow(std::to_string(ctx.cgi_terminated));
-	if (ctx.cgi_terminated)
-		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+	if (ctx.cgi_terminated) {
+		if (ctx.keepAlive) {
+			resetContext(ctx);
+			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
+		} else {
+			delFromEpoll(ctx.epoll_fd, ctx.client_fd);
+		}
+	}
 
 	return true;
 }
@@ -599,15 +601,19 @@ bool Server::checkAndReadCgiPipe(Context& ctx) {
 			ctx.cgi_terminated = true;
 		}
 
-		if (!ctx.write_buffer.empty()) {
-			return true;
-		}
-
-		return true;
+		return true;  // Always return true when process finished to signal readComplete
 	}
 	else {
-		Logger::red("would block");
-		return false;
+		// Handle EAGAIN/EWOULDBLOCK more gracefully
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			Logger::red("would block");
+			// Stop polling and wait for the next epoll notification
+			return true;  // Return true to indicate read is "complete" for now
+		}
+
+		// For other errors, log them
+		Logger::error("Error reading from CGI pipe: " + std::string(strerror(errno)));
+		return true;  // Return true to avoid immediate repolling
 	}
 }
 
