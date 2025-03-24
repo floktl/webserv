@@ -3,11 +3,11 @@ services:
     container_name: webserv
     hostname: webcontainer
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: utils/docker/Dockerfile
     ports:
       - "8000-10000:8000-10000"
     volumes:
-      - ./:/app
+      - ../..:/app
     stdin_open: true
     tty: true

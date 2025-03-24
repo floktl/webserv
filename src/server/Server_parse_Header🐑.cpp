@@ -226,16 +226,16 @@ void Server::parseAccessRights(Context& ctx)
 		}
 	}
 	std::string requestedPath;
-
 	if (ctx.path.rfind(req_root, 0) == 0)
-		requestedPath = ctx.path;
+	requestedPath = ctx.path;
 	else
-		requestedPath = concatenatePath(req_root, ctx.path);
+	requestedPath = concatenatePath(req_root, ctx.path);
+	if (requestedPath.back() != '/' && isDirectory(requestedPath))
+		requestedPath.push_back('/');
 	if (ctx.index.empty() && ctx.method != "DELETE")
 		ctx.index = DEFAULT_FILE;
 	if (ctx.location.default_file.empty())
 		ctx.location.default_file = ctx.index;
-
 	std::string adjustedPath = ctx.path;
 	if (ctx.method != "DELETE")
 	{

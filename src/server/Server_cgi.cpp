@@ -251,270 +251,271 @@ std::string Server::extractQueryString(const std::string& path)
 	return "";
 }
 
+
 bool Server::prepareCgiHeaders(Context& ctx) {
-	// Find the header-body separator in a vector<char>
-	std::string separator = "\r\n\r\n";
-	std::string separator_alt = "\n\n"; // Alternativer Separator für Unix-Style Zeilenumbrüche
+    // Find the header-body separator in a vector<char>
+    std::string separator = "\r\n\r\n";
+    std::string separator_alt = "\n\n"; // Alternativer Separator für Unix-Style Zeilenumbrüche
 
-	auto it = std::search(ctx.write_buffer.begin(), ctx.write_buffer.end(),
-						separator.begin(), separator.end());
+    auto it = std::search(ctx.write_buffer.begin(), ctx.write_buffer.end(),
+                         separator.begin(), separator.end());
 
-	// Falls \r\n\r\n nicht gefunden wurde, suche nach \n\n
-	if (it == ctx.write_buffer.end()) {
-		it = std::search(ctx.write_buffer.begin(), ctx.write_buffer.end(),
-						separator_alt.begin(), separator_alt.end());
-	}
+    // Falls \r\n\r\n nicht gefunden wurde, suche nach \n\n
+    if (it == ctx.write_buffer.end()) {
+        it = std::search(ctx.write_buffer.begin(), ctx.write_buffer.end(),
+                         separator_alt.begin(), separator_alt.end());
+    }
 
-	bool hasHeaders = (it != ctx.write_buffer.end());
-	size_t headerEnd = hasHeaders ? std::distance(ctx.write_buffer.begin(), it) : 0;
-	size_t separatorSize = (it != ctx.write_buffer.end() &&
-						std::string(it, it + 4) == "\r\n\r\n") ? 4 : 2;
+    bool hasHeaders = (it != ctx.write_buffer.end());
+    size_t headerEnd = hasHeaders ? std::distance(ctx.write_buffer.begin(), it) : 0;
+    size_t separatorSize = (it != ctx.write_buffer.end() &&
+                           std::string(it, it + 4) == "\r\n\r\n") ? 4 : 2;
 
-	// Extract existing headers if present
-	std::string existingHeaders;
-	if (hasHeaders) {
-		existingHeaders = std::string(ctx.write_buffer.begin(), it);
-	}
+    // Extract existing headers if present
+    std::string existingHeaders;
+    if (hasHeaders) {
+        existingHeaders = std::string(ctx.write_buffer.begin(), it);
+    }
 
-	// Parse CGI headers to look for Status and Location
-	int cgiStatusCode = 200;
-	std::string cgiStatusMessage = "OK";
-	std::string cgiLocation;
-	bool cgiRedirect = false;
+    // Parse CGI headers to look for Status and Location
+    int cgiStatusCode = 200;
+    std::string cgiStatusMessage = "OK";
+    std::string cgiLocation;
+    bool cgiRedirect = false;
 
-	if (hasHeaders) {
-		std::istringstream headerStream(existingHeaders);
-		std::string line;
+    if (hasHeaders) {
+        std::istringstream headerStream(existingHeaders);
+        std::string line;
 
-		while (std::getline(headerStream, line)) {
-			// Entferne abschließendes \r falls vorhanden
-			if (!line.empty() && line.back() == '\r') {
-				line.pop_back();
-			}
+        while (std::getline(headerStream, line)) {
+            // Entferne abschließendes \r falls vorhanden
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
 
-			// Überspringe leere Zeilen
-			if (line.empty()) {
-				continue;
-			}
+            // Überspringe leere Zeilen
+            if (line.empty()) {
+                continue;
+            }
 
-			// Suche nach Status-Header
-			if (line.compare(0, 7, "Status:") == 0 || line.compare(0, 7, "status:") == 0) {
-				std::string statusLine = line.substr(7);
-				std::stringstream ss(statusLine);
-				ss >> cgiStatusCode;
+            // Suche nach Status-Header
+            if (line.compare(0, 7, "Status:") == 0 || line.compare(0, 7, "status:") == 0) {
+                std::string statusLine = line.substr(7);
+                std::stringstream ss(statusLine);
+                ss >> cgiStatusCode;
 
-				// Extrahiere Status-Message wenn vorhanden
-				if (ss.peek() == ' ') {
-					ss.ignore();
-					std::getline(ss, cgiStatusMessage);
-				}
+                // Extrahiere Status-Message wenn vorhanden
+                if (ss.peek() == ' ') {
+                    ss.ignore();
+                    std::getline(ss, cgiStatusMessage);
+                }
 
-				// Prüfe, ob es sich um einen Redirect handelt
-				if (cgiStatusCode >= 300 && cgiStatusCode < 400) {
-					cgiRedirect = true;
-				}
-			}
+                // Prüfe, ob es sich um einen Redirect handelt
+                if (cgiStatusCode >= 300 && cgiStatusCode < 400) {
+                    cgiRedirect = true;
+                }
+            }
 
-			// Suche nach Location-Header
-			if (line.compare(0, 9, "Location:") == 0 || line.compare(0, 9, "location:") == 0) {
-				cgiLocation = line.substr(9);
-				while (!cgiLocation.empty() && cgiLocation[0] == ' ') {
-					cgiLocation.erase(0, 1);
-				}
+            // Suche nach Location-Header
+            if (line.compare(0, 9, "Location:") == 0 || line.compare(0, 9, "location:") == 0) {
+                cgiLocation = line.substr(9);
+                while (!cgiLocation.empty() && cgiLocation[0] == ' ') {
+                    cgiLocation.erase(0, 1);
+                }
 
-				// Wenn Location-Header vorhanden ist, handelt es sich vermutlich um einen Redirect
-				cgiRedirect = true;
+                // Wenn Location-Header vorhanden ist, handelt es sich vermutlich um einen Redirect
+                cgiRedirect = true;
 
-				// Wenn kein spezifischer Status-Code gesetzt wurde, verwende 302 Found als Standard
-				if (cgiStatusCode == 200) {
-					cgiStatusCode = 302;
-					cgiStatusMessage = "Found";
-				}
-			}
-		}
-	}
+                // Wenn kein spezifischer Status-Code gesetzt wurde, verwende 302 Found als Standard
+                if (cgiStatusCode == 200) {
+                    cgiStatusCode = 302;
+                    cgiStatusMessage = "Found";
+                }
+            }
+        }
+    }
 
-	// Check if this is a redirect response from status code or CGI
-	bool isRedirect = cgiRedirect || (ctx.error_code >= 300 && ctx.error_code < 400);
+    // Check if this is a redirect response from status code or CGI
+    bool isRedirect = cgiRedirect || (ctx.error_code >= 300 && ctx.error_code < 400);
 
-	// Prepare basic response header with appropriate status code
-	std::string headers;
+    // Prepare basic response header with appropriate status code
+    std::string headers;
 
-	// Priorität: CGI-Status > ctx.error_code > default 200
-	if (cgiRedirect || cgiStatusCode != 200) {
-		headers = "HTTP/1.1 " + std::to_string(cgiStatusCode) + " " + cgiStatusMessage + "\r\n";
-	} else if (ctx.error_code > 0) {
-		headers = "HTTP/1.1 " + std::to_string(ctx.error_code) + " " + ctx.error_message + "\r\n";
-	} else {
-		headers = "HTTP/1.1 200 OK\r\n";
-	}
+    // Priorität: CGI-Status > ctx.error_code > default 200
+    if (cgiRedirect || cgiStatusCode != 200) {
+        headers = "HTTP/1.1 " + std::to_string(cgiStatusCode) + " " + cgiStatusMessage + "\r\n";
+    } else if (ctx.error_code > 0) {
+        headers = "HTTP/1.1 " + std::to_string(ctx.error_code) + " " + ctx.error_message + "\r\n";
+    } else {
+        headers = "HTTP/1.1 200 OK\r\n";
+    }
 
-	// Check if we need to handle redirect from location block
-	if (!isRedirect && ctx.location.return_code.length() > 0) {
-		int redirectCode = std::stoi(ctx.location.return_code);
-		if (redirectCode >= 300 && redirectCode < 400) {
-			isRedirect = true;
-			headers = "HTTP/1.1 " + ctx.location.return_code + " ";
+    // Check if we need to handle redirect from location block
+    if (!isRedirect && ctx.location.return_code.length() > 0) {
+        int redirectCode = std::stoi(ctx.location.return_code);
+        if (redirectCode >= 300 && redirectCode < 400) {
+            isRedirect = true;
+            headers = "HTTP/1.1 " + ctx.location.return_code + " ";
 
-			// Map common redirect status codes to their messages
-			if (redirectCode == 301) headers += "Moved Permanently";
-			else if (redirectCode == 302) headers += "Found";
-			else if (redirectCode == 303) headers += "See Other";
-			else if (redirectCode == 307) headers += "Temporary Redirect";
-			else if (redirectCode == 308) headers += "Permanent Redirect";
-			else headers += "Redirect";
+            // Map common redirect status codes to their messages
+            if (redirectCode == 301) headers += "Moved Permanently";
+            else if (redirectCode == 302) headers += "Found";
+            else if (redirectCode == 303) headers += "See Other";
+            else if (redirectCode == 307) headers += "Temporary Redirect";
+            else if (redirectCode == 308) headers += "Permanent Redirect";
+            else headers += "Redirect";
 
-			headers += "\r\n";
-		}
-	}
+            headers += "\r\n";
+        }
+    }
 
-	// Check which headers already exist in CGI output that we want to preserve
-	bool hasContentType = hasHeaders && (existingHeaders.find("Content-Type:") != std::string::npos ||
-										existingHeaders.find("content-type:") != std::string::npos);
-	bool hasContentLength = hasHeaders && (existingHeaders.find("Content-Length:") != std::string::npos ||
-										existingHeaders.find("content-length:") != std::string::npos);
-	bool hasServer = hasHeaders && existingHeaders.find("Server:") != std::string::npos;
-	bool hasDate = hasHeaders && existingHeaders.find("Date:") != std::string::npos;
-	bool hasConnection = hasHeaders && existingHeaders.find("Connection:") != std::string::npos;
+    // Check which headers already exist in CGI output that we want to preserve
+    bool hasContentType = hasHeaders && (existingHeaders.find("Content-Type:") != std::string::npos ||
+                                         existingHeaders.find("content-type:") != std::string::npos);
+    bool hasContentLength = hasHeaders && (existingHeaders.find("Content-Length:") != std::string::npos ||
+                                          existingHeaders.find("content-length:") != std::string::npos);
+    bool hasServer = hasHeaders && existingHeaders.find("Server:") != std::string::npos;
+    bool hasDate = hasHeaders && existingHeaders.find("Date:") != std::string::npos;
+    bool hasConnection = hasHeaders && existingHeaders.find("Connection:") != std::string::npos;
 
-	// Add Location header for redirects
-	if (isRedirect && headers.find("Location:") == std::string::npos) {
-		std::string redirectUrl;
+    // Add Location header for redirects
+    if (isRedirect && headers.find("Location:") == std::string::npos) {
+        std::string redirectUrl;
 
-		// Priorität: CGI-Location > ctx.error_message > location.return_url
-		if (!cgiLocation.empty()) {
-			redirectUrl = cgiLocation;
-		} else if (ctx.error_code >= 300 && ctx.error_code < 400 && !ctx.error_message.empty()) {
-			redirectUrl = ctx.error_message;
-		} else if (!ctx.location.return_url.empty()) {
-			redirectUrl = ctx.location.return_url;
-		}
+        // Priorität: CGI-Location > ctx.error_message > location.return_url
+        if (!cgiLocation.empty()) {
+            redirectUrl = cgiLocation;
+        } else if (ctx.error_code >= 300 && ctx.error_code < 400 && !ctx.error_message.empty()) {
+            redirectUrl = ctx.error_message;
+        } else if (!ctx.location.return_url.empty()) {
+            redirectUrl = ctx.location.return_url;
+        }
 
-		if (!redirectUrl.empty()) {
-			headers += "Location: " + redirectUrl + "\r\n";
-		}
-	}
+        if (!redirectUrl.empty()) {
+            headers += "Location: " + redirectUrl + "\r\n";
+        }
+    }
 
-	// Übernehme Content-Type aus CGI-Antwort, falls vorhanden
-	if (hasContentType && hasHeaders) {
-		std::istringstream headerStream(existingHeaders);
-		std::string line;
+    // Übernehme Content-Type aus CGI-Antwort, falls vorhanden
+    if (hasContentType && hasHeaders) {
+        std::istringstream headerStream(existingHeaders);
+        std::string line;
 
-		while (std::getline(headerStream, line)) {
-			if (!line.empty() && line.back() == '\r') {
-				line.pop_back();
-			}
+        while (std::getline(headerStream, line)) {
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
 
-			if (line.compare(0, 12, "Content-Type:") == 0 || line.compare(0, 12, "content-type:") == 0) {
-				headers += line + "\r\n";
-				break;
-			}
-		}
-	} else if (!isRedirect) {
-		// Standardwert für Content-Type, falls nicht in CGI-Antwort
-		headers += "Content-Type: text/html; charset=UTF-8\r\n";
-	}
+            if (line.compare(0, 12, "Content-Type:") == 0 || line.compare(0, 12, "content-type:") == 0) {
+                headers += line + "\r\n";
+                break;
+            }
+        }
+    } else if (!isRedirect) {
+        // Standardwert für Content-Type, falls nicht in CGI-Antwort
+        headers += "Content-Type: text/html; charset=UTF-8\r\n";
+    }
 
-	// Add Content-Length if not present and we can calculate it
-	if (!hasContentLength && hasHeaders && !isRedirect) {
-		size_t bodySize = ctx.write_buffer.size() - (headerEnd + separatorSize);
-		headers += "Content-Length: " + std::to_string(bodySize) + "\r\n";
-	} else if (isRedirect && !hasContentLength) {
-		// For redirects, we might want a minimal or empty body
-		headers += "Content-Length: 0\r\n";
-	} else if (hasContentLength && hasHeaders) {
-		// Übernehme Content-Length aus CGI-Antwort, falls vorhanden
-		std::istringstream headerStream(existingHeaders);
-		std::string line;
+    // Add Content-Length if not present and we can calculate it
+    if (!hasContentLength && hasHeaders && !isRedirect) {
+        size_t bodySize = ctx.write_buffer.size() - (headerEnd + separatorSize);
+        headers += "Content-Length: " + std::to_string(bodySize) + "\r\n";
+    } else if (isRedirect && !hasContentLength) {
+        // For redirects, we might want a minimal or empty body
+        headers += "Content-Length: 0\r\n";
+    } else if (hasContentLength && hasHeaders) {
+        // Übernehme Content-Length aus CGI-Antwort, falls vorhanden
+        std::istringstream headerStream(existingHeaders);
+        std::string line;
 
-		while (std::getline(headerStream, line)) {
-			if (!line.empty() && line.back() == '\r') {
-				line.pop_back();
-			}
+        while (std::getline(headerStream, line)) {
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
 
-			if (line.compare(0, 14, "Content-Length:") == 0 || line.compare(0, 14, "content-length:") == 0) {
-				headers += line + "\r\n";
-				break;
-			}
-		}
-	}
+            if (line.compare(0, 14, "Content-Length:") == 0 || line.compare(0, 14, "content-length:") == 0) {
+                headers += line + "\r\n";
+                break;
+            }
+        }
+    }
 
-	// Add Server header if not present
-	if (!hasServer) {
-		headers += "Server: Webserv/1.0\r\n";
-	}
+    // Add Server header if not present
+    if (!hasServer) {
+        headers += "Server: Webserv/1.0\r\n";
+    }
 
-	// Add Date header if not present
-	if (!hasDate) {
-		time_t now = time(0);
-		struct tm tm;
-		char dateBuffer[100];
-		gmtime_r(&now, &tm);
-		strftime(dateBuffer, sizeof(dateBuffer), "%a, %d %b %Y %H:%M:%S GMT", &tm);
-		headers += "Date: " + std::string(dateBuffer) + "\r\n";
-	}
+    // Add Date header if not present
+    if (!hasDate) {
+        time_t now = time(0);
+        struct tm tm;
+        char dateBuffer[100];
+        gmtime_r(&now, &tm);
+        strftime(dateBuffer, sizeof(dateBuffer), "%a, %d %b %Y %H:%M:%S GMT", &tm);
+        headers += "Date: " + std::string(dateBuffer) + "\r\n";
+    }
 
-	// Add Connection header based on keepAlive flag
-	if (!hasConnection) {
-		headers += "Connection: " + std::string(ctx.keepAlive ? "keep-alive" : "close") + "\r\n";
-	}
+    // Add Connection header based on keepAlive flag
+    if (!hasConnection) {
+        headers += "Connection: " + std::string(ctx.keepAlive ? "keep-alive" : "close") + "\r\n";
+    }
 
-	// Add any Set-Cookie headers
-	for (const auto& cookie : ctx.setCookies) {
-		headers += "Set-Cookie: " + cookie.first + "=" + cookie.second + "\r\n";
-	}
+    // Add any Set-Cookie headers
+    for (const auto& cookie : ctx.setCookies) {
+        headers += "Set-Cookie: " + cookie.first + "=" + cookie.second + "\r\n";
+    }
 
-	// Übernehme alle anderen wichtigen Header aus der CGI-Antwort
-	if (hasHeaders) {
-		std::istringstream headerStream(existingHeaders);
-		std::string line;
+    // Übernehme alle anderen wichtigen Header aus der CGI-Antwort
+    if (hasHeaders) {
+        std::istringstream headerStream(existingHeaders);
+        std::string line;
 
-		while (std::getline(headerStream, line)) {
-			if (!line.empty() && line.back() == '\r') {
-				line.pop_back();
-			}
+        while (std::getline(headerStream, line)) {
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
 
-			// Überspringe bereits verarbeitete oder leere Header
-			if (line.empty() ||
-				line.compare(0, 7, "Status:") == 0 || line.compare(0, 7, "status:") == 0 ||
-				line.compare(0, 9, "Location:") == 0 || line.compare(0, 9, "location:") == 0 ||
-				line.compare(0, 12, "Content-Type:") == 0 || line.compare(0, 12, "content-type:") == 0 ||
-				line.compare(0, 14, "Content-Length:") == 0 || line.compare(0, 14, "content-length:") == 0) {
-				continue;
-			}
+            // Überspringe bereits verarbeitete oder leere Header
+            if (line.empty() ||
+                line.compare(0, 7, "Status:") == 0 || line.compare(0, 7, "status:") == 0 ||
+                line.compare(0, 9, "Location:") == 0 || line.compare(0, 9, "location:") == 0 ||
+                line.compare(0, 12, "Content-Type:") == 0 || line.compare(0, 12, "content-type:") == 0 ||
+                line.compare(0, 14, "Content-Length:") == 0 || line.compare(0, 14, "content-length:") == 0) {
+                continue;
+            }
 
-			// Übernehme andere Header wie Set-Cookie, Cache-Control, etc.
-			headers += line + "\r\n";
-		}
-	}
+            // Übernehme andere Header wie Set-Cookie, Cache-Control, etc.
+            headers += line + "\r\n";
+        }
+    }
 
-	// Finalize headers
-	headers += "\r\n"; // Headers end
+    // Finalize headers
+    headers += "\r\n"; // Headers end
 
-	// Extrahiere den Body aus der CGI-Antwort, falls vorhanden
-	std::vector<char> body;
-	if (hasHeaders && headerEnd + separatorSize < ctx.write_buffer.size()) {
-		body.insert(body.begin(),
-					ctx.write_buffer.begin() + headerEnd + separatorSize,
-					ctx.write_buffer.end());
-	}
+    // Extrahiere den Body aus der CGI-Antwort, falls vorhanden
+    std::vector<char> body;
+    if (hasHeaders && headerEnd + separatorSize < ctx.write_buffer.size()) {
+        body.insert(body.begin(),
+                    ctx.write_buffer.begin() + headerEnd + separatorSize,
+                    ctx.write_buffer.end());
+    }
 
-	// Bei Redirects kann der Body leer sein
-	if (isRedirect && cgiRedirect) {
-		body.clear();
-	}
+    // Bei Redirects kann der Body leer sein
+    if (isRedirect && cgiRedirect) {
+        body.clear();
+    }
 
-	// Erstelle den neuen Buffer mit HTTP-Headern und Body
-	std::vector<char> newBuffer(headers.begin(), headers.end());
-	if (!body.empty()) {
-		newBuffer.insert(newBuffer.end(), body.begin(), body.end());
-	}
+    // Erstelle den neuen Buffer mit HTTP-Headern und Body
+    std::vector<char> newBuffer(headers.begin(), headers.end());
+    if (!body.empty()) {
+        newBuffer.insert(newBuffer.end(), body.begin(), body.end());
+    }
 
-	// Ersetze den alten Buffer
-	ctx.write_buffer = newBuffer;
-	ctx.cgi_headers_send = true;
+    // Ersetze den alten Buffer
+    ctx.write_buffer = newBuffer;
+    ctx.cgi_headers_send = true;
 
-	return true;
+    return true;
 }
 
 bool Server::sendCgiResponse(Context& ctx) {

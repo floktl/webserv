@@ -1,6 +1,4 @@
 #include "ErrorHandler.hpp"
-
-#include "ErrorHandler.hpp"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -17,6 +15,7 @@ ErrorHandler::~ErrorHandler() {}
 std::string ErrorHandler::loadErrorPage(const std::string& filePath) const
 {
 	std::ifstream errorFile(filePath);
+
 	if (errorFile.is_open())
 	{
 		std::stringstream buffer;
@@ -31,13 +30,12 @@ bool ErrorHandler::generateErrorResponse(Context& ctx) const
 {
 	std::ostringstream response;
 	std::string content;
-	//Logger::blue("generateErrorResponse");
+
 	Logger::errorLog("ErrorHandler: Errorcode: " + std::to_string(ctx.error_code) + " " + ctx.error_message);
 
 	std::map<int, std::string>::iterator it = ctx.errorPages.find(ctx.error_code);
 	if (it != ctx.errorPages.end())
 	{
-		//Logger::blue("loadErrorPage");
 		content = loadErrorPage(it->second);
 	}
 	else
@@ -171,7 +169,6 @@ bool ErrorHandler::generateErrorResponse(Context& ctx) const
 
 	return (server.sendHandler(ctx, response.str()));
 }
-
 
 // Updates the Context with an Error Type, Error Code, and Error Message, Returning False
 bool	updateErrorStatus(Context &ctx, int error_code, std::string error_string)

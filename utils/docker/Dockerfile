@@ -44,7 +44,7 @@ RUN PHP_INI_DIR=$(php --ini | grep "Loaded Configuration File" | sed -e "s|.*:\s
 
 WORKDIR /app
 
-COPY ./ /app
+COPY ../ /app
 
 # Customize bash prompt
 RUN echo 'PS1="\[\033[34m\]webcontainer: \w# \[\033[0m\]"' >> /etc/bash.bashrc

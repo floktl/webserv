@@ -113,7 +113,6 @@ class Server
 		std::vector<std::string> prepareCgiEnvironment(const Context& ctx);
 		std::string extractQueryString(const std::string& path);
 		bool parseContentDisposition(Context& ctx);
-		bool buildDownloadResponse(Context &ctx);
 		bool fileExists(const std::string& path);
 		bool isDirectory(const std::string& path);
 		size_t getFileSize(const std::string& path);
@@ -127,15 +126,17 @@ class Server
 		void cleanupCgiResources(Context& ctx);
 		bool checkAndReadCgiPipe(Context& ctx);
 		bool prepareCgiHeaders(Context& ctx);
+		bool buildDownloadResponse(Context &ctx);
+		bool buildDownloadHeaders(Context &ctx);
+		bool buildDownloadRead(Context &ctx);
+		bool buildDownloadSend(Context &ctx);
 };
 
 std::string extractHostname(const std::string& header);
 void printServerBlock(ServerBlock& serverBlock);
 void printRequestBody(const RequestBody& req);
 std::string getEventDescription(uint32_t ev);
-std::string trim(const std::string& str);
-std::vector<std::string> parseOptionsToVector(const std::string& opts);
-std::string expandEnvironmentVariables(const std::string& value, char** env);
+
 void log_global_fds(const GlobalFDS& fds);
 void log_server_configs(const std::vector<ServerBlock>& configs);
 bool updateErrorStatus(Context &ctx, int error_code, std::string error_string);
