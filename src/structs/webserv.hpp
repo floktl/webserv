@@ -195,6 +195,7 @@ struct Context
 	bool				cgi_terminated = false;
 	bool				wasCgiDel = false;
 	bool				cgi_pipe_ready = false;
+	bool				cgi_run_to_timeout = false;
 	std::chrono::steady_clock::time_point cgi_start_time = std::chrono::steady_clock::time_point();
 };
 

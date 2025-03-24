@@ -105,7 +105,6 @@ bool Server::executeCgi(Context& ctx)
 	ctx.req.state = RequestBody::STATE_CGI_RUNNING;
 
 	ctx.cgi_pipe_ready = false;
-	ctx.cgi_start_time = std::chrono::steady_clock::now();
 
 	// Speichere Zuordnungen in den globalen Maps
 	globalFDS.cgi_pipe_to_client_fd[ctx.req.cgi_out_fd] = ctx.client_fd;
@@ -374,7 +373,6 @@ bool Server::prepareCgiHeaders(Context& ctx) {
     bool hasContentLength = hasHeaders && (existingHeaders.find("Content-Length:") != std::string::npos ||
                                           existingHeaders.find("content-length:") != std::string::npos);
     bool hasServer = hasHeaders && existingHeaders.find("Server:") != std::string::npos;
-    bool hasDate = hasHeaders && existingHeaders.find("Date:") != std::string::npos;
     bool hasConnection = hasHeaders && existingHeaders.find("Connection:") != std::string::npos;
 
     // Add Location header for redirects
@@ -442,16 +440,6 @@ bool Server::prepareCgiHeaders(Context& ctx) {
     // Add Server header if not present
     if (!hasServer) {
         headers += "Server: Webserv/1.0\r\n";
-    }
-
-    // Add Date header if not present
-    if (!hasDate) {
-        time_t now = time(0);
-        struct tm tm;
-        char dateBuffer[100];
-        gmtime_r(&now, &tm);
-        strftime(dateBuffer, sizeof(dateBuffer), "%a, %d %b %Y %H:%M:%S GMT", &tm);
-        headers += "Date: " + std::string(dateBuffer) + "\r\n";
     }
 
     // Add Connection header based on keepAlive flag

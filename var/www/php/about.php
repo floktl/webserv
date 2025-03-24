@@ -49,12 +49,9 @@
 		<h1>About Us</h1>
 	</header>
 	<main>
-		<?php //for($i = 0; $i < 10000; $i++):?>
-			<!--<p><strong><?php // echo $i;?></strong>Welcome to our website! We're dedicated to providing high-quality content and services to our users.</p>-->
-		<?php //endfor; ?>
-		<?php for($i = 0; $i < 20; $i++):
-			sleep(5);
-		endfor; ?>
+		<?php
+			sleep(50);
+		?>
 		<p>This page serves as an introduction to who we are and what we do.</p>
 		<a href="/">Go back to Home</a>
 	</main>

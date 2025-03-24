@@ -135,16 +135,37 @@ std::string getEventDescription(uint32_t ev)
 // Logs Global File Descriptor, including Epoll FD and Client-to-Server FD Mappings
 void log_global_fds(const GlobalFDS& fds)
 {
-	Logger::file("GlobalFDS clFD_to_svFD_map:");
+	Logger::file("GlobalFDS Snapshot:");
 	Logger::file("epoll_fd: " + std::to_string(fds.epoll_fd));
 
+	// clFD_to_svFD_map
+	Logger::file("\nclFD_to_svFD_map:");
 	Logger::file("[");
 	if (fds.clFD_to_svFD_map.empty())
 		Logger::file("   empty");
 	for (const auto& pair : fds.clFD_to_svFD_map)
 		Logger::file("   client_fd: " + std::to_string(pair.first) + " -> server_fd: " + std::to_string(pair.second));
+	Logger::file("]");
+
+	// cgi_pipe_to_client_fd
+	Logger::file("\ncgi_pipe_to_client_fd:");
+	Logger::file("[");
+	if (fds.cgi_pipe_to_client_fd.empty())
+		Logger::file("   empty");
+	for (const auto& pair : fds.cgi_pipe_to_client_fd)
+		Logger::file("   cgi_pipe_fd: " + std::to_string(pair.first) + " -> client_fd: " + std::to_string(pair.second));
+	Logger::file("]");
+
+	// cgi_pid_to_client_fd
+	Logger::file("\ncgi_pid_to_client_fd:");
+	Logger::file("[");
+	if (fds.cgi_pid_to_client_fd.empty())
+		Logger::file("   empty");
+	for (const auto& pair : fds.cgi_pid_to_client_fd)
+		Logger::file("   cgi_pid: " + std::to_string(pair.first) + " -> client_fd: " + std::to_string(pair.second));
 	Logger::file("]\n");
 }
+
 
 // Prints server block details search as port, server FD, root, index, and error pages
 void printServerBlock(ServerBlock& serverBlock)
