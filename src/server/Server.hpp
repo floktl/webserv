@@ -126,6 +126,7 @@ class Server
 		bool handleCgiPipeEvent(int incoming_fd);
 		void cleanupCgiResources(Context& ctx);
 		bool checkAndReadCgiPipe(Context& ctx);
+		bool prepareCgiHeaders(Context& ctx);
 };
 
 std::string extractHostname(const std::string& header);

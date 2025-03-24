@@ -283,6 +283,7 @@ bool Server::handleWrite(Context& ctx)
 				}
 			}
 			result = sendCgiResponse(ctx);
+			Logger::yellow(std::to_string(ctx.cgi_terminated));
 			if (ctx.cgi_terminated)
 				delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 			if (result)

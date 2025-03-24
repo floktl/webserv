@@ -1,5 +1,34 @@
-[2025-03-23 17:15:35] Context [CGI]:
-FDs: epoll=3 server=11 client=18
+[2025-03-24 10:36:51] Context [CGI]:
+FDs: epoll=3 server=10 client=18
+Type: CGI
+Method: GET
+Path: /app/var/www/php/about.php
+Version: HTTP/1.1
+Headers:
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: no-cache
+Connection: keep-alive
+Cookie: WEBSERV_SESSION=s10c17t9093450; PHPSESSID=i9vgd57v1pu76lvuuvcquka4sm; test_cookie=Take a cookie and shove it
+Host: localhost:8001
+Pragma: no-cache
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Body: [empty]
+Location Path: [empty]
+Requested Path: /app/var/www/php/about.php
+Location: Defined
+Last Activity: 11066 seconds since epoch
+[2025-03-24 10:38:22] Context [CGI]:
+FDs: epoll=3 server=10 client=17
 Type: CGI
 Method: GET
 Path: /app/var/www/php/index.php
@@ -8,14 +37,12 @@ Headers:
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
 Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
 Connection: keep-alive
-Cookie: WEBSERV_SESSION=s11c18t4193030; PHPSESSID=758qqpol5uduj0lgb588r361jd; test_cookie=Take a cookie and shove it
+Cookie: WEBSERV_SESSION=s10c17t9093450; PHPSESSID=i9vgd57v1pu76lvuuvcquka4sm; test_cookie=Take a cookie and shove it
 Host: localhost:8001
-Referer: http://localhost:8001/
 Sec-Fetch-Dest: document
 Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
+Sec-Fetch-Site: none
 Sec-Fetch-User: ?1
 Upgrade-Insecure-Requests: 1
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
@@ -26,25 +53,26 @@ Body: [empty]
 Location Path: [empty]
 Requested Path: /app/var/www/php/index.php
 Location: Defined
-Last Activity: 6382 seconds since epoch
-[2025-03-23 17:15:36] Context [CGI]:
-FDs: epoll=3 server=11 client=19
+Last Activity: 11157 seconds since epoch
+[2025-03-24 10:38:23]  [ERROR] ErrorHandler: Errorcode: 504 Gateway Timeout - CGI Process Timeout
+[2025-03-24 10:38:31] Context [CGI]:
+FDs: epoll=3 server=10 client=17
 Type: CGI
 Method: GET
-Path: /app/var/www/php/index.php
+Path: /app/var/www/php/about.php
 Version: HTTP/1.1
 Headers:
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
 Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
+Cache-Control: no-cache
 Connection: keep-alive
-Cookie: WEBSERV_SESSION=s11c18t4193030; PHPSESSID=758qqpol5uduj0lgb588r361jd; test_cookie=Take a cookie and shove it
+Cookie: WEBSERV_SESSION=s10c17t9093450; PHPSESSID=i9vgd57v1pu76lvuuvcquka4sm; test_cookie=Take a cookie and shove it
 Host: localhost:8001
-Referer: http://localhost:8001/
+Pragma: no-cache
 Sec-Fetch-Dest: document
 Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
+Sec-Fetch-Site: none
 Sec-Fetch-User: ?1
 Upgrade-Insecure-Requests: 1
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
@@ -53,238 +81,6 @@ sec-ch-ua-mobile: ?0
 sec-ch-ua-platform: "macOS"
 Body: [empty]
 Location Path: [empty]
-Requested Path: /app/var/www/php/index.php
+Requested Path: /app/var/www/php/about.php
 Location: Defined
-Last Activity: 6383 seconds since epoch
-[2025-03-23 17:15:41] Context [CGI]:
-FDs: epoll=3 server=11 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s11c18t4193030; PHPSESSID=758qqpol5uduj0lgb588r361jd; test_cookie=Take a cookie and shove it
-Host: localhost:8001
-Referer: http://localhost:8001/
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/index.php
-Location: Defined
-Last Activity: 6388 seconds since epoch
-[2025-03-23 17:15:44] Context [CGI]:
-FDs: epoll=3 server=11 client=19
-Type: CGI
-Method: GET
-Path: /app/var/www/php/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s11c18t4193030; PHPSESSID=758qqpol5uduj0lgb588r361jd; test_cookie=Take a cookie and shove it
-Host: localhost:8001
-Referer: http://localhost:8001/
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/index.php
-Location: Defined
-Last Activity: 6391 seconds since epoch
-[2025-03-23 17:15:44] Context [CGI]:
-FDs: epoll=3 server=11 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s11c18t4193030; PHPSESSID=758qqpol5uduj0lgb588r361jd; test_cookie=Take a cookie and shove it
-Host: localhost:8001
-Referer: http://localhost:8001/
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/index.php
-Location: Defined
-Last Activity: 6392 seconds since epoch
-[2025-03-23 17:15:45] Context [CGI]:
-FDs: epoll=3 server=11 client=19
-Type: CGI
-Method: GET
-Path: /app/var/www/php/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s11c18t4193030; PHPSESSID=758qqpol5uduj0lgb588r361jd; test_cookie=Take a cookie and shove it
-Host: localhost:8001
-Referer: http://localhost:8001/
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/index.php
-Location: Defined
-Last Activity: 6392 seconds since epoch
-[2025-03-23 17:15:45] Context [CGI]:
-FDs: epoll=3 server=11 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s11c18t4193030; PHPSESSID=758qqpol5uduj0lgb588r361jd; test_cookie=Take a cookie and shove it
-Host: localhost:8001
-Referer: http://localhost:8001/
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/index.php
-Location: Defined
-Last Activity: 6392 seconds since epoch
-[2025-03-23 17:15:45] Context [CGI]:
-FDs: epoll=3 server=11 client=19
-Type: CGI
-Method: GET
-Path: /app/var/www/php/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s11c18t4193030; PHPSESSID=758qqpol5uduj0lgb588r361jd; test_cookie=Take a cookie and shove it
-Host: localhost:8001
-Referer: http://localhost:8001/
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/index.php
-Location: Defined
-Last Activity: 6393 seconds since epoch
-[2025-03-23 17:15:45] Context [CGI]:
-FDs: epoll=3 server=11 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s11c18t4193030; PHPSESSID=758qqpol5uduj0lgb588r361jd; test_cookie=Take a cookie and shove it
-Host: localhost:8001
-Referer: http://localhost:8001/
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/index.php
-Location: Defined
-Last Activity: 6393 seconds since epoch
-[2025-03-23 17:16:15] Context [CGI]:
-FDs: epoll=3 server=11 client=18
-Type: CGI
-Method: GET
-Path: /app/var/www/php/index.php
-Version: HTTP/1.1
-Headers:
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
-Cache-Control: max-age=0
-Connection: keep-alive
-Cookie: WEBSERV_SESSION=s11c18t4193030; PHPSESSID=758qqpol5uduj0lgb588r361jd; test_cookie=Take a cookie and shove it
-Host: localhost:8001
-Referer: http://localhost:8001/
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36
-sec-ch-ua: "Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
-Body: [empty]
-Location Path: [empty]
-Requested Path: /app/var/www/php/index.php
-Location: Defined
-Last Activity: 6423 seconds since epoch
+Last Activity: 11166 seconds since epoch

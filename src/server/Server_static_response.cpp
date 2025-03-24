@@ -4,16 +4,14 @@ void Server::buildStaticResponse(Context &ctx)
 {
 	std::string fullPath = ctx.approved_req_path;
 
-	if (ctx.is_download)
-	{
+	if (ctx.is_download) {
 		ctx.multipart_fd_up_down = -1;
 		modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 		return;
 	}
 
 	std::ifstream file(fullPath, std::ios::binary);
-	if (!file)
-	{
+	if (!file) {
 		updateErrorStatus(ctx, 404, "Not found");
 		return;
 	}
@@ -29,8 +27,7 @@ void Server::buildStaticResponse(Context &ctx)
 				<< "Content-Length: " << content_str.length() << "\r\n"
 				<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
 
-	for (const auto& cookiePair : ctx.setCookies)
-	{
+	for (const auto& cookiePair : ctx.setCookies) {
 		Cookie cookie;
 		cookie.name = cookiePair.first;
 		cookie.value = cookiePair.second;
@@ -54,11 +51,7 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 	generateAutoIndexHeader(ctx, content);
 	generateAutoIndexBody(entries, content);
 
-	content << "    </div>\n" << "<script>document.addEventListener('DOMContentLoaded',"
-		<< "function() {const userConfirmed = confirm('EPILEPSY ');if (userConfirmed) {document.body.classList."
-		<< "WARNING: This content contains visual elements that may trigger photosensitive reactions."
-		<< "add('active');const activeImages = document.querySelectorAll('img');activeImages.forEach(function(img)"
-		<< "{img.classList.add('active');});}});</script></body>\n" << "</html>\n";
+	content << "    </div>\n" << "<script>document.addEventListener('DOMContentLoaded', function() {const userConfirmed = confirm('EPILEPSY WARNING This content contains visual elements that may trigger photosensitive reactions.');if (userConfirmed) {document.body.classList.add('active');const activeImages = document.querySelectorAll('img');activeImages.forEach(function(img) {img.classList.add('active');});}});</script></body>\n" << "</html>\n";
 
 	std::string content_str = content.str();
 
