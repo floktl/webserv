@@ -185,7 +185,6 @@ bool Server::resetContext(Context& ctx)
 	ctx.version.clear();
 	ctx.headers_complete = false;
 	ctx.error_code = 0;
-	ctx.req.parsing_phase = RequestBody::PARSING_HEADER;
 	ctx.req.current_body_length = 0;
 	ctx.req.expected_body_length = 0;
 	ctx.req.received_body.clear();

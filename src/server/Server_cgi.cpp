@@ -105,7 +105,6 @@ bool Server::executeCgi(Context& ctx)
 	ctx.req.state = RequestBody::STATE_CGI_RUNNING;
 
 	ctx.cgi_pipe_ready = false;
-	ctx.cgi_read_attempts = 0;
 	ctx.cgi_start_time = std::chrono::steady_clock::now();
 
 	// Speichere Zuordnungen in den globalen Maps
