@@ -1,2 +1,0 @@
-[2025-03-24 09:05:10]  [ERROR] Failed to determine request type
-[2025-03-24 09:05:10]  [ERROR] ErrorHandler: Errorcode: 404 /app/var/www/staticupload/team Not found in 1. checkaccessright()

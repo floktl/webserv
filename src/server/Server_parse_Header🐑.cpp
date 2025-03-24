@@ -236,8 +236,6 @@ void Server::parseAccessRights(Context& ctx)
 		ctx.index = DEFAULT_FILE;
 	if (ctx.location.default_file.empty())
 		ctx.location.default_file = ctx.index;
-	Logger::yellow(requestedPath);
-	Logger::yellow(ctx.location.path);
 	std::string adjustedPath = ctx.path;
 	if (ctx.method != "DELETE")
 	{

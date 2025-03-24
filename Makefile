@@ -27,8 +27,9 @@ $(X)	🦄 forbidden fucntions\n\
 $(X)	🦄 einmal read write send....\n\
 $(X)	🦄 file logs und logs checken....\n\
 $(X)	🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
-$(X)	🦄 manchmal taucht double free nach download auf... \n\
 $(X)	🦄 error code pruefen gegen statuses.... \n\
+$(X)	🦄 unused variables functions etc... \n\
+
 $(X)  \n\
 $(GREEN)Others:$(X)\n\
 $(X)	🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
@@ -132,7 +133,7 @@ $(NAME): $(OBJECTS)
 container-build:
 	@if ! docker ps | grep -q webserv; then \
 		echo "$(YELLOW)Building the container environment$(X)"; \
-		docker compose -f ./docker-compose.yml build --no-cache; \
+		docker compose -f ./utils/docker/docker-compose.yml build --no-cache; \
 	else \
 		echo "$(YELLOW)Container already built.. skip build process$(X)"; \
 	fi
@@ -140,7 +141,7 @@ container-build:
 container-up:
 	@if ! docker ps | grep -q webserv; then \
 		echo "$(YELLOW)Starting the container environment$(X)"; \
-		docker compose -p webserv -f ./docker-compose.yml up -d; \
+		docker compose -p webserv -f ./utils/docker/docker-compose.yml up -d; \
 	else \
 		echo "$(YELLOW)Container already running.. skip its creation$(X)"; \
 	fi
@@ -149,7 +150,6 @@ container:
 	@make container-build
 	@make container-up
 	@docker exec -it webserv bash
-	@docker exec -it webserv bash ./patrick.sh
 
 prune:
 	@if docker ps -a | grep -q $(NAME); then \
@@ -312,11 +312,11 @@ sheep:
 				exit; \
 			fi; \
 			if ([ $$sheep_x -eq $$uni_x1 ] && [ $$sheep_y -eq $$uni_y1 ]) || \
-			   ([ $$sheep_x -eq $$uni_x2 ] && [ $$sheep_y -eq $$uni_y2 ]) || \
-			   ([ $$sheep_x -eq $$uni_x3 ] && [ $$sheep_y -eq $$uni_y3 ]) || \
-			   ([ $$pig_x -eq $$uni_x1 ] && [ $$pig_y -eq $$uni_y1 ]) || \
-			   ([ $$pig_x -eq $$uni_x2 ] && [ $$pig_y -eq $$uni_y2 ]) || \
-			   ([ $$pig_x -eq $$uni_x3 ] && [ $$pig_y -eq $$uni_y3 ]); then \
+				([ $$sheep_x -eq $$uni_x2 ] && [ $$sheep_y -eq $$uni_y2 ]) || \
+				([ $$sheep_x -eq $$uni_x3 ] && [ $$sheep_y -eq $$uni_y3 ]) || \
+				([ $$pig_x -eq $$uni_x1 ] && [ $$pig_y -eq $$uni_y1 ]) || \
+				([ $$pig_x -eq $$uni_x2 ] && [ $$pig_y -eq $$uni_y2 ]) || \
+				([ $$pig_x -eq $$uni_x3 ] && [ $$pig_y -eq $$uni_y3 ]); then \
 				echo -e "$(RED)💀 A unicorn caught you! GAME OVER! 🦄$(X)"; \
 				sleep 2; \
 				exit; \

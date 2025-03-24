@@ -64,14 +64,4 @@ public:
 	void parseArgs(int argc, char **argv, char **envp);
 	bool parseLine(std::string line);
 
-// ** Exceptions **
-	class InvalidFileNameException : public std::exception {
-	public:
-		const char* what() const throw();
-	};
-
-	class InvalidFileContentException : public std::exception {
-	public:
-		const char* what() const throw();
-	};
 };
