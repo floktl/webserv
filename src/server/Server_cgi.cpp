@@ -553,7 +553,7 @@ bool Server::checkAndReadCgiPipe(Context& ctx) {
 		return false;
 	}
 
-	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
+	char buffer[DEFAULT_CGIBUFFER_SIZE];
 	ssize_t bytes_read = 0;
 
 	Logger::magenta("read checkAndReadCgiPipe");
@@ -581,7 +581,7 @@ bool Server::checkAndReadCgiPipe(Context& ctx) {
 			return true;
 		}
 
-		if (hasLocationHeader && bytes_read < DEFAULT_REQUESTBUFFER_SIZE) {
+		if (hasLocationHeader && bytes_read < DEFAULT_CGIBUFFER_SIZE) {
 			Logger::yellow("Incomplete headers with Location - ensuring header ending");
 			return true;
 		}
