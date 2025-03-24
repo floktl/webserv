@@ -29,8 +29,6 @@ $(X)	🦄 file logs und logs checken....\n\
 $(X)	🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
 $(X)	🦄 manchmal taucht double free nach download auf... \n\
 $(X)	🦄 error code pruefen gegen statuses.... \n\
-$(X)	🐑 bei zugriff auf nciht definierte location http://localhost:9090/team kein error.... 404\n\
-$(X)	🐑 bei zugriff auf nciht definierte location http://localhost:9090/team/ kein error.... 404\n\
 $(X)  \n\
 $(GREEN)Others:$(X)\n\
 $(X)	🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
@@ -40,8 +38,6 @@ $(X)	🐑 Random plain text header prarsing problem CGI\n\
 $(X)	🐖 Über CGI-Scripts mit deren eigener Upload-Logik\n\
 $(X)	🐖 CGI Python\n\
 $(X)	🐑 sendCGIResponse evneutell ueberdenken\n\
-$(X)	🐑 http://localhost:8080/team consida redirect on http://localhost:8080/team/ instead of default_file \n\
-$(X)	🐑 http://localhost:8001/bier consida redirect on http://localhost:8080/bier/ instead of default_file  BETRIFFT AUCH PHP\n\
 $(X)  \n\
 
 # helper command to search for fucntions with more than 40 lines
