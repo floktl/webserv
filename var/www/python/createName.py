@@ -6,7 +6,7 @@ import cgi
 form = cgi.FieldStorage()
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
-dir_path = os.path.join(script_dir, 'data')
+dir_path = os.path.join(script_dir, 'uploads', 'data')
 
 if not os.path.isdir(dir_path):
 	os.makedirs(dir_path, exist_ok=True)

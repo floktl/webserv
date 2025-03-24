@@ -51,6 +51,7 @@ bool Server::deleteHandler(Context &ctx)
 		if (it->second.multipart_file_path_up_down == requestedPath && it->second.client_fd != ctx.client_fd)
 			return (updateErrorStatus(ctx, 402, "File is currently in use and cannot be deleted."));
 	}
+	Logger::black("DELETEEEEEEEEEEEEE          "+ requestedPath);
 	std::filesystem::remove(requestedPath);
 	if (std::filesystem::exists(requestedPath))
 		return updateErrorStatus(ctx, 500, "Internal Server Error");

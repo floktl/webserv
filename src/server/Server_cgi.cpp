@@ -201,247 +201,296 @@ std::string Server::extractQueryString(const std::string& path)
 }
 
 bool Server::prepareCgiHeaders(Context& ctx) {
-	std::string separator = "\r\n\r\n";
-	std::string separator_alt = "\n\n";
+    std::string separator = "\r\n\r\n";
+    std::string separator_alt = "\n\n";
 
-	auto it = std::search(ctx.write_buffer.begin(), ctx.write_buffer.end(),
-						separator.begin(), separator.end());
+    // Check if the response starts with HTML content
+    bool startsWithHtml = false;
+    std::string buffer_start(ctx.write_buffer.begin(),
+                            ctx.write_buffer.begin() + std::min(size_t(20), ctx.write_buffer.size()));
 
-	if (it == ctx.write_buffer.end()) {
-		it = std::search(ctx.write_buffer.begin(), ctx.write_buffer.end(),
-						separator_alt.begin(), separator_alt.end());
-	}
+    if (buffer_start.find("<!DOCTYPE") != std::string::npos ||
+        buffer_start.find("<html") != std::string::npos) {
+        startsWithHtml = true;
+        Logger::green("Response starts with HTML without headers");
+    }
 
-	bool hasHeaders = (it != ctx.write_buffer.end());
-	size_t headerEnd = hasHeaders ? std::distance(ctx.write_buffer.begin(), it) : 0;
-	size_t separatorSize = (it != ctx.write_buffer.end() &&
-						std::string(it, it + 4) == "\r\n\r\n") ? 4 : 2;
+    auto it = std::search(ctx.write_buffer.begin(), ctx.write_buffer.end(),
+                        separator.begin(), separator.end());
 
-	std::string existingHeaders;
-	if (hasHeaders) {
-		existingHeaders = std::string(ctx.write_buffer.begin(), it);
-		Logger::green("CGI Headers: " + existingHeaders);
-	}
+    if (it == ctx.write_buffer.end()) {
+        it = std::search(ctx.write_buffer.begin(), ctx.write_buffer.end(),
+                        separator_alt.begin(), separator_alt.end());
+    }
 
-	int cgiStatusCode = 200;
-	std::string cgiStatusMessage = "OK";
-	std::string cgiLocation;
-	bool cgiRedirect = false;
+    bool hasHeaders = (it != ctx.write_buffer.end());
 
-	if (hasHeaders) {
-		std::istringstream headerStream(existingHeaders);
-		std::string line;
+    // If no headers are found but the content starts with HTML, treat as no headers
+    if (!hasHeaders && startsWithHtml) {
+        Logger::green("No headers found but content starts with HTML, adding default headers");
 
-		while (std::getline(headerStream, line)) {
-			if (!line.empty() && line.back() == '\r') {
-				line.pop_back();
-			}
+        std::string headers = "HTTP/1.1 200 OK\r\n";
+        headers += "Content-Type: text/html; charset=UTF-8\r\n";
+        headers += "Content-Length: " + std::to_string(ctx.write_buffer.size()) + "\r\n";
+        headers += "Server: Webserv/1.0\r\n";
 
-			if (line.empty()) {
-				continue;
-			}
+        // Add date header
+        time_t now = time(0);
+        struct tm tm;
+        char dateBuffer[100];
+        gmtime_r(&now, &tm);
+        strftime(dateBuffer, sizeof(dateBuffer), "%a, %d %b %Y %H:%M:%S GMT", &tm);
+        headers += "Date: " + std::string(dateBuffer) + "\r\n";
 
-			if (line.compare(0, 7, "Status:") == 0 || line.compare(0, 7, "status:") == 0) {
-				std::string statusLine = line.substr(7);
-				size_t firstNonSpace = statusLine.find_first_not_of(" \t");
-				if (firstNonSpace != std::string::npos) {
-					statusLine = statusLine.substr(firstNonSpace);
-				}
+        // Add connection header
+        headers += "Connection: " + std::string(ctx.keepAlive ? "keep-alive" : "close") + "\r\n";
 
-				std::stringstream ss(statusLine);
-				ss >> cgiStatusCode;
+        // Add cookies if any
+        for (const auto& cookie : ctx.setCookies) {
+            headers += "Set-Cookie: " + cookie.first + "=" + cookie.second + "\r\n";
+        }
 
-				if (ss.peek() == ' ') {
-					ss.ignore();
-					std::getline(ss, cgiStatusMessage);
-				}
+        headers += "\r\n";
 
-				Logger::green("Found Status header: " + std::to_string(cgiStatusCode) + " " + cgiStatusMessage);
+        // Create new buffer with headers + original content
+        std::vector<char> newBuffer(headers.begin(), headers.end());
+        newBuffer.insert(newBuffer.end(), ctx.write_buffer.begin(), ctx.write_buffer.end());
 
-				if (cgiStatusCode >= 300 && cgiStatusCode < 400) {
-					cgiRedirect = true;
-					Logger::green("Setting redirect flag based on status code");
-				}
-			}
+        ctx.write_buffer = newBuffer;
+        ctx.cgi_headers_send = true;
 
-			if (line.compare(0, 9, "Location:") == 0 || line.compare(0, 9, "location:") == 0) {
-				cgiLocation = line.substr(9);
-				size_t firstNonSpace = cgiLocation.find_first_not_of(" \t");
-				if (firstNonSpace != std::string::npos) {
-					cgiLocation = cgiLocation.substr(firstNonSpace);
-				}
+        return true;
+    }
 
-				Logger::green("Found Location header: " + cgiLocation);
+    size_t headerEnd = hasHeaders ? std::distance(ctx.write_buffer.begin(), it) : 0;
+    size_t separatorSize = (it != ctx.write_buffer.end() &&
+                        std::string(it, it + 4) == "\r\n\r\n") ? 4 : 2;
 
-				cgiRedirect = true;
-				Logger::green("Setting redirect flag based on Location header");
+    std::string existingHeaders;
+    if (hasHeaders) {
+        existingHeaders = std::string(ctx.write_buffer.begin(), it);
+        Logger::green("CGI Headers: " + existingHeaders);
+    }
 
-				if (cgiStatusCode == 200) {
-					cgiStatusCode = 302;
-					cgiStatusMessage = "Found";
-					Logger::green("Using default redirect status: 302 Found");
-				}
-			}
-		}
-	}
+    int cgiStatusCode = 200;
+    std::string cgiStatusMessage = "OK";
+    std::string cgiLocation;
+    bool cgiRedirect = false;
 
-	bool isRedirect = cgiRedirect || (ctx.error_code >= 300 && ctx.error_code < 400);
+    if (hasHeaders) {
+        std::istringstream headerStream(existingHeaders);
+        std::string line;
 
-	std::string headers;
+        while (std::getline(headerStream, line)) {
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
 
-	if (cgiRedirect || cgiStatusCode != 200) {
-		headers = "HTTP/1.1 " + std::to_string(cgiStatusCode) + " " + cgiStatusMessage + "\r\n";
-		Logger::green("Using CGI status code: " + std::to_string(cgiStatusCode));
-	} else if (ctx.error_code > 0) {
-		headers = "HTTP/1.1 " + std::to_string(ctx.error_code) + " " + ctx.error_message + "\r\n";
-	} else {
-		headers = "HTTP/1.1 200 OK\r\n";
-	}
+            if (line.empty()) {
+                continue;
+            }
 
-	if (!isRedirect && ctx.location.return_code.length() > 0) {
-		int redirectCode = std::stoi(ctx.location.return_code);
-		if (redirectCode >= 300 && redirectCode < 400) {
-			isRedirect = true;
-			headers = "HTTP/1.1 " + ctx.location.return_code + " ";
+            if (line.compare(0, 7, "Status:") == 0 || line.compare(0, 7, "status:") == 0) {
+                std::string statusLine = line.substr(7);
+                size_t firstNonSpace = statusLine.find_first_not_of(" \t");
+                if (firstNonSpace != std::string::npos) {
+                    statusLine = statusLine.substr(firstNonSpace);
+                }
 
-			if (redirectCode == 301) headers += "Moved Permanently";
-			else if (redirectCode == 302) headers += "Found";
-			else if (redirectCode == 303) headers += "See Other";
-			else if (redirectCode == 307) headers += "Temporary Redirect";
-			else if (redirectCode == 308) headers += "Permanent Redirect";
-			else headers += "Redirect";
+                std::stringstream ss(statusLine);
+                ss >> cgiStatusCode;
 
-			headers += "\r\n";
-		}
-	}
+                if (ss.peek() == ' ') {
+                    ss.ignore();
+                    std::getline(ss, cgiStatusMessage);
+                }
 
-	bool hasContentType = hasHeaders && (existingHeaders.find("Content-Type:") != std::string::npos ||
-										existingHeaders.find("content-type:") != std::string::npos);
-	bool hasContentLength = hasHeaders && (existingHeaders.find("Content-Length:") != std::string::npos ||
-										existingHeaders.find("content-length:") != std::string::npos);
-	bool hasServer = hasHeaders && existingHeaders.find("Server:") != std::string::npos;
-	bool hasDate = hasHeaders && existingHeaders.find("Date:") != std::string::npos;
-	bool hasConnection = hasHeaders && existingHeaders.find("Connection:") != std::string::npos;
+                Logger::green("Found Status header: " + std::to_string(cgiStatusCode) + " " + cgiStatusMessage);
 
-	if (isRedirect && headers.find("Location:") == std::string::npos) {
-		std::string redirectUrl;
+                if (cgiStatusCode >= 300 && cgiStatusCode < 400) {
+                    cgiRedirect = true;
+                    Logger::green("Setting redirect flag based on status code");
+                }
+            }
 
-		if (!cgiLocation.empty()) {
-			redirectUrl = cgiLocation;
-		} else if (ctx.error_code >= 300 && ctx.error_code < 400 && !ctx.error_message.empty()) {
-			redirectUrl = ctx.error_message;
-		} else if (!ctx.location.return_url.empty()) {
-			redirectUrl = ctx.location.return_url;
-		}
+            if (line.compare(0, 9, "Location:") == 0 || line.compare(0, 9, "location:") == 0) {
+                cgiLocation = line.substr(9);
+                size_t firstNonSpace = cgiLocation.find_first_not_of(" \t");
+                if (firstNonSpace != std::string::npos) {
+                    cgiLocation = cgiLocation.substr(firstNonSpace);
+                }
 
-		if (!redirectUrl.empty()) {
-			headers += "Location: " + redirectUrl + "\r\n";
-		}
-	}
+                Logger::green("Found Location header: " + cgiLocation);
 
-	if (hasContentType && hasHeaders) {
-		std::istringstream headerStream(existingHeaders);
-		std::string line;
+                cgiRedirect = true;
+                Logger::green("Setting redirect flag based on Location header");
 
-		while (std::getline(headerStream, line)) {
-			if (!line.empty() && line.back() == '\r') {
-				line.pop_back();
-			}
+                if (cgiStatusCode == 200) {
+                    cgiStatusCode = 302;
+                    cgiStatusMessage = "Found";
+                    Logger::green("Using default redirect status: 302 Found");
+                }
+            }
+        }
+    }
 
-			if (line.compare(0, 12, "Content-Type:") == 0 || line.compare(0, 12, "content-type:") == 0) {
-				headers += line + "\r\n";
-				break;
-			}
-		}
-	} else if (!isRedirect) {
-		headers += "Content-Type: text/html; charset=UTF-8\r\n";
-	}
+    bool isRedirect = cgiRedirect || (ctx.error_code >= 300 && ctx.error_code < 400);
 
-	if (!hasContentLength && hasHeaders && !isRedirect) {
-		size_t bodySize = ctx.write_buffer.size() - (headerEnd + separatorSize);
-		headers += "Content-Length: " + std::to_string(bodySize) + "\r\n";
-	} else if (isRedirect && !hasContentLength) {
-		headers += "Content-Length: 0\r\n";
-	} else if (hasContentLength && hasHeaders) {
-		std::istringstream headerStream(existingHeaders);
-		std::string line;
+    std::string headers;
 
-		while (std::getline(headerStream, line)) {
-			if (!line.empty() && line.back() == '\r') {
-				line.pop_back();
-			}
+    if (cgiRedirect || cgiStatusCode != 200) {
+        headers = "HTTP/1.1 " + std::to_string(cgiStatusCode) + " " + cgiStatusMessage + "\r\n";
+        Logger::green("Using CGI status code: " + std::to_string(cgiStatusCode));
+    } else if (ctx.error_code > 0) {
+        headers = "HTTP/1.1 " + std::to_string(ctx.error_code) + " " + ctx.error_message + "\r\n";
+    } else {
+        headers = "HTTP/1.1 200 OK\r\n";
+    }
 
-			if (line.compare(0, 14, "Content-Length:") == 0 || line.compare(0, 14, "content-length:") == 0) {
-				headers += line + "\r\n";
-				break;
-			}
-		}
-	}
+    if (!isRedirect && ctx.location.return_code.length() > 0) {
+        int redirectCode = std::stoi(ctx.location.return_code);
+        if (redirectCode >= 300 && redirectCode < 400) {
+            isRedirect = true;
+            headers = "HTTP/1.1 " + ctx.location.return_code + " ";
 
-	if (!hasServer) {
-		headers += "Server: Webserv/1.0\r\n";
-	}
+            if (redirectCode == 301) headers += "Moved Permanently";
+            else if (redirectCode == 302) headers += "Found";
+            else if (redirectCode == 303) headers += "See Other";
+            else if (redirectCode == 307) headers += "Temporary Redirect";
+            else if (redirectCode == 308) headers += "Permanent Redirect";
+            else headers += "Redirect";
 
-	if (!hasDate) {
-		time_t now = time(0);
-		struct tm tm;
-		char dateBuffer[100];
-		gmtime_r(&now, &tm);
-		strftime(dateBuffer, sizeof(dateBuffer), "%a, %d %b %Y %H:%M:%S GMT", &tm);
-		headers += "Date: " + std::string(dateBuffer) + "\r\n";
-	}
+            headers += "\r\n";
+        }
+    }
 
-	if (!hasConnection) {
-		headers += "Connection: " + std::string(ctx.keepAlive ? "keep-alive" : "close") + "\r\n";
-	}
+    bool hasContentType = hasHeaders && (existingHeaders.find("Content-Type:") != std::string::npos ||
+                                        existingHeaders.find("content-type:") != std::string::npos);
+    bool hasContentLength = hasHeaders && (existingHeaders.find("Content-Length:") != std::string::npos ||
+                                        existingHeaders.find("content-length:") != std::string::npos);
+    bool hasServer = hasHeaders && existingHeaders.find("Server:") != std::string::npos;
+    bool hasDate = hasHeaders && existingHeaders.find("Date:") != std::string::npos;
+    bool hasConnection = hasHeaders && existingHeaders.find("Connection:") != std::string::npos;
 
-	for (const auto& cookie : ctx.setCookies) {
-		headers += "Set-Cookie: " + cookie.first + "=" + cookie.second + "\r\n";
-	}
+    if (isRedirect && headers.find("Location:") == std::string::npos) {
+        std::string redirectUrl;
 
-	if (hasHeaders) {
-		std::istringstream headerStream(existingHeaders);
-		std::string line;
+        if (!cgiLocation.empty()) {
+            redirectUrl = cgiLocation;
+        } else if (ctx.error_code >= 300 && ctx.error_code < 400 && !ctx.error_message.empty()) {
+            redirectUrl = ctx.error_message;
+        } else if (!ctx.location.return_url.empty()) {
+            redirectUrl = ctx.location.return_url;
+        }
 
-		while (std::getline(headerStream, line)) {
-			if (!line.empty() && line.back() == '\r') {
-				line.pop_back();
-			}
+        if (!redirectUrl.empty()) {
+            headers += "Location: " + redirectUrl + "\r\n";
+        }
+    }
 
-			if (line.empty() ||
-				line.compare(0, 7, "Status:") == 0 || line.compare(0, 7, "status:") == 0 ||
-				line.compare(0, 9, "Location:") == 0 || line.compare(0, 9, "location:") == 0 ||
-				line.compare(0, 12, "Content-Type:") == 0 || line.compare(0, 12, "content-type:") == 0 ||
-				line.compare(0, 14, "Content-Length:") == 0 || line.compare(0, 14, "content-length:") == 0) {
-				continue;
-			}
+    if (hasContentType && hasHeaders) {
+        std::istringstream headerStream(existingHeaders);
+        std::string line;
 
-			headers += line + "\r\n";
-		}
-	}
+        while (std::getline(headerStream, line)) {
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
 
-	headers += "\r\n";
+            if (line.compare(0, 12, "Content-Type:") == 0 || line.compare(0, 12, "content-type:") == 0) {
+                headers += line + "\r\n";
+                break;
+            }
+        }
+    } else if (!isRedirect) {
+        headers += "Content-Type: text/html; charset=UTF-8\r\n";
+    }
 
-	std::vector<char> body;
-	if (hasHeaders && headerEnd + separatorSize < ctx.write_buffer.size()) {
-		body.insert(body.begin(),
-					ctx.write_buffer.begin() + headerEnd + separatorSize,
-					ctx.write_buffer.end());
-	}
+    if (!hasContentLength && hasHeaders && !isRedirect) {
+        size_t bodySize = ctx.write_buffer.size() - (headerEnd + separatorSize);
+        headers += "Content-Length: " + std::to_string(bodySize) + "\r\n";
+    } else if (isRedirect && !hasContentLength) {
+        headers += "Content-Length: 0\r\n";
+    } else if (hasContentLength && hasHeaders) {
+        std::istringstream headerStream(existingHeaders);
+        std::string line;
 
-	if (isRedirect && cgiRedirect) {
-		body.clear();
-	}
+        while (std::getline(headerStream, line)) {
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
 
-	std::vector<char> newBuffer(headers.begin(), headers.end());
-	if (!body.empty()) {
-		newBuffer.insert(newBuffer.end(), body.begin(), body.end());
-	}
+            if (line.compare(0, 14, "Content-Length:") == 0 || line.compare(0, 14, "content-length:") == 0) {
+                headers += line + "\r\n";
+                break;
+            }
+        }
+    }
 
-	ctx.write_buffer = newBuffer;
-	ctx.cgi_headers_send = true;
+    if (!hasServer) {
+        headers += "Server: Webserv/1.0\r\n";
+    }
 
-	return true;
+    if (!hasDate) {
+        time_t now = time(0);
+        struct tm tm;
+        char dateBuffer[100];
+        gmtime_r(&now, &tm);
+        strftime(dateBuffer, sizeof(dateBuffer), "%a, %d %b %Y %H:%M:%S GMT", &tm);
+        headers += "Date: " + std::string(dateBuffer) + "\r\n";
+    }
+
+    if (!hasConnection) {
+        headers += "Connection: " + std::string(ctx.keepAlive ? "keep-alive" : "close") + "\r\n";
+    }
+
+    for (const auto& cookie : ctx.setCookies) {
+        headers += "Set-Cookie: " + cookie.first + "=" + cookie.second + "\r\n";
+    }
+
+    if (hasHeaders) {
+        std::istringstream headerStream(existingHeaders);
+        std::string line;
+
+        while (std::getline(headerStream, line)) {
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
+
+            if (line.empty() ||
+                line.compare(0, 7, "Status:") == 0 || line.compare(0, 7, "status:") == 0 ||
+                line.compare(0, 9, "Location:") == 0 || line.compare(0, 9, "location:") == 0 ||
+                line.compare(0, 12, "Content-Type:") == 0 || line.compare(0, 12, "content-type:") == 0 ||
+                line.compare(0, 14, "Content-Length:") == 0 || line.compare(0, 14, "content-length:") == 0) {
+                continue;
+            }
+
+            headers += line + "\r\n";
+        }
+    }
+
+    headers += "\r\n";
+
+    std::vector<char> body;
+    if (hasHeaders && headerEnd + separatorSize < ctx.write_buffer.size()) {
+        body.insert(body.begin(),
+                    ctx.write_buffer.begin() + headerEnd + separatorSize,
+                    ctx.write_buffer.end());
+    }
+
+    if (isRedirect && cgiRedirect) {
+        body.clear();
+    }
+
+    std::vector<char> newBuffer(headers.begin(), headers.end());
+    if (!body.empty()) {
+        newBuffer.insert(newBuffer.end(), body.begin(), body.end());
+    }
+
+    ctx.write_buffer = newBuffer;
+    ctx.cgi_headers_send = true;
+
+    return true;
 }
 
 bool Server::sendCgiResponse(Context& ctx) {
@@ -536,7 +585,6 @@ bool Server::sendCgiResponse(Context& ctx) {
 		}
 	}
 
-	Logger::yellow(std::to_string(ctx.cgi_terminated));
 	if (ctx.cgi_terminated) {
 		if (ctx.keepAlive) {
 			resetContext(ctx);

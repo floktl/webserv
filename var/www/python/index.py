@@ -4,7 +4,7 @@
 import os
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
-dir_path = os.path.join(script_dir, 'data')
+dir_path = os.path.join(script_dir,'uploads' , 'data')
 
 names = []
 
@@ -94,7 +94,7 @@ print("""<!DOCTYPE html>
 	</header>
 	<main>
 		<h1>Hello, World!</h1>
-		<h2>Names ans Age:</h2>
+		<h2>Names and Age:</h2>
 		<form action="createName.py" method="post">
 			<input type="text" name="name" placeholder="Name" required>
 			<input type="number" name="age" placeholder="Age" required>
@@ -109,7 +109,7 @@ print("""        </ul>
 		<a href="/about.py">Read more</a>
 		<script>
 			function deleteName(name) {
-				fetch("./data/" + name + ".name", {
+				fetch("/data/" + name + ".name", {
 					method: 'DELETE',
 					headers: {
 						'Content-Type': 'application/json',

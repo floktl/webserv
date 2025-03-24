@@ -145,6 +145,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 
 	if (!ctx.is_multipart || ctx.req.parsing_phase != RequestBody::PARSING_BODY)
 		ctx.read_buffer.clear();
+	Logger::red("ctx.write_buffer.clear(); handleRead");
 	ctx.write_buffer.clear();
 
 	std::memset(buffer, 0, sizeof(buffer));
@@ -156,6 +157,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		{
 			close(ctx.multipart_fd_up_down);
 			ctx.multipart_fd_up_down = -1;
+			Logger::red("ctx.write_buffer.clear(); handleRead 2");
 			ctx.write_buffer.clear();
 		}
 		return Logger::errorLog("Read error");
@@ -238,6 +240,7 @@ bool Server::handleWrite(Context& ctx)
 			{
 				ctx.req.current_body_length += written;
 				Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "(" + std::to_string(ctx.multipart_fd_up_down) + ") Upload 8");
+				Logger::red("ctx.write_buffer.clear(); handleWrite");
 				ctx.write_buffer.clear();
 			}
 
@@ -283,7 +286,6 @@ bool Server::handleWrite(Context& ctx)
 				}
 			}
 			result = sendCgiResponse(ctx);
-			Logger::yellow(std::to_string(ctx.cgi_terminated));
 			if (ctx.cgi_terminated)
 				delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 			if (result)
