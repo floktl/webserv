@@ -14,6 +14,7 @@
 #define DEFAULT_MAXBODYSIZE			1048576
 #define MAX_EVENTS					64
 #define TIMEOUT_MS					1000
+#define DEFAULT_TIMEOUT				10
 
 struct ChunkedState
 {
@@ -166,7 +167,7 @@ struct Context
 	long long	content_length = 0;
 
 	long long	client_max_body_size = -1;
-	int			timeout;
+	int			timeout = DEFAULT_TIMEOUT;
 	std::string doAutoIndex = "";
 
 	std::string read_buffer = "";
@@ -197,7 +198,8 @@ struct Context
 	bool				wasCgiDel = false;
 	bool				cgi_pipe_ready = false;
 	bool				cgi_run_to_timeout = false;
-	std::chrono::steady_clock::time_point cgi_start_time = std::chrono::steady_clock::time_point();bool cgi_needs_more_data = false;
+	std::chrono::steady_clock::time_point cgi_start_time = std::chrono::steady_clock::now();
+	bool cgi_needs_more_data = false;
 
 };
 

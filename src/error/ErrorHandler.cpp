@@ -189,7 +189,6 @@ bool ErrorHandler::generateErrorResponse(Context& ctx) const
 			<< "Content-Type: text/html\r\n"
 			<< "Content-Length: " << content.size() << "\r\n\r\n"
 			<< content;
-
 	return (server.sendHandler(ctx, response.str()));
 }
 

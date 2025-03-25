@@ -26,7 +26,7 @@ bool Server::deleteHandler(Context &ctx)
 	else
 		requestedPath = concatenatePath(req_root, ctx.path);
 
-	Logger::cyan(requestedPath);
+	//Logger::cyan(requestedPath);
 	if (ctx.index.empty() && ctx.method != "DELETE")
 		ctx.index = DEFAULT_FILE;
 	if (ctx.location.default_file.empty())
@@ -51,7 +51,7 @@ bool Server::deleteHandler(Context &ctx)
 		if (it->second.multipart_file_path_up_down == requestedPath && it->second.client_fd != ctx.client_fd)
 			return (updateErrorStatus(ctx, 402, "File is currently in use and cannot be deleted."));
 	}
-	Logger::black("DELETEEEEEEEEEEEEE          "+ requestedPath);
+	//Logger::black("DELETEEEEEEEEEEEEE          "+ requestedPath);
 	std::filesystem::remove(requestedPath);
 	if (std::filesystem::exists(requestedPath))
 		return updateErrorStatus(ctx, 500, "Internal Server Error");

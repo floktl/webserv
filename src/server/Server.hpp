@@ -66,6 +66,8 @@ class Server
 		// Server Loop
 		bool		acceptNewConnection(int epoll_fd, int server_fd, std::vector<ServerBlock> &configs);
 		void		checkAndCleanupTimeouts();
+		void clear_global_fd_map(std::chrono::steady_clock::time_point now);
+
 		void		logContext(const Context& ctx, const std::string& event = "");
 		std::string	requestTypeToString(RequestType type);
 		bool 		determineType(Context& ctx, std::vector<ServerBlock> configs);

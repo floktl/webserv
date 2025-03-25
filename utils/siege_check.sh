@@ -2,7 +2,7 @@
 
 echo "🚀 Running Siege & System Checks Inside Container..."
 
-CONFIG_FILE="./config/test.conf"  # Adjust if necessary
+CONFIG_FILE="../config/test.conf"  # Adjust if necessary
 LOG_FILE="./siege_log.txt"
 REPORT_FILE="./test_report.txt"
 
@@ -27,8 +27,8 @@ ps aux --sort=-%mem | head -10
 
 # 3️⃣ Check Binary Size
 echo -e "\n📦 Checking Binary Size of the Server..."
-ls -lh ./webserv
-size ./webserv || echo "⚠ 'size' command not available."
+ls -lh ../webserv
+size ../webserv || echo "⚠ 'size' command not available."
 
 # 4️⃣ Start Siege Test for Each Server
 echo -e "\n🔥 Running Siege Load Test on all detected servers..."
@@ -59,7 +59,7 @@ ps aux --sort=-%mem | head -10
 # 7️⃣ Check for Memory Leaks (C/C++ Only)
 if command -v valgrind &>/dev/null; then
 	echo -e "\n🔥 Running Valgrind for Memory Leaks..."
-	valgrind --leak-check=full --track-origins=yes ./webserv "$CONFIG_FILE"
+	valgrind --leak-check=full --track-origins=yes ../webserv "$CONFIG_FILE"
 else
 	echo -e "\n⚠ Valgrind not installed, skipping memory leak check." | tee -a "$REPORT_FILE"
 fi

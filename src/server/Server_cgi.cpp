@@ -2,10 +2,10 @@
 
 bool Server::executeCgi(Context& ctx)
 {
-	Logger::green("executeCgi " + ctx.requested_path);
+	//Logger::green("executeCgi " + ctx.requested_path);
 
 	if (ctx.requested_path.empty() || !fileExists(ctx.requested_path) || !fileReadable(ctx.requested_path)) {
-		Logger::error("CGI script validation failed: " + ctx.requested_path);
+		//Logger::error("CGI script validation failed: " + ctx.requested_path);
 		return updateErrorStatus(ctx, 404, "Not Found - CGI Script");
 	}
 
@@ -58,7 +58,7 @@ bool Server::executeCgi(Context& ctx)
 		}
 		env_pointers.push_back(nullptr);
 
-		logContext(ctx, "CGI");
+		//logContext(ctx, "CGI");
 
 		char* args[3];
 		args[0] = const_cast<char*>(ctx.location.cgi.c_str());
@@ -80,6 +80,10 @@ bool Server::executeCgi(Context& ctx)
 
 	ctx.cgi_pipe_ready = false;
 	ctx.cgi_start_time = std::chrono::steady_clock::now();
+	//Logger::red("Start time (seconds since epoch-ish): " +
+	//	std::to_string(ctx.cgi_start_time.time_since_epoch().count()));
+
+
 
 	globalFDS.cgi_pipe_to_client_fd[ctx.req.cgi_out_fd] = ctx.client_fd;
 	globalFDS.cgi_pid_to_client_fd[ctx.req.cgi_pid] = ctx.client_fd;
@@ -90,9 +94,9 @@ bool Server::executeCgi(Context& ctx)
 	ev.data.fd = ctx.req.cgi_out_fd;
 	if (epoll_ctl(ctx.epoll_fd, EPOLL_CTL_ADD, ctx.req.cgi_out_fd, &ev) < 0) {
 		Logger::error("Failed to add CGI output pipe to epoll: " + std::string(strerror(errno)));
-	} else {
-		Logger::green("Added CGI output pipe " + std::to_string(ctx.req.cgi_out_fd) + " to epoll");
-	}
+	}// else {
+	//	Logger::green("Added CGI output pipe " + std::to_string(ctx.req.cgi_out_fd) + " to epoll");
+	//}
 
 	if (!ctx.body.empty()) {
 		write(ctx.req.cgi_in_fd, ctx.body.c_str(), ctx.body.length());
@@ -269,7 +273,7 @@ bool Server::prepareCgiHeaders(Context& ctx) {
     std::string existingHeaders;
     if (hasHeaders) {
         existingHeaders = std::string(ctx.write_buffer.begin(), it);
-        Logger::green("CGI Headers: " + existingHeaders);
+       // Logger::green("CGI Headers: " + existingHeaders);
     }
 
     int cgiStatusCode = 200;
@@ -305,11 +309,11 @@ bool Server::prepareCgiHeaders(Context& ctx) {
                     std::getline(ss, cgiStatusMessage);
                 }
 
-                Logger::green("Found Status header: " + std::to_string(cgiStatusCode) + " " + cgiStatusMessage);
+                //Logger::green("Found Status header: " + std::to_string(cgiStatusCode) + " " + cgiStatusMessage);
 
                 if (cgiStatusCode >= 300 && cgiStatusCode < 400) {
                     cgiRedirect = true;
-                    Logger::green("Setting redirect flag based on status code");
+                   // Logger::green("Setting redirect flag based on status code");
                 }
             }
 
@@ -320,15 +324,15 @@ bool Server::prepareCgiHeaders(Context& ctx) {
                     cgiLocation = cgiLocation.substr(firstNonSpace);
                 }
 
-                Logger::green("Found Location header: " + cgiLocation);
+              // Logger::green("Found Location header: " + cgiLocation);
 
                 cgiRedirect = true;
-                Logger::green("Setting redirect flag based on Location header");
+                //Logger::green("Setting redirect flag based on Location header");
 
                 if (cgiStatusCode == 200) {
                     cgiStatusCode = 302;
                     cgiStatusMessage = "Found";
-                    Logger::green("Using default redirect status: 302 Found");
+                    //Logger::green("Using default redirect status: 302 Found");
                 }
             }
         }
@@ -340,7 +344,7 @@ bool Server::prepareCgiHeaders(Context& ctx) {
 
     if (cgiRedirect || cgiStatusCode != 200) {
         headers = "HTTP/1.1 " + std::to_string(cgiStatusCode) + " " + cgiStatusMessage + "\r\n";
-        Logger::green("Using CGI status code: " + std::to_string(cgiStatusCode));
+       // Logger::green("Using CGI status code: " + std::to_string(cgiStatusCode));
     } else if (ctx.error_code > 0) {
         headers = "HTTP/1.1 " + std::to_string(ctx.error_code) + " " + ctx.error_message + "\r\n";
     } else {
@@ -494,16 +498,16 @@ bool Server::prepareCgiHeaders(Context& ctx) {
 }
 
 bool Server::sendCgiResponse(Context& ctx) {
-	Logger::green("sendCgiResponse");
+	//Logger::green("sendCgiResponse");
 	if (!ctx.cgi_pipe_ready)
 	{
-		Logger::yellow("waiting for pipe");
+		//Logger::yellow("waiting for pipe");
 		return true;
 	}
 
 	if (ctx.write_buffer.empty() && !ctx.cgi_output_phase)
 	{
-		Logger::yellow("waiting for read");
+		//Logger::yellow("waiting for read");
 		ctx.cgi_terminated = true;
 		cleanupCgiResources(ctx);
 
@@ -554,13 +558,13 @@ bool Server::sendCgiResponse(Context& ctx) {
 			return true;
 		}
 	} else {
-		Logger::magenta("send sendCGIResponse");
+		//Logger::magenta("send sendCGIResponse");
 		if(!ctx.cgi_headers_send){
-			Logger::red("header shit");
+			//Logger::red("header shit");
 			prepareCgiHeaders(ctx);
 			ctx.cgi_headers_send = true;
 		}
-		Logger::cyan(std::string(ctx.write_buffer.begin(), ctx.write_buffer.end()));
+		//Logger::cyan(std::string(ctx.write_buffer.begin(), ctx.write_buffer.end()));
 		ssize_t sent = send(ctx.client_fd, &ctx.write_buffer[0], ctx.write_buffer.size(), MSG_NOSIGNAL);
 
 		if (sent < 0) {
@@ -597,8 +601,9 @@ bool Server::sendCgiResponse(Context& ctx) {
 	return true;
 }
 
-bool Server::checkAndReadCgiPipe(Context& ctx) {
-	Logger::green("checkAndReadCgiPipe");
+bool Server::checkAndReadCgiPipe(Context& ctx)
+{
+	//Logger::green("checkAndReadCgiPipe");
 	if (ctx.req.cgi_out_fd <= 0) {
 		return false;
 	}
@@ -606,13 +611,13 @@ bool Server::checkAndReadCgiPipe(Context& ctx) {
 	char buffer[DEFAULT_CGIBUFFER_SIZE];
 	ssize_t bytes_read = 0;
 
-	Logger::magenta("read checkAndReadCgiPipe");
+	//Logger::magenta("read checkAndReadCgiPipe");
 	bytes_read = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
 
 	if (bytes_read > 0) {
 		ctx.write_buffer.insert(ctx.write_buffer.end(), buffer, buffer + bytes_read);
 
-		Logger::yellow(std::string(ctx.write_buffer.begin(), ctx.write_buffer.end()));
+		//Logger::yellow(std::string(ctx.write_buffer.begin(), ctx.write_buffer.end()));
 		ctx.last_activity = std::chrono::steady_clock::now();
 
 		std::string headers_end_crlf = "\r\n\r\n";
@@ -639,7 +644,7 @@ bool Server::checkAndReadCgiPipe(Context& ctx) {
 		return false;
 	}
 	else if (bytes_read == 0) {
-		Logger::green("CGI process finished output");
+		//Logger::green("CGI process finished output");
 		if (ctx.req.cgi_out_fd > 0) {
 			int fd_to_remove = ctx.req.cgi_out_fd;
 			epoll_ctl(ctx.epoll_fd, EPOLL_CTL_DEL, fd_to_remove, nullptr);
@@ -654,7 +659,7 @@ bool Server::checkAndReadCgiPipe(Context& ctx) {
 	else {
 		// Handle EAGAIN/EWOULDBLOCK more gracefully
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			Logger::red("would block");
+			//Logger::red("would block");
 			// Stop polling and wait for the next epoll notification
 			return true;  // Return true to indicate read is "complete" for now
 		}
@@ -666,7 +671,8 @@ bool Server::checkAndReadCgiPipe(Context& ctx) {
 }
 
 
-void Server::cleanupCgiResources(Context& ctx) {
+void Server::cleanupCgiResources(Context& ctx)
+{
 	if (ctx.req.cgi_out_fd > 0) {
 		epoll_ctl(ctx.epoll_fd, EPOLL_CTL_DEL, ctx.req.cgi_out_fd, nullptr);
 		globalFDS.cgi_pipe_to_client_fd.erase(ctx.req.cgi_out_fd);
@@ -678,11 +684,27 @@ void Server::cleanupCgiResources(Context& ctx) {
 
 	ctx.cgi_terminate = true;
 	ctx.cgi_terminated = true;
+	for (auto pipeIt = globalFDS.cgi_pipe_to_client_fd.begin(); pipeIt != globalFDS.cgi_pipe_to_client_fd.end(); )
+	{
+		if (pipeIt->second == ctx.client_fd)
+			pipeIt = globalFDS.cgi_pipe_to_client_fd.erase(pipeIt);
+		else
+			++pipeIt;
+	}
+	for (auto pid_fd = globalFDS.cgi_pid_to_client_fd.begin(); pid_fd != globalFDS.cgi_pid_to_client_fd.end(); )
+	{
+		if (pid_fd->second == ctx.client_fd)
+			pid_fd = globalFDS.cgi_pid_to_client_fd.erase(pid_fd);
+		else
+			++pid_fd;
+	}
+	ctx.cgi_run_to_timeout = true;
 }
 
 
-bool Server::handleCgiPipeEvent(int incoming_fd) {
-	Logger::yellow("handleCgiPipeEvent");
+bool Server::handleCgiPipeEvent(int incoming_fd)
+{
+	//Logger::yellow("handleCgiPipeEvent");
 	auto pipe_iter = globalFDS.cgi_pipe_to_client_fd.find(incoming_fd);
 	if (pipe_iter != globalFDS.cgi_pipe_to_client_fd.end()) {
 		int client_fd = pipe_iter->second;
@@ -691,7 +713,7 @@ bool Server::handleCgiPipeEvent(int incoming_fd) {
 		if (ctx_iter != globalFDS.context_map.end()) {
 			Context& ctx = ctx_iter->second;
 
-			Logger::green("CGI Pipe " + std::to_string(incoming_fd) + " ready for client " + std::to_string(client_fd));
+			//Logger::green("CGI Pipe " + std::to_string(incoming_fd) + " ready for client " + std::to_string(client_fd));
 
 			ctx.cgi_pipe_ready = true;
 			ctx.cgi_output_phase = true;

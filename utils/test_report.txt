@@ -1,0 +1,21 @@
+📝 Siege Test Report
+=====================
+✅ Found servers on ports: 8001
+8002
+8003
+8004
+8005
+8006
+8010
+8050
+8060
+8080
+8800
+9090
+✅ No restarts detected.
+📊 Siege Test Summary:
+   ✅ Successful Transactions: 
+   ❌ Failed Transactions: 
+   📈 Average Availability: 0%
+✅ Server availability is good.
+✅ No failed transactions detected.
