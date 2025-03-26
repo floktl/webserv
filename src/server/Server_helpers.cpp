@@ -96,7 +96,6 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 	{
 		path_to_check = path_to_check + "/";
 	}
-
 	if (!path_to_check.empty() && path_to_check.back() == '/'&& ctx.location.autoindex != "on")
 	{
 		path_to_check = concatenatePath(path_to_check, ctx.location.default_file);
@@ -192,6 +191,7 @@ bool Server::resetContext(Context& ctx)
 	ctx.req.chunked_state.processing = false;
 	ctx.req.is_upload_complete = false;
 	ctx.type = RequestType::INITIAL;
+	ctx.ready_for_ping_pong = false;
 	//ctx.cgi_run_to_timeout = false;
 	return true;
 }

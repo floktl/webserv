@@ -44,9 +44,11 @@ bool Server::parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs)
 	}
 	ctx.read_buffer.erase(0, header_end + 4);
 	ctx.headers_complete = true;
+	Logger::cyan("before  for ping pong: " + std::to_string(ctx.ready_for_ping_pong));
 	ctx.is_multipart = isMultipart(ctx);
 	if (!ctx.is_multipart)
 		ctx.ready_for_ping_pong = 1;
+	Logger::magenta("ready for ping pong: " + std::to_string(ctx.ready_for_ping_pong));
 
 	if (ctx.method == "POST" && ctx.headers.find("Content-Length") == ctx.headers.end() &&
 		ctx.headers.find("Transfer-Encoding") == ctx.headers.end())
@@ -232,6 +234,11 @@ void Server::parseAccessRights(Context& ctx)
 	requestedPath = ctx.path;
 	else
 	requestedPath = concatenatePath(req_root, ctx.path);
+	if (isDirectory(requestedPath) && requestedPath.back() != '/')
+	{
+		updateErrorStatus(ctx, 404, "Not found");
+		return;
+	}
 	if (requestedPath.back() != '/' && isDirectory(requestedPath))
 		requestedPath.push_back('/');
 	if (ctx.index.empty() && ctx.method != "DELETE")

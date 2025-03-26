@@ -117,6 +117,10 @@ $(NAME): $(OBJECTS)
 	@$(CC) -o $@ $^ $(LDFLAGS)
 	@echo "$(SUCCESS)"
 
+clear:
+	@echo "🧹 Clearing uploaded files..."
+	@rm -rf ./var/www/staticupload/uploads/*
+
 container-build:
 	@if ! docker ps | grep -q webserv; then \
 		echo "$(YELLOW)Building the container environment$(X)"; \
@@ -215,7 +219,7 @@ sheeptest:
 #--------------                   CLEANUP TARGETS                   -------------#
 #------------------------------------------------------------------------------#
 
-clean:
+clean: clear
 	@rm -rf $(OBJ_DIR)
 	@echo "$(RED)objects deleted$(X)"
 

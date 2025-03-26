@@ -164,7 +164,10 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		return Logger::errorLog("Read error");
 	}
 	if (bytes == 0 && !ctx.req.is_upload_complete)
+	{
+		Logger::green("return truew 168");
 		return true;
+	}
 
 	ctx.last_activity = std::chrono::steady_clock::now();
 	if (ctx.req.parsing_phase == RequestBody::PARSING_COMPLETE && ctx.multipart_fd_up_down < 0)
@@ -181,9 +184,9 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 	Logger::yellow("headers_complete " + std::to_string(ctx.headers_complete));
 	Logger::yellow("is_multipart " + std::to_string(ctx.is_multipart));
 	Logger::yellow("ready_for_ping_pong " + std::to_string(ctx.ready_for_ping_pong));
-	if (ctx.headers_complete && ctx.is_multipart && ctx.ready_for_ping_pong
+	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong
 		&& (!parseContentDisposition(ctx) || !prepareUploadPingPong(ctx)))
-			return false;
+			return Logger::errorLog("return at preppingpiong 189");
 
 	if (ctx.headers_complete && ctx.ready_for_ping_pong)
 	{
@@ -208,7 +211,8 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		extractFileContent(ctx.boundary, ctx.read_buffer, ctx.write_buffer, ctx);
 		return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 	}
-	return false;
+	Logger::green("true 214");
+	return true;
 }
 
 bool Server::handleWrite(Context& ctx)
