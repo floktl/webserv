@@ -128,7 +128,7 @@ bool Server::injectDefaultHtmlHeaders(Context& ctx)
 	headers += "Date: " + std::string(dateBuffer) + "\r\n";
 
 	headers += "Connection: " + std::string(ctx.keepAlive ? "keep-alive" : "close") + "\r\n";
-	for (const auto& cookie : ctx.setCookies)
+	for (const auto& cookie : ctx.set_cookies)
 		headers += "Set-Cookie: " + cookie.first + "=" + cookie.second + "\r\n";
 
 	headers += "\r\n";
@@ -325,7 +325,7 @@ void Server::finalizeCgiHeaders(const Context& ctx,
 	}
 	if (!hasConnection)
 		headers += "Connection: " + std::string(ctx.keepAlive ? "keep-alive" : "close") + "\r\n";
-	for (const auto& cookie : ctx.setCookies)
+	for (const auto& cookie : ctx.set_cookies)
 		headers += "Set-Cookie: " + cookie.first + "=" + cookie.second + "\r\n";
 }
 

@@ -73,7 +73,6 @@ bool Server::executeCgi(Context& ctx)
 	ctx.req.cgi_in_fd = input_pipe[1];
 	ctx.req.cgi_out_fd = output_pipe[0];
 	ctx.req.cgi_pid = pid;
-	ctx.req.state = RequestBody::STATE_CGI_RUNNING;
 	ctx.cgi_pipe_ready = false;
 	ctx.cgi_start_time = std::chrono::steady_clock::now();
 	globalFDS.cgi_pipe_to_client_fd[ctx.req.cgi_out_fd] = ctx.client_fd;
