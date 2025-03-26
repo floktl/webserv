@@ -113,7 +113,7 @@ void Server::checkAndCleanupTimeouts()
 			Context& ctx = ctx_iter->second;
 
 			auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - ctx.cgi_start_time).count() + 1;
-			if (elapsed >= ctx.timeout)
+			if (elapsed >= ctx.timeout && (ctx.multipart_fd_up_down == -1 && ctx.multipart_file_path_up_down == ""))
 			{
 				kill(pid, SIGTERM);
 				int status;
@@ -121,13 +121,13 @@ void Server::checkAndCleanupTimeouts()
 					kill(pid, SIGKILL);
 				cleanupCgiResources(ctx);
 				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-				updateErrorStatus(ctx, 504, "Gateway Timeout - CGI Process Timeout");
+				updateErrorStatus(ctx, 504, "Gateway Timeout - CGI Process Timeout" + std::to_string(ctx.client_fd));
 				ctx.cgi_run_to_timeout = true;
 				return;
 			}
 		}
 		it++;
 	}
-	log_global_fds(globalFDS);
+	//log_global_fds(globalFDS);
 	clear_global_fd_map(now);
 }

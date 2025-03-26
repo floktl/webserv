@@ -20,7 +20,6 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 		}
 		else if (eventNum == 0)
 		{
-			checkAndCleanupTimeouts();
 			continue;
 		}
 		for (int eventIter = 0; eventIter < eventNum; eventIter++)
@@ -54,7 +53,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 				handleAcceptedConnection(epoll_fd, client_fd, events[eventIter].events, configs);
 			}
 		}
-		//checkAndCleanupTimeouts();
+		checkAndCleanupTimeouts();
 	}
 	close(epoll_fd);
 	epoll_fd = -1;

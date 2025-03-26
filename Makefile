@@ -120,6 +120,7 @@ $(NAME): $(OBJECTS)
 clear:
 	@echo "🧹 Clearing uploaded files..."
 	@rm -rf ./var/www/staticupload/uploads/*
+	@rm -rf ./var/www/php/uploads/*
 
 container-build:
 	@if ! docker ps | grep -q webserv; then \

@@ -234,7 +234,7 @@ void Server::parseAccessRights(Context& ctx)
 	requestedPath = ctx.path;
 	else
 	requestedPath = concatenatePath(req_root, ctx.path);
-	if (isDirectory(requestedPath) && requestedPath.back() != '/')
+	if (isDirectory(requestedPath) && requestedPath.back() != '/' && ctx.method != "POST")
 	{
 		updateErrorStatus(ctx, 404, "Not found");
 		return;
