@@ -2,9 +2,10 @@
 
 echo "🚀 Running Siege & System Checks Inside Container..."
 
-CONFIG_FILE="../config/test.conf"  # Adjust if necessary
-LOG_FILE="./siege_log.txt"
-REPORT_FILE="./test_report.txt"
+CONFIG_FILE="./config/test.conf"
+SERVER_BINARY="./webserv"
+LOG_FILE="./utils/siege_log.txt"
+REPORT_FILE="./utils/test_report.txt"
 
 # Clear previous report
 echo "📝 Siege Test Report" > "$REPORT_FILE"
@@ -27,8 +28,12 @@ ps aux --sort=-%mem | head -10
 
 # 3️⃣ Check Binary Size
 echo -e "\n📦 Checking Binary Size of the Server..."
-ls -lh ../webserv
-size ../webserv || echo "⚠ 'size' command not available."
+ls -lh "$SERVER_BINARY"
+if command -v size &>/dev/null; then
+	size "$SERVER_BINARY"
+else
+	echo "⚠ 'size' command not available."
+fi
 
 # 4️⃣ Start Siege Test for Each Server
 echo -e "\n🔥 Running Siege Load Test on all detected servers..."

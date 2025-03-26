@@ -176,7 +176,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		if (!parseBareHeaders(ctx, configs))
 			return Logger::errorLog("Header parsing failed");
 		if (!determineType(ctx, configs))
-			return Logger::errorLog("Failed to determine request type");
+			return Logger::errorLog("Failed to determine request type on port: " + std::to_string(ctx.port));
 	}
 	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong
 		&& (!parseContentDisposition(ctx) || !prepareUploadPingPong(ctx)))
