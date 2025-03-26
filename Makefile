@@ -23,11 +23,9 @@ SUCCESS := \n\
 🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\n\
 $(GREEN)Task at the end:$(X)\n\
 $(X)	🦄 ALLE TESTS MIT....\n\
-$(X)	🦄 einmal read write send....\n\
 $(X)	🦄 file logs und logs checken....\n\
-$(X)	🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
 $(X)	🦄 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
-$(X)	🦄 Wir sollten nochmal alle config operatoren durchchecken siehe webserv.hpp in location und serverblock\n\
+$(X)	🦄 Wir sollten nochmal alle config operatoren und hostname durchchecken siehe webserv.hpp in location und serverblock\n\
 $(X)  \n\
 
 #------------------------------------------------------------------------------#

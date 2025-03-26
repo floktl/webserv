@@ -15,7 +15,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 		{
 			if (errno == EINTR)
 				break;
-			Logger::errorLog("Epoll error: " + std::string(strerror(errno)));
+			Logger::errorLog("Epoll error");
 			break;
 		}
 		else if (eventNum == 0)
@@ -114,12 +114,12 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 		Context		&ctx = contextIter->second;
 		ctx.last_activity = std::chrono::steady_clock::now();
 		if (ev & EPOLLIN){
-			Logger::white("EPOLLIN");
+			//Logger::white("EPOLLIN");
 			status = handleRead(ctx, configs);
 		}
 		if ((ev & EPOLLOUT))
 		{
-			Logger::white("EPOLLOUT");
+			//Logger::white("EPOLLOUT");
 			status = handleWrite(ctx);
 			if (status == false)
 				delFromEpoll(epoll_fd, client_fd);
@@ -140,14 +140,11 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 // Handles Reading Request Data from the Client and Processing It Accordingly
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 {
-	Logger::green("handleRead " + std::to_string(ctx.client_fd));
 	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
 
 	if (!ctx.is_multipart || ctx.req.parsing_phase != RequestBody::PARSING_BODY)
 		ctx.read_buffer.clear();
-	//Logger::red("ctx.write_buffer.clear(); handleRead");
 	ctx.write_buffer.clear();
-
 	std::memset(buffer, 0, sizeof(buffer));
 	//Logger::magenta("read handleRead");
 	ssize_t bytes = read(ctx.client_fd, buffer, sizeof(buffer));
@@ -157,14 +154,12 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		{
 			close(ctx.multipart_fd_up_down);
 			ctx.multipart_fd_up_down = -1;
-			//Logger::red("ctx.write_buffer.clear(); handleRead 2");
 			ctx.write_buffer.clear();
 		}
 		return Logger::errorLog("Read error");
 	}
 	if (bytes == 0 && !ctx.req.is_upload_complete)
 	{
-		Logger::green("return truew 168");
 		return true;
 	}
 
@@ -180,12 +175,9 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		if (!determineType(ctx, configs))
 			return Logger::errorLog("Failed to determine request type on port: " + std::to_string(ctx.port));
 	}
-	Logger::yellow("headers_complete " + std::to_string(ctx.headers_complete));
-	Logger::yellow("is_multipart " + std::to_string(ctx.is_multipart));
-	Logger::yellow("ready_for_ping_pong " + std::to_string(ctx.ready_for_ping_pong));
 	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong
 		&& (!parseContentDisposition(ctx) || !prepareUploadPingPong(ctx)))
-			return Logger::errorLog("return at preppingpiong 189");
+			return false;
 
 	if (ctx.headers_complete && ctx.ready_for_ping_pong)
 	{
@@ -210,13 +202,11 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		extractFileContent(ctx.boundary, ctx.read_buffer, ctx.write_buffer, ctx);
 		return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
 	}
-	Logger::green("true 214");
 	return true;
 }
 
 bool Server::handleWrite(Context& ctx)
 {
-	Logger::green("handleWrite");
 	bool result = false;
 
 	if (ctx.is_download && ctx.multipart_fd_up_down > 0)
@@ -237,7 +227,6 @@ bool Server::handleWrite(Context& ctx)
 			ssize_t written = write(ctx.multipart_fd_up_down, ctx.write_buffer.data(), ctx.write_buffer.size());
 			if (written < 0)
 			{
-				Logger::errorLog("Error writing to file: " + std::string(strerror(errno)));
 				close(ctx.multipart_fd_up_down);
 				ctx.multipart_fd_up_down = -1;
 				return false;
@@ -247,7 +236,6 @@ bool Server::handleWrite(Context& ctx)
 			{
 				ctx.req.current_body_length += written;
 				Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "(" + std::to_string(ctx.multipart_fd_up_down) + ") Upload 8");
-				//Logger::red("ctx.write_buffer.clear(); handleWrite");
 				ctx.write_buffer.clear();
 			}
 

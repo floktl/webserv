@@ -55,7 +55,7 @@ int Server::initEpoll()
 	int epoll_fd = epoll_create(1);
 	if (epoll_fd < 0)
 	{
-		Logger::errorLog("Failed to create epoll: " + std::string(strerror(errno)));
+		Logger::errorLog("Failed to create epoll");
 		return -1;
 	}
 
@@ -66,19 +66,19 @@ int Server::initEpoll()
 		flags |= FD_CLOEXEC;
 		if (fcntl(epoll_fd, F_SETFD, flags) == -1)
 		{
-			Logger::errorLog("Failed to set FD_CLOEXEC: " + std::string(strerror(errno)));
+			Logger::errorLog("Failed to set FD_CLOEXEC");
 			close(epoll_fd);
 			return -1;
 		}
 	}
 	else
-		Logger::errorLog("Failed to get initial flags: " + std::string(strerror(errno)));
+		Logger::errorLog("Failed to get initial flags");
 
 	int verify_flags = fcntl(epoll_fd, F_GETFD);
 
 	if (verify_flags == -1)
 	{
-		Logger::errorLog("epoll_fd invalid after creation: " + std::string(strerror(errno)));
+		Logger::errorLog("epoll_fd invalid after creation");
 		close(epoll_fd);
 		return -1;
 	}

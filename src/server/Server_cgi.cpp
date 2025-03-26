@@ -96,7 +96,6 @@ bool Server::detectHtmlStartAndHeaderSeparator(Context& ctx, const std::string& 
 		buffer_start.find("<html") != std::string::npos)
 	{
 		startsWithHtml = true;
-		Logger::green("Response starts with HTML without headers");
 	}
 
 	it = std::search(ctx.write_buffer.begin(), ctx.write_buffer.end(),
@@ -113,8 +112,6 @@ bool Server::detectHtmlStartAndHeaderSeparator(Context& ctx, const std::string& 
 
 bool Server::injectDefaultHtmlHeaders(Context& ctx)
 {
-	Logger::green("No headers found but content starts with HTML, adding default headers");
-
 	std::string headers = "HTTP/1.1 200 OK\r\n";
 	headers += "Content-Type: text/html; charset=UTF-8\r\n";
 	headers += "Content-Length: " + std::to_string(ctx.write_buffer.size()) + "\r\n";
@@ -379,30 +376,30 @@ void Server::finalizeCgiWriteBuffer(Context& ctx,
 
 bool Server::prepareCgiHeaders(Context& ctx)
 {
-    std::string separator = "\r\n\r\n";
-    std::string separator_alt = "\n\n";
+	std::string separator = "\r\n\r\n";
+	std::string separator_alt = "\n\n";
 	bool startsWithHtml = false;
 	std::vector<char>::iterator it;
 
 	detectHtmlStartAndHeaderSeparator(ctx, separator, separator_alt, startsWithHtml, it);
 
-    bool hasHeaders = (it != ctx.write_buffer.end());
+	bool hasHeaders = (it != ctx.write_buffer.end());
 
 	if (!hasHeaders && startsWithHtml)
 		return injectDefaultHtmlHeaders(ctx);
 
-    size_t headerEnd = hasHeaders ? std::distance(ctx.write_buffer.begin(), it) : 0;
-    size_t separatorSize = (it != ctx.write_buffer.end() &&
-                        std::string(it, it + 4) == "\r\n\r\n") ? 4 : 2;
+	size_t headerEnd = hasHeaders ? std::distance(ctx.write_buffer.begin(), it) : 0;
+	size_t separatorSize = (it != ctx.write_buffer.end() &&
+						std::string(it, it + 4) == "\r\n\r\n") ? 4 : 2;
 
-    std::string existingHeaders;
-    if (hasHeaders)
-        existingHeaders = std::string(ctx.write_buffer.begin(), it);
+	std::string existingHeaders;
+	if (hasHeaders)
+		existingHeaders = std::string(ctx.write_buffer.begin(), it);
 
-    int cgiStatusCode = 200;
-    std::string cgiStatusMessage = "OK";
-    std::string cgiLocation;
-    bool cgiRedirect = false;
+	int cgiStatusCode = 200;
+	std::string cgiStatusMessage = "OK";
+	std::string cgiLocation;
+	bool cgiRedirect = false;
 
 	if (hasHeaders)
 		parseCgiHeaders(existingHeaders, cgiStatusCode, cgiStatusMessage, cgiLocation, cgiRedirect);
@@ -418,11 +415,11 @@ bool Server::prepareCgiHeaders(Context& ctx)
 	bool hasDate = hasHeaders && existingHeaders.find("Date:") != std::string::npos;
 	bool hasConnection = hasHeaders && existingHeaders.find("Connection:") != std::string::npos;
 	appendStandardOrCgiHeaders(ctx, hasHeaders, existingHeaders, headers, cgiLocation, isRedirect, hasContentType);
-    finalizeCgiHeaders(ctx, headers, existingHeaders, headerEnd, separatorSize,
+	finalizeCgiHeaders(ctx, headers, existingHeaders, headerEnd, separatorSize,
 		hasHeaders, isRedirect, hasContentLength, hasServer, hasDate, hasConnection);
 	finalizeCgiWriteBuffer(ctx, existingHeaders, headers, headerEnd, separatorSize,
 		hasHeaders, isRedirect, cgiRedirect);
-    return true;
+	return true;
 }
 
 
@@ -433,14 +430,11 @@ bool Server::handleInitialCgiWritePhase(Context& ctx)
 		prepareCgiHeaders(ctx);
 		ctx.cgi_headers_send = true;
 	}
-
+	//Logger::magenta("send handleInitialCgiWritePhase");
 	ssize_t sent = send(ctx.client_fd, &ctx.write_buffer[0], ctx.write_buffer.size(), MSG_NOSIGNAL);
 
 	if (sent < 0)
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT | EPOLLET);
-
 		cleanupCgiResources(ctx);
 		return false;
 	}
@@ -488,7 +482,6 @@ bool Server::handleCgiOutputPhase(Context& ctx)
 
 			if (it_crlf == ctx.write_buffer.end() && it_lf == ctx.write_buffer.end())
 			{
-				Logger::yellow("Adding missing header ending for Location redirect");
 				ctx.write_buffer.insert(ctx.write_buffer.end(), {'\r', '\n', '\r', '\n'});
 			}
 		}
@@ -547,6 +540,7 @@ bool Server::checkAndReadCgiPipe(Context& ctx)
 	char buffer[DEFAULT_CGIBUFFER_SIZE];
 	ssize_t bytes_read = 0;
 
+	//Logger::magenta("read checkAndReadCgiPipe");
 	bytes_read = read(ctx.req.cgi_out_fd, buffer, sizeof(buffer));
 
 	if (bytes_read > 0)

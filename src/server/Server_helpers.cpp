@@ -175,7 +175,6 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 // Resets the Context, Clearing Request Data and Restoring Initial Values
 bool Server::resetContext(Context& ctx)
 {
-	Logger::red("reset Context: " + std::to_string(ctx.client_fd));
 	ctx.cookies.clear();
 	ctx.set_cookies.clear();
 	ctx.read_buffer.clear();

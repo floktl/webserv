@@ -44,12 +44,9 @@ bool Server::parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs)
 	}
 	ctx.read_buffer.erase(0, header_end + 4);
 	ctx.headers_complete = true;
-	Logger::cyan("before  for ping pong: " + std::to_string(ctx.ready_for_ping_pong));
 	ctx.is_multipart = isMultipart(ctx);
 	if (!ctx.is_multipart)
 		ctx.ready_for_ping_pong = 1;
-	Logger::magenta("ready for ping pong: " + std::to_string(ctx.ready_for_ping_pong));
-
 	if (ctx.method == "POST" && ctx.headers.find("Content-Length") == ctx.headers.end() &&
 		ctx.headers.find("Transfer-Encoding") == ctx.headers.end())
 		return updateErrorStatus(ctx, 411, "Length Required");
@@ -164,7 +161,6 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 
 bool Server::prepareUploadPingPong(Context& ctx)
 {
-	Logger::yellow("prepareUploadPingPong " + std::to_string(ctx.client_fd));
 	ctx.last_activity = std::chrono::steady_clock::now();
 	if (ctx.multipart_file_path_up_down.empty())
 		return true;
@@ -178,7 +174,6 @@ bool Server::prepareUploadPingPong(Context& ctx)
 	if (!(ctx.multipart_file_path_up_down.size() >= ctx.root.size()
 			&& ctx.multipart_file_path_up_down.substr(0, ctx.root.size()) == ctx.root))
 		ctx.multipart_file_path_up_down = concatenatePath(ctx.root, ctx.multipart_file_path_up_down);
-	Logger::magenta(ctx.multipart_file_path_up_down);
 	std::string upload_dir = ctx.multipart_file_path_up_down.substr(0, ctx.multipart_file_path_up_down.find_last_of("/"));
 
 	struct stat dir_stat;
@@ -282,7 +277,7 @@ int extractPort(const std::string& header)
 					int port = std::stoi(port_str);
 					if (port <= 0 || port > 65535)
 					{
-						Logger::red("Invalid port number: '" + port_str + "'");
+						Logger::errorLog("Invalid port number: '" + port_str + "'");
 						return -1;
 					}
 					return port;

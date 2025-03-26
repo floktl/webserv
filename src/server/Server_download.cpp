@@ -43,6 +43,7 @@ bool Server::buildDownloadHeaders(Context &ctx)
 
 	response << "\r\n";
 
+	//Logger::magenta("send buildDownloadHeaders");
 	if (send(ctx.client_fd, response.str().c_str(), response.str().size(), MSG_NOSIGNAL) < 0)
 	{
 		close(ctx.multipart_fd_up_down);
@@ -59,6 +60,7 @@ bool Server::buildDownloadRead(Context &ctx)
 {
 	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
 
+	//Logger::magenta("read buildDownloadRead");
 	ssize_t bytes_read = read(ctx.multipart_fd_up_down, buffer, sizeof(buffer));
 
 	if (bytes_read < 0)
@@ -91,6 +93,7 @@ bool Server::buildDownloadSend(Context &ctx)
 {
 	if (ctx.write_buffer.size() > 0)
 	{
+		//Logger::magenta("send buildDownloadSend");
 		if (send(ctx.client_fd, ctx.write_buffer.data(), ctx.write_buffer.size(), MSG_NOSIGNAL) < 0)
 		{
 			close(ctx.multipart_fd_up_down);

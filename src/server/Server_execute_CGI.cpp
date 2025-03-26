@@ -15,7 +15,6 @@ bool Server::create_CGI_pipes(Context& ctx, int (&input_pipe)[2], int (&output_p
 	if (pipe(input_pipe) < 0 || pipe(output_pipe) < 0)
 	{
 		Logger::error("Failed to create pipes for CGI");
-		Logger::file("Failed to create pipes for CGI");
 		return updateErrorStatus(ctx, 500, "Internal Server Error - Pipe Creation Failed");
 	}
 
@@ -82,9 +81,12 @@ bool Server::executeCgi(Context& ctx)
 	ev.events = EPOLLIN | EPOLLET;
 	ev.data.fd = ctx.req.cgi_out_fd;
 	if (epoll_ctl(ctx.epoll_fd, EPOLL_CTL_ADD, ctx.req.cgi_out_fd, &ev) < 0)
-		Logger::error("Failed to add CGI output pipe to epoll: " + std::string(strerror(errno)));
+		Logger::error("Failed to add CGI output pipe to epoll");
 	if (!ctx.body.empty())
+	{
+		//Logger::magenta("write executeCgi");
 		write(ctx.req.cgi_in_fd, ctx.body.c_str(), ctx.body.length());
+	}
 	close(ctx.req.cgi_in_fd);
 	ctx.req.cgi_in_fd = -1;
 	ctx.last_activity = std::chrono::steady_clock::now();
