@@ -121,7 +121,7 @@ void Server::checkAndCleanupTimeouts()
 					kill(pid, SIGKILL);
 				cleanupCgiResources(ctx);
 				modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
-				updateErrorStatus(ctx, 504, "Gateway Timeout - CGI Process Timeout" + std::to_string(ctx.client_fd));
+				updateErrorStatus(ctx, 504, "Gateway Timeout");
 				ctx.cgi_run_to_timeout = true;
 				return;
 			}

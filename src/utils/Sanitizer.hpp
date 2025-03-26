@@ -26,7 +26,7 @@ class Sanitizer {
 		static bool sanitize_locationMethods(std::string& locationMethods);
 		static bool sanitize_locationReturn(std::string& locationReturn);
 		static bool sanitize_locationRoot(std::string& locationRoot, const std::string& pwd);
-		static bool sanitize_locationAutoindex(std::string& locationAutoindex, bool &doAutoindex);
+		static bool sanitize_locationAutoindex(std::string& locationAutoindex);
 		static bool sanitize_locationDefaultFile(std::string& locationDefaultFile);
 		static bool sanitize_locationUploadStore(std::string& locationUploadStore, const std::string& pwd, const std::string& serverRoot, const std::string& locationRoot);
 		static bool sanitize_locationClMaxBodSize(long locationClMaxBodSize);

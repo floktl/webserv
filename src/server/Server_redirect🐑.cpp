@@ -16,7 +16,7 @@ bool Server::redirectAction(Context& ctx)
 			<< "Location: " << return_url << "\r\n"
 			<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
 
-	for (const auto& cookiePair : ctx.setCookies)
+	for (const auto& cookiePair : ctx.set_cookies)
 	{
 		Cookie cookie;
 		cookie.name = cookiePair.first;

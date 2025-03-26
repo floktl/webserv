@@ -125,6 +125,6 @@ void Server::handleSessionCookies(Context& ctx)
 				<< "c" << ctx.client_fd
 				<< "t" << std::chrono::duration_cast<std::chrono::milliseconds>(
 						ctx.last_activity.time_since_epoch()).count();
-		ctx.setCookies.push_back(std::make_pair("WEBSERV_SESSION", sessionId.str()));
+		ctx.set_cookies.push_back(std::make_pair("WEBSERV_SESSION", sessionId.str()));
 	}
 }

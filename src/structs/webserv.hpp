@@ -16,12 +16,6 @@
 #define TIMEOUT_MS					1000
 #define DEFAULT_TIMEOUT				10
 
-struct ChunkedState
-{
-	bool		processing = false;
-	std::string	buffer;
-};
-
 // Struct to save the location from each server block
 struct Location
 {
@@ -37,7 +31,6 @@ struct Location
 	std::string		cgi_filetype;
 	std::string		return_code;
 	std::string		return_url;
-	bool			doAutoindex{true};
 	bool			allowGet{true};
 	bool			allowPost{false};
 	bool			allowDelete{false};
@@ -83,50 +76,15 @@ struct RequestBody
 	int			cgi_in_fd;
 	int			cgi_out_fd;
 	pid_t		cgi_pid;
-	bool		is_directory{false};
-	bool		cgiMethodChecked{false};
-	bool		clientMethodChecked{false};
-
-	enum State
-	{
-		STATE_READING_REQUEST,
-		STATE_PREPARE_CGI,
-		STATE_CGI_RUNNING,
-		STATE_SENDING_RESPONSE
-	} state;
-
-	enum Task
-	{
-		PENDING,
-		IN_PROGRESS,
-		COMPLETED
-	} task;
-	int pipe_fd{-1};
-
-	std::string content_type;
 
 
 	std::deque<char> response_buffer;
 	std::deque<char> request_buffer;
 	std::deque<char> cgi_output_buffer;
 
-	std::chrono::steady_clock::time_point last_activity = std::chrono::steady_clock::now();
-
-;
-	static constexpr std::chrono::seconds TIMEOUT_DURATION{5};
-
-	ServerBlock*	associated_conf;
-	std::string		location_path;
-
-	ChunkedState chunked_state;
-
-	int status_code;
-
-	std::string		received_body;
 	size_t			expected_body_length = 0;
 	size_t			current_body_length = 0;
 	bool			is_upload_complete = false;
-	bool			keep_alive;
 
 	ParsingPhase	parsing_phase { PARSING_HEADER };
 };
@@ -146,7 +104,6 @@ struct Context
 	std::string							body = "";
 
 	std::chrono::steady_clock::time_point	last_activity = std::chrono::steady_clock::time_point();
-	static constexpr std::chrono::seconds	TIMEOUT_DURATION{5};
 
 	std::string	location_path = "";
 	std::string	requested_path = "";
@@ -164,21 +121,20 @@ struct Context
 	std::string	root;
 	std::string	index;
 	std::string	approved_req_path;
-	long long	content_length = 0;
 
 	long long	client_max_body_size = -1;
 	int			timeout = DEFAULT_TIMEOUT;
-	std::string doAutoIndex = "";
+	std::string do_autoindex = "";
 
 	std::string read_buffer = "";
-	std::vector<std::pair<std::string, std::string>> setCookies;
+	std::vector<std::pair<std::string, std::string>> set_cookies;
 	std::vector<std::pair<std::string, std::string>> cookies;
 	std::vector<std::string> blocks_location_paths;
 
 	int					multipart_fd_up_down = -1;
 	std::string			multipart_file_path_up_down = "";
 	std::vector<char>	write_buffer;
-	bool				useLocRoot;
+	bool				use_loc_root;
 	size_t				header_offset = 0;
 	std::string			boundary = "";
 	bool				found_first_boundary = false;
@@ -195,11 +151,10 @@ struct Context
 	bool				cgi_executed = false;
 	bool				cgi_terminate = false;
 	bool				cgi_terminated = false;
-	bool				wasCgiDel = false;
+	bool				was_cgi_del = false;
 	bool				cgi_pipe_ready = false;
 	bool				cgi_run_to_timeout = false;
 	std::chrono::steady_clock::time_point cgi_start_time = std::chrono::steady_clock::now();
-	bool cgi_needs_more_data = false;
 
 };
 
@@ -224,7 +179,6 @@ struct Cookie
 {
 	std::string	name = "";
 	std::string	value = "";
-	std::string	domain = "";
 	std::string	path = "";
 	time_t		expires = 0;
 };

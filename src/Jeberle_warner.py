@@ -124,7 +124,7 @@ IGNORED_FUNCTIONS_AND_KEYWORDS = {
 	"sanitize_locationAutoindex", "sanitize_locationDefaultFile", "isValidUploadPath",
 
 	# ✅ Structs, Enums & Custom Types
-	"ServerBlock", "ChunkedState", "processing", "timeout", "ConfigHandler", "reset", "error",
+	"ServerBlock", "processing", "timeout", "ConfigHandler", "reset", "error",
 	"errorLog", "errorHandler", "Server", "ErrorHandler", "globalFDS", "color", "newline",
 	"color", "pop_back", "Location", "printSize", "undefined", "getGlobalFds", "getTaskStatus",
 	"server", "Content", "printIntValue", "printValue", "time_since_epoch", "formatSize",

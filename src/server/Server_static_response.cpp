@@ -12,7 +12,7 @@ void Server::buildStaticResponse(Context &ctx)
 
 	std::ifstream file(fullPath, std::ios::binary);
 	if (!file) {
-		updateErrorStatus(ctx, 404, "Not found");
+		updateErrorStatus(ctx, 404, "Not Found");
 		return;
 	}
 
@@ -27,7 +27,7 @@ void Server::buildStaticResponse(Context &ctx)
 				<< "Content-Length: " << content_str.length() << "\r\n"
 				<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
 
-	for (const auto& cookiePair : ctx.setCookies) {
+	for (const auto& cookiePair : ctx.set_cookies) {
 		Cookie cookie;
 		cookie.name = cookiePair.first;
 		cookie.value = cookiePair.second;
@@ -66,7 +66,7 @@ bool Server::buildAutoIndexResponse(Context& ctx, std::stringstream* response)
 // Retrieves Directory Entries, Filtering and Sorting Them for Directory Listing
 std::vector<DirEntry> Server::getDirectoryEntries(Context& ctx)
 {
-	DIR* dir = opendir(ctx.doAutoIndex.c_str());
+	DIR* dir = opendir(ctx.do_autoindex.c_str());
 	if (!dir)
 		return {};
 	std::vector<DirEntry> entries;
@@ -81,7 +81,7 @@ std::vector<DirEntry> Server::getDirectoryEntries(Context& ctx)
 			entries.push_back({"..", true, 0, 0});
 			continue;
 		}
-		std::string fullPath = ctx.doAutoIndex;
+		std::string fullPath = ctx.do_autoindex;
 		if (fullPath.back() != '/')
 			fullPath += '/';
 		fullPath += name;

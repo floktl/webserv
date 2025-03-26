@@ -5,11 +5,11 @@
 // otherwise falls back to the server's root.
 std::string Server::retreiveReqRoot(Context &ctx)
 {
-	ctx.useLocRoot = false;
+	ctx.use_loc_root = false;
 	std::string req_root = ctx.location.root;
 	if (req_root.empty())
 	{
-		ctx.useLocRoot = true;
+		ctx.use_loc_root = true;
 		req_root = ctx.root;
 	}
 	return req_root;
@@ -35,7 +35,7 @@ bool Server::deleteHandler(Context &ctx)
 	if (ctx.method != "DELETE")
 	{
 		std::string adjustedPath = ctx.path;
-		if (!ctx.useLocRoot)
+		if (!ctx.use_loc_root)
 			adjustedPath = subtractLocationPath(ctx.path, ctx.location);
 		requestedPath = concatenatePath(req_root, adjustedPath);
 	}
@@ -49,7 +49,7 @@ bool Server::deleteHandler(Context &ctx)
 	for (auto it = globalFDS.context_map.begin(); it != globalFDS.context_map.end(); ++it)
 	{
 		if (it->second.multipart_file_path_up_down == requestedPath && it->second.client_fd != ctx.client_fd)
-			return (updateErrorStatus(ctx, 402, "File is currently in use and cannot be deleted."));
+			return (updateErrorStatus(ctx, 409, "Conflict"));
 	}
 	//Logger::black("DELETEEEEEEEEEEEEE          "+ requestedPath);
 	std::filesystem::remove(requestedPath);

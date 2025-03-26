@@ -47,12 +47,10 @@ class Server
 		bool	delFromEpoll(int epfd, int fd);
 		int		setNonBlocking(int fd);
 		void	setTimeout(int t);
-		void	cleanup();
 		void	parseAccessRights(Context& ctx);
 		bool	checkAccessRights(Context &ctx, std::string path);
 		bool	fileReadable(const std::string& path);
 		bool	fileExecutable(const std::string& path);
-		bool	dirReadable(const std::string& path);
 		bool	dirWritable(const std::string& path);
 		bool	handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, std::vector<ServerBlock> &configs);
 		// serv	_helpers
@@ -66,7 +64,7 @@ class Server
 		// Server Loop
 		bool		acceptNewConnection(int epoll_fd, int server_fd, std::vector<ServerBlock> &configs);
 		void		checkAndCleanupTimeouts();
-		void clear_global_fd_map(std::chrono::steady_clock::time_point now);
+		void		clear_global_fd_map(std::chrono::steady_clock::time_point now);
 
 		void		logContext(const Context& ctx, const std::string& event = "");
 		std::string	requestTypeToString(RequestType type);
@@ -180,7 +178,6 @@ class Server
 
 std::string		extractHostname(const std::string& header);
 void			printServerBlock(ServerBlock& serverBlock);
-std::string		getEventDescription(uint32_t ev);
 void 			log_global_fds(const GlobalFDS& fds);
 void 			log_server_configs(const std::vector<ServerBlock>& configs);
 bool 			updateErrorStatus(Context &ctx, int error_code, std::string error_string);
