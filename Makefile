@@ -29,12 +29,8 @@ $(X)	🦄 file logs und logs checken....\n\
 $(X)	🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
 $(X)	🦄 error code pruefen gegen statuses.... \n\
 $(X)	🦄 unused variables functions etc... \n\
-
-$(X)  \n\
-$(GREEN)Others:$(X)\n\
-$(X)	🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
-$(X)	🐑  ist folder bier waere file. also 404 betrifft cgi UND static\n\
-$(X)	🐑 nochmaliger upload click in cgi content bei laufendem upload....\n\
+$(X)	🦄 cgi code aufraeumen... \n\
+$(X)	🦄 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
 $(X)  \n\
 
 #------------------------------------------------------------------------------#
