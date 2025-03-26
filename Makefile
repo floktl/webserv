@@ -23,14 +23,9 @@ SUCCESS := \n\
 🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\n\
 $(GREEN)Task at the end:$(X)\n\
 $(X)	🦄 ALLE TESTS MIT....\n\
-$(X)	🦄 wildcard checken....\n\
-$(X)	🦄 forbidden fucntions\n\
 $(X)	🦄 einmal read write send....\n\
 $(X)	🦄 file logs und logs checken....\n\
 $(X)	🦄 Checking the value of errno is strictly forbidden after a read or a write operation\n\
-$(X)	🦄 error code pruefen gegen statuses.... \n\
-$(X)	💩 unused variables functions etc... \n\
-$(X)	🦄 cgi code aufraeumen... \n\
 $(X)	🦄 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
 $(X)	🦄 Wir sollten nochmal alle config operatoren durchchecken siehe webserv.hpp in location und serverblock\n\
 $(X)  \n\
@@ -47,13 +42,6 @@ NAME=webserv
 
 CC=c++
 CFLAGS = -Wall -Wextra -Werror -Wshadow -std=c++17 -g -include $(PCH)
-#LDFLAGS=-flto=$(shell nproc)
-
-#ifeq ($(DEBUG), 1)
-#	CFLAGS += -fsanitize=address -g
-#endif
-
-#DEPFLAGS=-MMD -MP -MT $@
 PCH = ./src/utils/pch.hpp
 PCHGCH = $(PCH).gch
 
@@ -77,12 +65,34 @@ vpath %.d $(DEP_DIR)
 #--------------                        SRC                        -------------#
 #------------------------------------------------------------------------------#
 
-SRCS=	src/main.cpp \
-		src/error/ErrorHandler.cpp \
-		src/utils/Logger.cpp \
-		src/utils/Sanitizer.cpp \
-		$(wildcard src/config/*cpp) \
-		$(wildcard src/server/*cpp) \
+SRCS = \
+	src/main.cpp \
+	src/error/ErrorHandler.cpp \
+	src/utils/Logger.cpp \
+	src/utils/Sanitizer.cpp \
+	src/config/config_debug.cpp \
+	src/config/config_utils.cpp \
+	src/config/ConfigHandler_parseline.cpp \
+	src/config/ConfigHandler_sanitize.cpp \
+	src/config/ConfigHandler_setup.cpp \
+	src/server/Server_body_parsing.cpp \
+	src/server/Server_cgi.cpp \
+	src/server/Server_cookies.cpp \
+	src/server/Server_debug.cpp \
+	src/server/Server_download.cpp \
+	src/server/Server_Epoll_Management.cpp \
+	src/server/Server_execute_CGI.cpp \
+	src/server/Server_file_handling.cpp \
+	src/server/Server_helpers.cpp \
+	src/server/Server_hostname.cpp \
+	src/server/Server_init.cpp \
+	src/server/Server_loop.cpp \
+	src/server/Server_parse_Header.cpp \
+	src/server/Server_path_access.cpp \
+	src/server/Server_path_helpers.cpp \
+	src/server/Server_redirect.cpp \
+	src/server/Server_static_handler.cpp \
+	src/server/Server_static_response.cpp
 
 #------------------------------------------------------------------------------#
 #--------------                      OBJECTS                      -------------#
