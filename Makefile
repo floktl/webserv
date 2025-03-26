@@ -22,6 +22,7 @@ SUCCESS := \n\
 🐑                                                                                                          🐑\n\
 🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\n\
 $(GREEN)Task at the end:$(X)\n\
+$(X)	🦄 ALLE TESTS MIT MAKE LEAK!!!!!!!....\n\
 $(X)	🦄 wildcard checken....\n\
 $(X)	🦄 forbidden fucntions\n\
 $(X)	🦄 einmal read write send....\n\
@@ -31,6 +32,7 @@ $(X)	🦄 error code pruefen gegen statuses.... \n\
 $(X)	🦄 unused variables functions etc... \n\
 $(X)	🦄 cgi code aufraeumen... \n\
 $(X)	🦄 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
+$(X)	🦄 Wir sollten nochmal alle config operatoren durchchecken siehe webserv.hpp in location und serverblock\n\
 $(X)  \n\
 
 #------------------------------------------------------------------------------#

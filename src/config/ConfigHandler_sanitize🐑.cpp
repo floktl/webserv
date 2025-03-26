@@ -62,7 +62,7 @@ bool ConfigHandler::validateLocationConfigs(ServerBlock& serverConf, size_t serv
 
 		// Validate Location Specific Directives
 		if ((!loc.root.empty() && !Sanitizer::sanitize_locationRoot(loc.root, expandEnvironmentVariables("$PWD", env)))
-			|| (!Sanitizer::sanitize_locationAutoindex(loc.autoindex, loc.doAutoindex))
+			|| (!Sanitizer::sanitize_locationAutoindex(loc.autoindex))
 			|| (!loc.default_file.empty() && !Sanitizer::sanitize_locationDefaultFile(loc.default_file))
 			|| (!loc.cgi.empty() && !Sanitizer::sanitize_locationCgi(loc.cgi, loc.cgi_filetype, expandEnvironmentVariables("$PWD", env))))
 			return confErr();

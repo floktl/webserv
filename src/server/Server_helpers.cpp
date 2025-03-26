@@ -177,7 +177,7 @@ bool Server::resetContext(Context& ctx)
 {
 	Logger::red("reset Context: " + std::to_string(ctx.client_fd));
 	ctx.cookies.clear();
-	ctx.setCookies.clear();
+	ctx.set_cookies.clear();
 	ctx.read_buffer.clear();
 	ctx.headers.clear();
 	ctx.method.clear();
@@ -187,8 +187,6 @@ bool Server::resetContext(Context& ctx)
 	ctx.error_code = 0;
 	ctx.req.current_body_length = 0;
 	ctx.req.expected_body_length = 0;
-	ctx.req.received_body.clear();
-	ctx.req.chunked_state.processing = false;
 	ctx.req.is_upload_complete = false;
 	ctx.type = RequestType::INITIAL;
 	ctx.ready_for_ping_pong = false;

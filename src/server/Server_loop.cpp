@@ -95,7 +95,7 @@ bool Server::acceptNewConnection(int epoll_fd, int server_fd, std::vector<Server
 		ctx.epoll_fd = epoll_fd;
 		ctx.type = RequestType::INITIAL;
 		ctx.last_activity = std::chrono::steady_clock::now();
-		ctx.doAutoIndex = "";
+		ctx.do_autoindex = "";
 		ctx.keepAlive = true;
 		ctx.error_code = 0;
 		globalFDS.context_map[client_fd] = ctx;
@@ -306,7 +306,7 @@ bool Server::handleWrite(Context& ctx)
 		return getErrorHandler()->generateErrorResponse(ctx);
 	if (result)
 	{
-		ctx.doAutoIndex = "";
+		ctx.do_autoindex = "";
 		if (ctx.keepAlive)
 			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLIN | EPOLLET);
 		else

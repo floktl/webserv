@@ -135,18 +135,7 @@ bool Server::parseHeaderFields(Context& ctx, std::istringstream& stream)
 			value = value.substr(value.find_first_not_of(" "));
 			ctx.headers[key] = value;
 
-			if (key == "Content-Length")
-			{
-				try
-				{
-					ctx.content_length = std::stoull(value);
-				}
-				catch (const std::exception& e)
-				{
-					return (updateErrorStatus(ctx, 400, "Bad Request - Invalid Content-Length"));
-				}
-			}
-			else if (key == "Cookie")
+			if (key == "Cookie")
 				parseCookies(ctx, value);
 		}
 	}
@@ -225,7 +214,7 @@ void Server::parseAccessRights(Context& ctx)
 		ctx.requested_path = ctx.path;
 		if (ctx.type == CGI)
 		{
-			ctx.wasCgiDel = true;
+			ctx.was_cgi_del = true;
 			ctx.type = STATIC;
 		}
 	}
@@ -248,7 +237,7 @@ void Server::parseAccessRights(Context& ctx)
 	std::string adjustedPath = ctx.path;
 	if (ctx.method != "DELETE")
 	{
-		if (!ctx.useLocRoot)
+		if (!ctx.use_loc_root)
 			adjustedPath = subtractLocationPath(ctx.path, ctx.location);
 		if (!requestedPath.empty() && requestedPath.back() == '/' && ctx.location.autoindex == "on")
 		{
@@ -256,7 +245,7 @@ void Server::parseAccessRights(Context& ctx)
 			if (fileReadable(tmppath))
 				requestedPath = tmppath;
 			else
-				ctx.doAutoIndex = requestedPath;
+				ctx.do_autoindex = requestedPath;
 		}
 		else if (!requestedPath.empty() && requestedPath.back() == '/')
 			requestedPath = concatenatePath(requestedPath, ctx.location.default_file);
@@ -267,7 +256,7 @@ void Server::parseAccessRights(Context& ctx)
 
 	if (ctx.type == ERROR)
 		return;
-	if (ctx.type != REDIRECT && !ctx.wasCgiDel)
+	if (ctx.type != REDIRECT && !ctx.was_cgi_del)
 		checkAccessRights(ctx, requestedPath);
 	if (ctx.type == ERROR)
 		return;

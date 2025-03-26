@@ -28,12 +28,6 @@ bool Server::fileExecutable(const std::string& path)
 	return (stat(path.c_str(), &st) == 0 && (st.st_mode & S_IXUSR));
 }
 
-// Checks if a directory is readable
-bool Server::dirReadable(const std::string& path)
-{
-	struct stat st;
-	return (stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode) && (st.st_mode & S_IRUSR));
-}
 
 // Checks if a directory is written
 bool Server::dirWritable(const std::string& path)
@@ -46,17 +40,17 @@ bool Server::dirWritable(const std::string& path)
 bool Server::checkAccessRights(Context &ctx, std::string path)
 {
 	if (!fileReadable(path) && ctx.method == "GET")
-		return updateErrorStatus(ctx, 404, path + " Not found in 1. checkaccessright()");
+		return updateErrorStatus(ctx, 404, path + " Not found");
 	if (!fileReadable(path) && ctx.method == "DELETE")
-		return updateErrorStatus(ctx, 404, path + " Not found in 2. checkaccessright()");
+		return updateErrorStatus(ctx, 404, path + " Not found");
 	if (!fileReadable(path) && ctx.method != "POST")
-		return updateErrorStatus(ctx, 403, "Forbidden in 1. checkAccessRights()");
+		return updateErrorStatus(ctx, 403, "Forbidden");
 
 	if (ctx.method == "POST")
 	{
 		std::string uploadDir = getDirectory(path);
 		if (!dirWritable(uploadDir))
-			return updateErrorStatus(ctx, 403, "Forbidden in 2. checkAccessRights()");
+			return updateErrorStatus(ctx, 403, "Forbidden");
 	}
 
 	if (path.length() > 4096)

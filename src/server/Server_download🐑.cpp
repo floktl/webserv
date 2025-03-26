@@ -32,7 +32,7 @@ bool Server::buildDownloadHeaders(Context &ctx)
 			<< "Content-Disposition: attachment; filename=\"" << filename << "\"\r\n"
 			<< "Connection: " << (ctx.keepAlive ? "keep-alive" : "close") << "\r\n";
 
-	for (const auto& cookiePair : ctx.setCookies)
+	for (const auto& cookiePair : ctx.set_cookies)
 	{
 		Cookie cookie;
 		cookie.name = cookiePair.first;

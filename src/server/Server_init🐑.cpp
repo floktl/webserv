@@ -22,12 +22,6 @@ void Server::setTimeout(int t)
 	timeout = t;
 }
 
-// Performs Cleanup Operations Search as Removing Added Server Names from /etc /hosts
-void Server::cleanup()
-{
-	removeAddedServerNamesFromHosts();
-}
-
 // Returns a Pointer to the Error Handler Instance
 ErrorHandler *Server::getErrorHandler(void)
 {

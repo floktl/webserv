@@ -102,36 +102,6 @@ void log_server_configs(const std::vector<ServerBlock>& configs)
 	Logger::file("]\n");
 }
 
-// Returns a String Description of an Epoll Event Based on Its Event Flags
-std::string getEventDescription(uint32_t ev)
-{
-	std::ostringstream description;
-
-	if (ev & EPOLLIN)
-		description << "EPOLLIN ";
-	if (ev & EPOLLOUT)
-		description << "EPOLLOUT ";
-	if (ev & EPOLLHUP)
-		description << "EPOLLHUP ";
-	if (ev & EPOLLERR)
-		description << "EPOLLERR ";
-	if (ev & EPOLLRDHUP)
-		description << "EPOLLRDHUP ";
-	if (ev & EPOLLPRI)
-		description << "EPOLLPRI ";
-	if (ev & EPOLLET)
-		description << "EPOLLET ";
-	if (ev & EPOLLONESHOT)
-		description << "EPOLLONESHOT ";
-
-// Remove the Trailing Space IF There's Any Description
-	std::string result = description.str();
-	if (!result.empty() && result.back() == ' ')
-		result.pop_back();
-
-	return result.empty() ? "UNKNOWN EVENT" : result;
-}
-
 // Logs Global File Descriptor, including Epoll FD and Client-to-Server FD Mappings
 void log_global_fds(const GlobalFDS& fds)
 {
@@ -209,25 +179,6 @@ void printRequestBody(const Context& ctx)
 	std::cout << "CGI Input FD: " << ctx.req.cgi_in_fd << std::endl;
 	std::cout << "CGI Output FD: " << ctx.req.cgi_out_fd << std::endl;
 	std::cout << "CGI PID: " << ctx.req.cgi_pid << std::endl;
-	std::cout << "State: ";
-	switch (ctx.req.state)
-	{
-	case RequestBody::STATE_READING_REQUEST:
-		std::cout << "STATE_READING_REQUEST";
-		break;
-	case RequestBody::STATE_PREPARE_CGI:
-		std::cout << "STATE_PREPARE_CGI";
-		break;
-	case RequestBody::STATE_CGI_RUNNING:
-		std::cout << "STATE_CGI_RUNNING";
-		break;
-	case RequestBody::STATE_SENDING_RESPONSE:
-		std::cout << "STATE_SENDING_RESPONSE";
-		break;
-	default:
-		std::cout << "UNKNOWN";
-		break;
-	}
 	std::cout << std::endl;
 	std::cout << "Request Buffer Size: " << ctx.req.request_buffer.size() << std::endl;
 	if (!ctx.req.request_buffer.empty())
@@ -250,11 +201,6 @@ void printRequestBody(const Context& ctx)
 		std::cout << "CGI Output Buffer Content (first 50 chars): "
 			<< std::string(ctx.req.cgi_output_buffer.begin(), ctx.req.cgi_output_buffer.end())
 			<< std::endl;
-	}
-	if (ctx.req.associated_conf)
-	{
-		std::cout << "Associated ServerBlock:" << std::endl;
-		printServerBlock(*ctx.req.associated_conf);
 	}
 	else
 		std::cout << "Associated ServerBlock: NULL" << std::endl;

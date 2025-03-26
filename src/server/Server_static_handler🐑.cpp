@@ -12,7 +12,7 @@ bool Server::staticHandler(Context& ctx)
 		if (ctx.is_download && ctx.multipart_fd_up_down > 0)
 			return buildDownloadResponse(ctx);
 
-		if (!ctx.doAutoIndex.empty())
+		if (!ctx.do_autoindex.empty())
 		{
 			std::stringstream ss;
 			buildAutoIndexResponse(ctx, &ss);
