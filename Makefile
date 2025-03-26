@@ -185,42 +185,6 @@ leak: $(NAME)
 	fi
 	@valgrind -s --leak-check=full --show-leak-kinds=all ./$(NAME) config/test.conf
 
-
-sheeptest:
-	@if [ -e "./webserv.log" ]; then \
-		echo "$(YELLOW)Clearing webserv.log$(X)"; \
-		> ./webserv.log; \
-	fi
-	@echo "$(GREEN)Running static analysis...$(X)"
-	@echo "$(GREEN)Total C++ Project Lines:$(X) $(shell find . -type f \( -name "*.cpp" -o -name "*.hpp" \) | xargs wc -l | tail -n 1 | awk '{print $$1}')"
-	@python3 src/Jeberle_warner.py
-	@if [ $$? -ne 0 ]; then \
-		echo "$(RED)Static analysis failed! Fix the issues before running the server.$(X)"; \
-	fi
-	@if [ -f "./$(NAME)" ]; then \
-		echo "$(GREEN)No changes detected, skipping compilation and game.$(X)"; \
-	else \
-		echo "$(YELLOW)Compiling in the background...$(X)"; \
-		make $(NAME) > /dev/null 2>&1 & \
-		comp_pid=$$!; \
-		while kill -0 $$comp_pid 2>/dev/null; do \
-			echo -ne "$(CYAN)⏳ Compilation in progress... Play the game!$(X)\r"; \
-			make sheep; \
-		done; \
-		wait $$comp_pid; \
-		echo ""; \
-		if [ -f "./$(NAME)" ]; then \
-			echo "$(GREEN)✅ Compilation Finished!$(X)"; \
-			echo "$(YELLOW)Starting the server...$(X)"; \
-		else \
-			echo "$(RED)❌ Compilation Failed!$(X)"; \
-			exit 1; \
-		fi; \
-	fi
-	./$(NAME) config/test.conf; \
-
-
-
 #------------------------------------------------------------------------------#
 #--------------                   CLEANUP TARGETS                   -------------#
 #------------------------------------------------------------------------------#

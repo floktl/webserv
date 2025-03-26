@@ -1,3 +1,2 @@
-[2025-03-26 15:57:31]  [ERROR] Error writing to file
-[2025-03-26 15:57:31]  [ERROR] return at preppingpiong 189
-[2025-03-26 15:57:31]  [ERROR] ErrorHandler: Errorcode: 409 Conflict
+[2025-03-26 16:48:38]  [ERROR] Failed to determine request type on port: 8080
+[2025-03-26 16:48:38]  [ERROR] ErrorHandler: Errorcode: 405 Method Not Allowed
