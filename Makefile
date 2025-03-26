@@ -22,8 +22,7 @@ SUCCESS := \n\
 🐑                                                                                                          🐑\n\
 🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\n\
 $(GREEN)Task at the end:$(X)\n\
-$(X)	🦄 ALLE TESTS MIT....\n\
-$(X)	🦄 file logs und logs checken....\n\
+$(X)	🦄 ALLE TESTS MIT LEAK....\n\
 $(X)	🦄 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
 $(X)	🦄 Wir sollten nochmal alle config operatoren und hostname durchchecken siehe webserv.hpp in location und serverblock\n\
 $(X)  \n\
