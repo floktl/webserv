@@ -173,6 +173,8 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 
 bool Server::prepareUploadPingPong(Context& ctx)
 {
+	Logger::yellow("prepareUploadPingPong " + std::to_string(ctx.client_fd));
+	ctx.last_activity = std::chrono::steady_clock::now();
 	if (ctx.multipart_file_path_up_down.empty())
 		return true;
 	if (ctx.error_code || ctx.multipart_fd_up_down >= 0)
@@ -197,7 +199,7 @@ bool Server::prepareUploadPingPong(Context& ctx)
 	if (access(upload_dir.c_str(), W_OK) < 0)
 		return updateErrorStatus(ctx, 403, "Upload directory not writable" + upload_dir);
 	if (access(ctx.multipart_file_path_up_down.c_str(), F_OK) == 0)
-		return updateErrorStatus(ctx, 409, "File already exists");
+		return updateErrorStatus(ctx, 409, "File already exists" + ctx.multipart_file_path_up_down + std::to_string(ctx.client_fd));
 
 	ctx.multipart_fd_up_down = open(ctx.multipart_file_path_up_down.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (ctx.multipart_fd_up_down < 0)

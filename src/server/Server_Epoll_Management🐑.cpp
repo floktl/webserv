@@ -14,9 +14,9 @@ bool Server::modEpoll(int epoll_fd, int fd, uint32_t events)
 
 	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0)
 	{
-		if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0)
-			return true;
+		epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev);
 	}
+	Logger::magenta("mod fd: " + std::to_string(epoll_fd));
 	return true;
 }
 
@@ -45,6 +45,7 @@ bool Server::delFromEpoll(int epfd, int client_fd)
 	}
 	else
 		globalFDS.clFD_to_svFD_map.erase(client_fd);
+	Logger::magenta("mod fd: " + std::to_string(epfd));
 	return true;
 }
 
@@ -73,18 +74,26 @@ void Server::clear_global_fd_map(std::chrono::steady_clock::time_point now)
 	auto it = globalFDS.context_map.begin();
 	while (it != globalFDS.context_map.end())
 	{
+		static int i = 0;
+		Logger::yellow("enters normal map" + std::to_string(i++));
 		Context& ctx = it->second;
 		auto duration = std::chrono::duration_cast<std::chrono::seconds>(
 			now - ctx.last_activity).count();
-		if (duration > ctx.timeout && !ctx.cgi_run_to_timeout)
+		if (duration > ctx.timeout && !ctx.cgi_run_to_timeout && ctx.multipart_fd_up_down <= 0)
 		{
+			Logger::yellow("kills fd: " + std::to_string(ctx.client_fd));
+			Logger::green("kills fd: " + std::to_string(duration));
+
 			delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 			globalFDS.clFD_to_svFD_map.erase(ctx.client_fd);
 			ctx.client_fd = -1;
 			it = globalFDS.context_map.erase(it);
 		}
 		else
+		{
+			Logger::yellow("exist:  fd: " + std::to_string(ctx.client_fd));
 			++it;
+		}
 	}
 }
 // Checks and removes inactive connections that Extred the Timeout Threshold
@@ -94,6 +103,7 @@ void Server::checkAndCleanupTimeouts()
 
 	for (auto it = globalFDS.cgi_pid_to_client_fd.begin(); it != globalFDS.cgi_pid_to_client_fd.end();)
 	{
+		Logger::yellow("enters cgi map");
 		pid_t pid = it->first;
 		int client_fd = it->second;
 		auto ctx_iter = globalFDS.context_map.find(client_fd);
@@ -118,6 +128,6 @@ void Server::checkAndCleanupTimeouts()
 		}
 		it++;
 	}
-	//log_global_fds(globalFDS);
+	log_global_fds(globalFDS);
 	clear_global_fd_map(now);
 }

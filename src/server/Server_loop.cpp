@@ -54,7 +54,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 				handleAcceptedConnection(epoll_fd, client_fd, events[eventIter].events, configs);
 			}
 		}
-		checkAndCleanupTimeouts();
+		//checkAndCleanupTimeouts();
 	}
 	close(epoll_fd);
 	epoll_fd = -1;
@@ -115,12 +115,12 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 		Context		&ctx = contextIter->second;
 		ctx.last_activity = std::chrono::steady_clock::now();
 		if (ev & EPOLLIN){
-			//Logger::white("EPOLLIN");
+			Logger::white("EPOLLIN");
 			status = handleRead(ctx, configs);
 		}
 		if ((ev & EPOLLOUT))
 		{
-			//Logger::white("EPOLLOUT");
+			Logger::white("EPOLLOUT");
 			status = handleWrite(ctx);
 			if (status == false)
 				delFromEpoll(epoll_fd, client_fd);
@@ -141,7 +141,7 @@ bool Server::handleAcceptedConnection(int epoll_fd, int client_fd, uint32_t ev, 
 // Handles Reading Request Data from the Client and Processing It Accordingly
 bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 {
-	//Logger::green("handleRead");
+	Logger::green("handleRead " + std::to_string(ctx.client_fd));
 	char buffer[DEFAULT_REQUESTBUFFER_SIZE];
 
 	if (!ctx.is_multipart || ctx.req.parsing_phase != RequestBody::PARSING_BODY)
@@ -178,7 +178,10 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 		if (!determineType(ctx, configs))
 			return Logger::errorLog("Failed to determine request type on port: " + std::to_string(ctx.port));
 	}
-	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong
+	Logger::yellow("headers_complete " + std::to_string(ctx.headers_complete));
+	Logger::yellow("is_multipart " + std::to_string(ctx.is_multipart));
+	Logger::yellow("ready_for_ping_pong " + std::to_string(ctx.ready_for_ping_pong));
+	if (ctx.headers_complete && ctx.is_multipart && ctx.ready_for_ping_pong
 		&& (!parseContentDisposition(ctx) || !prepareUploadPingPong(ctx)))
 			return false;
 
@@ -210,7 +213,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 
 bool Server::handleWrite(Context& ctx)
 {
-	//Logger::green("handleWrite");
+	Logger::green("handleWrite");
 	bool result = false;
 
 	if (ctx.is_download && ctx.multipart_fd_up_down > 0)

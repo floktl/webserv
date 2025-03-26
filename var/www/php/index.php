@@ -142,9 +142,9 @@
 		<hr>
 
 		<h2>File Upload (Test):</h2>
-		<form action="uploadFile.php" method="post" enctype="multipart/form-data">
+		<form  id="uploadform" action="uploadFile.php" method="post" enctype="multipart/form-data">
 			<input type="file" name="uploadedFile" required>
-			<input type="submit" value="Upload File">
+			<input id="uploadsubmit" type="submit" value="Upload File">
 		</form>
 		<ul>
 			<?php foreach ($uploadedFiles as $fileName): ?>
@@ -204,6 +204,19 @@
 					});
 				});
 			});
+			document.addEventListener("DOMContentLoaded", function () {
+				const uploadForm = document.getElementById("uploadform");
+				const uploadButton = document.getElementById("uploadsubmit");
+
+				if (uploadButton) {
+					uploadForm.addEventListener("submit", () => {
+						setTimeout(() => {
+						console.log("Button clicked, disabling...");
+						uploadButton.disabled = true;
+						}, 500);
+					});
+				}
+			})
 		</script>
 	</main>
 </body>

@@ -33,9 +33,7 @@ $(X)	🦄 unused variables functions etc... \n\
 $(X)  \n\
 $(GREEN)Others:$(X)\n\
 $(X)	🐑 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
-$(X)	🐑 Conf Timeout. NICHT die epoll timout sondern die Request Timeout\n\
-$(X)	🐑 Timeout bei langer dauer der Processes CGIU e g PHP infinty while !!!!!!\n\
-$(X)	🐑 CGI Python\n\
+$(X)	🐑  ist folder bier waere file. also 404 betrifft cgi UND static\n\
 $(X)	🐑 nochmaliger upload click in cgi content bei laufendem upload....\n\
 $(X)  \n\
 

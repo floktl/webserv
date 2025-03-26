@@ -13,7 +13,6 @@ setcookie('test_cookie', $cookieval, [
 	'path' => '/',
 	'httponly' => true
 ]);
-
 header('Location: /');
 exit();
 ?>
