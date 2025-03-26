@@ -112,7 +112,56 @@ class Server
 		bool fileExists(const std::string& path);
 		bool isDirectory(const std::string& path);
 		size_t getFileSize(const std::string& path);
+
+		// CGI
+		bool close_CGI_pipes_error(Context& ctx, std::string err_str, int (&input_pipe)[2], int (&output_pipe)[2]);
+		bool create_CGI_pipes(Context& ctx, int (&input_pipe)[2], int (&output_pipe)[2]);
+		void execute_CGI_child_process(Context& ctx, int (&input_pipe)[2], int (&output_pipe)[2]);
 		bool sendCgiResponse(Context& ctx);
+		void fillCgiEnvironmentVariables(const Context& ctx, std::vector<std::string> &env);
+		bool detectHtmlStartAndHeaderSeparator(Context& ctx, const std::string& separator, const std::string& separator_alt, bool& startsWithHtml, std::vector<char>::iterator& it);
+		bool injectDefaultHtmlHeaders(Context& ctx);
+		void parseCgiHeaders(const std::string& existingHeaders,
+			int& cgiStatusCode,
+			std::string& cgiStatusMessage,
+			std::string& cgiLocation,
+			bool& cgiRedirect);
+		std::string buildInitialCgiResponseHeader(const Context& ctx,
+			int cgiStatusCode,
+			const std::string& cgiStatusMessage,
+			bool cgiRedirect,
+			bool& isRedirect);
+		void appendStandardOrCgiHeaders(const Context& ctx,
+				bool hasHeaders,
+				const std::string& existingHeaders,
+				std::string& headers,
+				const std::string& cgiLocation,
+				bool isRedirect,
+				bool hasContentType);
+			void finalizeCgiHeaders(const Context& ctx,
+				std::string& headers,
+				const std::string& existingHeaders,
+				size_t headerEnd,
+				size_t separatorSize,
+				bool hasHeaders,
+				bool isRedirect,
+				bool hasContentLength,
+				bool hasServer,
+				bool hasDate,
+				bool hasConnection);
+				void finalizeCgiWriteBuffer(Context& ctx,
+					const std::string& existingHeaders,
+					std::string& headers,
+					size_t headerEnd,
+					size_t separatorSize,
+					bool hasHeaders,
+					bool isRedirect,
+					bool cgiRedirect);
+		bool handleInitialCgiWritePhase(Context& ctx);
+		bool handleCgiOutputPhase(Context& ctx);
+		bool handleCgiTermination(Context& ctx);
+
+
 		bool parseCGIBody(Context& ctx);
 		bool isPathInUploadStore(Context& ctx, const std::string& path_to_check);
 		bool handleCgiPipeEvent(int incoming_fd);
