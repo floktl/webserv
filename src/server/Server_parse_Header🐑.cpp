@@ -148,7 +148,7 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 	std::string line;
 
 	if (!std::getline(stream, line))
-		return (updateErrorStatus(ctx, 400, "Bad Request - Empty Request"));
+		return (updateErrorStatus(ctx, 400, "Bad Request"));
 
 	if (line.back() == '\r')
 		line.pop_back();
@@ -157,7 +157,7 @@ bool Server::parseRequestLine(Context& ctx, std::istringstream& stream)
 	request_line >> ctx.method >> ctx.path >> ctx.version;
 
 	if (ctx.method.empty() || ctx.path.empty() || ctx.version.empty())
-		return (updateErrorStatus(ctx, 400, "Bad Request - Invalid Request Line"));
+		return (updateErrorStatus(ctx, 400, "Bad Request"));
 
 	return true;
 }
@@ -173,7 +173,7 @@ bool Server::prepareUploadPingPong(Context& ctx)
 
 	struct stat prev_stat;
 	if (stat(ctx.multipart_file_path_up_down.c_str(), &prev_stat) == 0 && S_ISDIR(prev_stat.st_mode))
-			return updateErrorStatus(ctx, 400, "Bad Request Upload file is a directory: " + ctx.multipart_file_path_up_down);
+			return updateErrorStatus(ctx, 400, "Bad Request");
 
 	if (!(ctx.multipart_file_path_up_down.size() >= ctx.root.size()
 			&& ctx.multipart_file_path_up_down.substr(0, ctx.root.size()) == ctx.root))
@@ -184,17 +184,17 @@ bool Server::prepareUploadPingPong(Context& ctx)
 	struct stat dir_stat;
 
 	if (stat(upload_dir.c_str(), &dir_stat) < 0)
-		return updateErrorStatus(ctx, 404, "Upload directory not found" + upload_dir);
+		return updateErrorStatus(ctx, 404, "Not Found");
 	if (!S_ISDIR(dir_stat.st_mode))
-		return updateErrorStatus(ctx, 400, "Bad Request" + upload_dir);
+		return updateErrorStatus(ctx, 400, "Bad Request");
 	if (access(upload_dir.c_str(), W_OK) < 0)
-		return updateErrorStatus(ctx, 403, "Upload directory not writable" + upload_dir);
+		return updateErrorStatus(ctx, 403, "Forbidden");
 	if (access(ctx.multipart_file_path_up_down.c_str(), F_OK) == 0)
-		return updateErrorStatus(ctx, 409, "File already exists" + ctx.multipart_file_path_up_down + std::to_string(ctx.client_fd));
+		return updateErrorStatus(ctx, 409, "Conflict");
 
 	ctx.multipart_fd_up_down = open(ctx.multipart_file_path_up_down.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (ctx.multipart_fd_up_down < 0)
-		return updateErrorStatus(ctx, 500, "Failed to create upload file");
+		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	if (ctx.error_code)
 		return false;
 	ctx.ready_for_ping_pong = true;
@@ -225,7 +225,7 @@ void Server::parseAccessRights(Context& ctx)
 	requestedPath = concatenatePath(req_root, ctx.path);
 	if (isDirectory(requestedPath) && requestedPath.back() != '/' && ctx.method != "POST")
 	{
-		updateErrorStatus(ctx, 404, "Not found");
+		updateErrorStatus(ctx, 404, "Not Found");
 		return;
 	}
 	if (requestedPath.back() != '/' && isDirectory(requestedPath))
@@ -310,7 +310,7 @@ bool Server::checkMaxContentLength(Context& ctx, std::vector<ServerBlock>& confi
 		content_length = std::stoull(headersit->second);
 		getMaxBodySizeFromConfig(ctx, configs);
 		if (content_length > ctx.client_max_body_size)
-			return updateErrorStatus(ctx, 413, "Payload too large");
+			return updateErrorStatus(ctx, 413, "Payload Too Large");
 	}
 	return true;
 }

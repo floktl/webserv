@@ -12,7 +12,7 @@ void Server::buildStaticResponse(Context &ctx)
 
 	std::ifstream file(fullPath, std::ios::binary);
 	if (!file) {
-		updateErrorStatus(ctx, 404, "Not found");
+		updateErrorStatus(ctx, 404, "Not Found");
 		return;
 	}
 

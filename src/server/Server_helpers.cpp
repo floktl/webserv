@@ -105,7 +105,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 	if (!ctx.location.return_url.empty() && ctx.method == "GET") {
 		if (std::find(ctx.blocks_location_paths.begin(), ctx.blocks_location_paths.end(),
 			ctx.location.return_url) != ctx.blocks_location_paths.end()) {
-			updateErrorStatus(ctx, 508, "Infinite redirect loop detected: " + ctx.location.return_url);
+			updateErrorStatus(ctx, 508, "Loop Detected");
 			return "";
 		}
 		ctx.blocks_location_paths.push_back(ctx.location.return_url);
@@ -118,11 +118,11 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 		ctx.type = STATIC;
 		ctx.is_download = true;
 		if (!fileExists(path_to_check)) {
-			updateErrorStatus(ctx, 404, "Not found");
+			updateErrorStatus(ctx, 404, "Not Found");
 			return "";
 		}
 		if (!fileReadable(path_to_check)) {
-			updateErrorStatus(ctx, 403, "Forbidden fileReadable");
+			updateErrorStatus(ctx, 403, "Forbidden");
 			return "";
 		}
 		if (ctx.multipart_fd_up_down >= 0) {
@@ -166,7 +166,7 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 	if (starts_with_upload_store && ctx.method == "POST") {
 		return path_to_check;
 	}
-	updateErrorStatus(ctx, 404, "Not found in approveextension()");
+	updateErrorStatus(ctx, 404, "Not Found");
 	return "";
 
 	return path_to_check;
@@ -218,7 +218,7 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 	}
 
 	if (!conf)
-		return updateErrorStatus(ctx, 500, "Internal Server Error type");
+		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	Location bestMatch;
 	if (matchLoc(conf->locations, ctx.path, bestMatch))
 	{
@@ -232,7 +232,7 @@ bool Server::determineType(Context& ctx, std::vector<ServerBlock> configs)
 		ctx.location = bestMatch;
 		ctx.location_inited = true;
 		if (!isMethodAllowed(ctx))
-			return updateErrorStatus(ctx, 405, "Method (" + ctx.method + ") not allowed");
+			return updateErrorStatus(ctx, 405, "Method Not Allowed");
 		if (bestMatch.cgi != "")
 			ctx.type = CGI;
 		else

@@ -16,7 +16,7 @@ bool Server::buildDownloadHeaders(Context &ctx)
 	struct stat file_stat;
 
 	if (stat(ctx.multipart_file_path_up_down.c_str(), &file_stat) != 0)
-		return updateErrorStatus(ctx, 404, "File not found");
+		return updateErrorStatus(ctx, 404, "Not Found");
 
 	std::string filename = ctx.multipart_file_path_up_down;
 	size_t last_slash = filename.find_last_of("/\\");
@@ -47,7 +47,7 @@ bool Server::buildDownloadHeaders(Context &ctx)
 	{
 		close(ctx.multipart_fd_up_down);
 		ctx.multipart_fd_up_down = -1;
-		return updateErrorStatus(ctx, 500, "Failed to send headers");
+		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	}
 
 	ctx.download_headers_sent = true;
@@ -65,7 +65,7 @@ bool Server::buildDownloadRead(Context &ctx)
 	{
 		close(ctx.multipart_fd_up_down);
 		ctx.multipart_fd_up_down = -1;
-		return updateErrorStatus(ctx, 500, "Failed to read file");
+		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	}
 
 	if (bytes_read == 0)
@@ -95,7 +95,7 @@ bool Server::buildDownloadSend(Context &ctx)
 		{
 			close(ctx.multipart_fd_up_down);
 			ctx.multipart_fd_up_down = -1;
-			return updateErrorStatus(ctx, 500, "Failed to send file content");
+			return updateErrorStatus(ctx, 500, "Internal Server Error");
 		}
 		ctx.req.current_body_length += ctx.write_buffer.size();
 		Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "(" + std::to_string(ctx.multipart_fd_up_down) + ") Download 8");

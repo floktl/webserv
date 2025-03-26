@@ -6,7 +6,7 @@ bool Server::executeCgi(Context& ctx)
 
 	if (ctx.requested_path.empty() || !fileExists(ctx.requested_path) || !fileReadable(ctx.requested_path)) {
 		//Logger::error("CGI script validation failed: " + ctx.requested_path);
-		return updateErrorStatus(ctx, 404, "Not Found - CGI Script");
+		return updateErrorStatus(ctx, 404, "Not Found");
 	}
 
 	int input_pipe[2];
@@ -15,7 +15,7 @@ bool Server::executeCgi(Context& ctx)
 	if (pipe(input_pipe) < 0 || pipe(output_pipe) < 0) {
 		Logger::error("Failed to create pipes for CGI");
 		Logger::file("Failed to create pipes for CGI");
-		return updateErrorStatus(ctx, 500, "Internal Server Error - Pipe Creation Failed");
+		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	}
 
 	if (setNonBlocking(input_pipe[0]) < 0 || setNonBlocking(input_pipe[1]) < 0 ||
@@ -26,7 +26,7 @@ bool Server::executeCgi(Context& ctx)
 		close(input_pipe[1]);
 		close(output_pipe[0]);
 		close(output_pipe[1]);
-		return updateErrorStatus(ctx, 500, "Internal Server Error - Non-blocking Pipe Failed");
+		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	}
 
 	pid_t pid = fork();
@@ -38,7 +38,7 @@ bool Server::executeCgi(Context& ctx)
 		close(input_pipe[1]);
 		close(output_pipe[0]);
 		close(output_pipe[1]);
-		return updateErrorStatus(ctx, 500, "Internal Server Error - Fork Failed");
+		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	}
 
 	if (pid == 0) {
