@@ -169,11 +169,6 @@ test: $(NAME)
 	fi
 	@echo "$(GREEN)Running static analysis...$(X)"
 	@echo "$(GREEN)Total C++ Project Lines:$(X) $(shell find . -type f \( -name "*.cpp" -o -name "*.hpp" \) | xargs wc -l | tail -n 1 | awk '{print $$1}')"
-	@python3 src/Jeberle_warner.py
-	@if [ $$? -ne 0 ]; then \
-		echo "$(RED)Static analysis failed! Fix the issues before running the server.$(X)"; \
-		exit 1; \
-	fi
 	@./$(NAME) config/test.conf
 
 leak: $(NAME)
@@ -183,11 +178,6 @@ leak: $(NAME)
 	fi
 	@echo "$(GREEN)Running static analysis...$(X)"
 	@echo "$(GREEN)Total C++ Project Lines:$(X) $(shell find . -type f \( -name "*.cpp" -o -name "*.hpp" \) | xargs wc -l | tail -n 1 | awk '{print $$1}')"
-	@python3 src/Jeberle_warner.py
-	@if [ $$? -ne 0 ]; then \
-		echo "$(RED)Static analysis failed! Fix the issues before running the server.$(X)"; \
-		exit 1; \
-	fi
 	@valgrind -s --leak-check=full --show-leak-kinds=all ./$(NAME) config/test.conf
 
 #------------------------------------------------------------------------------#

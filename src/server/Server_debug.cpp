@@ -72,29 +72,6 @@ void log_server_configs(const std::vector<ServerBlock>& configs)
 			Logger::file("         " + std::to_string(error.first) + ": " + error.second);
 		Logger::file("      }");
 
-// Log locations
-// Logger :: File ("Locations: [");
-// For (Const Auto & Loc: Server.Locations) {
-// Logger :: File ("{");
-// Logger :: File ("Port:" + Std :: To_String (Loc.Port));
-// Logger :: File ("Path:" + Loc.path);
-// Logger :: File ("Methods:" + Loc.methods);
-// Logger :: File ("Auto Index:" + Loc.Autroindex);
-// Logger :: File ("Default_file:" + Loc.default_file);
-// Logger :: File ("Upload_Store:" + Loc.upload_Store);
-// Logger :: File ("client_max_body_size:" + std :: to_string (loc.client_max_body_size));
-// Logger :: File ("Root:" + Loc.Root);
-// Logger :: File ("CGI:" + Loc.cgi);
-// Logger :: File ("CGI_Filetype:" + Loc.cgi_Filetype);
-// Logger :: File ("Return_code:" + Loc.Return_code);
-// Logger :: File ("Return_url:" + Loc.Return_url);
-// Logger :: File ("Doautoindex:" + Std :: String (loc.doautoindex? "True": "False"));
-// Logger :: File ("Allowget:" + Std :: String (Loc.allowget? "True": "False"));
-// Logger :: File ("Allowpost:" + Std :: String (loc.allowpost? "True": "False"));
-// Logger :: File ("Allowdelete:" + Std :: String (Loc.allowdelete? "True": "False"));
-// Logger :: File ("Allowcookie:" + Std :: String (Loc.allowcookie? "True": "False"));
-// Logger :: File ("}");
-// None
 		Logger::file("      ]");
 		Logger::file("   }");
 	}

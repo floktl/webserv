@@ -587,8 +587,11 @@ void Server::cleanupCgiResources(Context& ctx)
 		close(ctx.req.cgi_out_fd);
 		ctx.req.cgi_out_fd = -1;
 	}
+	if (ctx.req.cgi_pid > 0)
+	{
+		globalFDS.cgi_pid_to_client_fd.erase(ctx.req.cgi_pid);
+	}
 
-	globalFDS.cgi_pid_to_client_fd.erase(ctx.req.cgi_pid);
 
 	ctx.cgi_terminate = true;
 	ctx.cgi_terminated = true;

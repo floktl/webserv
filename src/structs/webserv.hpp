@@ -73,9 +73,9 @@ struct RequestBody
 	};
 
 	long long 	content_length = 0;
-	int			cgi_in_fd;
-	int			cgi_out_fd;
-	pid_t		cgi_pid;
+	int			cgi_in_fd = -1;
+	int			cgi_out_fd = -1;
+	pid_t		cgi_pid = -1;
 
 
 	std::deque<char> response_buffer;
