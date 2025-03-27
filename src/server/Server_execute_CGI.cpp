@@ -84,8 +84,20 @@ bool Server::executeCgi(Context& ctx)
 		Logger::error("Failed to add CGI output pipe to epoll");
 	if (!ctx.body.empty())
 	{
+		int written = write(ctx.req.cgi_in_fd, ctx.body.c_str(), ctx.body.length());
 		//Logger::magenta("write executeCgi");
-		write(ctx.req.cgi_in_fd, ctx.body.c_str(), ctx.body.length());
+
+		if (written < 0)
+			return (updateErrorStatus(ctx, 500, "Internal Server Error"));
+		if (written == 0)
+		{
+			close(ctx.req.cgi_in_fd);
+			ctx.req.cgi_in_fd = -1;
+			ctx.last_activity = std::chrono::steady_clock::now();
+			ctx.cgi_executed = true;
+			return (modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT | EPOLLET));
+		}
+
 	}
 	close(ctx.req.cgi_in_fd);
 	ctx.req.cgi_in_fd = -1;

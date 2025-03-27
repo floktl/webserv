@@ -438,7 +438,7 @@ bool Server::handleInitialCgiWritePhase(Context& ctx)
 		cleanupCgiResources(ctx);
 		return false;
 	}
-	else if (sent > 0)
+	else if (sent >= 0)
 	{
 		ctx.write_buffer.erase(
 			ctx.write_buffer.begin(),

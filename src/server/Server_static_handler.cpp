@@ -49,7 +49,7 @@ bool Server::sendHandler(Context& ctx, std::string http_response)
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 		return false;
 	}
-	if (ctx.type == ERROR || !ctx.keepAlive)
+	if (bytes_sent >= 0 && (ctx.type == ERROR || !ctx.keepAlive))
 	{
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 		globalFDS.context_map.erase(ctx.client_fd);

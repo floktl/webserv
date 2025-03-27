@@ -233,7 +233,7 @@ bool Server::handleWrite(Context& ctx)
 				return false;
 			}
 
-			if (written > 0)
+			if (written >= 0)
 			{
 				ctx.req.current_body_length += written;
 				Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "(" + std::to_string(ctx.multipart_fd_up_down) + ") Upload 8");

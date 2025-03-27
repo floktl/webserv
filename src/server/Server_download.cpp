@@ -43,14 +43,20 @@ bool Server::buildDownloadHeaders(Context &ctx)
 
 	response << "\r\n";
 
+	int sent = send(ctx.client_fd, response.str().c_str(), response.str().size(), MSG_NOSIGNAL);
 	//Logger::magenta("send buildDownloadHeaders");
-	if (send(ctx.client_fd, response.str().c_str(), response.str().size(), MSG_NOSIGNAL) < 0)
+	if (sent < 0)
 	{
 		close(ctx.multipart_fd_up_down);
 		ctx.multipart_fd_up_down = -1;
 		return updateErrorStatus(ctx, 500, "Internal Server Error");
 	}
-
+	if (sent >= 0)
+	{
+		ctx.download_headers_sent = true;
+		ctx.download_phase = true;
+		return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+	}
 	ctx.download_headers_sent = true;
 	ctx.download_phase = true;
 	return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
@@ -93,18 +99,22 @@ bool Server::buildDownloadSend(Context &ctx)
 {
 	if (ctx.write_buffer.size() > 0)
 	{
+		int sent = send(ctx.client_fd, ctx.write_buffer.data(), ctx.write_buffer.size(), MSG_NOSIGNAL);
 		//Logger::magenta("send buildDownloadSend");
-		if (send(ctx.client_fd, ctx.write_buffer.data(), ctx.write_buffer.size(), MSG_NOSIGNAL) < 0)
+		if (sent < 0)
 		{
 			close(ctx.multipart_fd_up_down);
 			ctx.multipart_fd_up_down = -1;
 			return updateErrorStatus(ctx, 500, "Internal Server Error");
 		}
-		ctx.req.current_body_length += ctx.write_buffer.size();
-		Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "(" + std::to_string(ctx.multipart_fd_up_down) + ") Download 8");
-		ctx.write_buffer.clear();
-		ctx.download_phase = true;
-		return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		else if (sent >= 0)
+		{
+			ctx.req.current_body_length += ctx.write_buffer.size();
+			Logger::progressBar(ctx.req.current_body_length, ctx.req.expected_body_length, "(" + std::to_string(ctx.multipart_fd_up_down) + ") Download 8");
+			ctx.write_buffer.clear();
+			ctx.download_phase = true;
+			return modEpoll(ctx.epoll_fd, ctx.client_fd, EPOLLOUT);
+		}
 	}
 	return false;
 }

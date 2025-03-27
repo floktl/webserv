@@ -1,1 +1,4 @@
-[2025-03-27 08:49:44]  [ERROR] ErrorHandler: Errorcode: 504 Gateway Timeout
+[2025-03-27 09:27:38]  [ERROR] Header parsing failed
+[2025-03-27 09:27:38]  [ERROR] ErrorHandler: Errorcode: 413 Payload Too Large
+[2025-03-27 09:27:46]  [ERROR] Header parsing failed
+[2025-03-27 09:27:46]  [ERROR] ErrorHandler: Errorcode: 413 Payload Too Large
