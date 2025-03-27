@@ -2,7 +2,8 @@
 #     -H "Content-Type: text/plain" \
 #     --data "aQW8fzXeLg0rKViNBdM2cU9HsZpTjyXoE3qBl7tARnYkwGvC1Jdhu5mxLFazOSegqvMZ3RBUbyJ8pkPoKlfQXtgcNsw4WE0dY9iHa7FqVnmrzTL6CJGbXU2AoeIK5shxtlYwD3cOqpSNgXZejMFvBk0HRLJna9uCmWi1fyGTV54MbscOYPDqtNEx0AezCdKpZGLWvjHgXYrhTUS13i7oxMuJ5mbc9YwXt6FKLldNRzaH2PO0QEGCvRkseTJp9gWfMdybnq5UoXhZKLY84tSlMwJNFvA7X2OYZBeuGDr3cCVKhLxPSEJgMnUoW9iTdAzXkflRcN3ygqO7Hb1BTvWYLmKpfzsdcahEt90XJ4GuoCVFbq3r5YTwKpLIMmnzAeR8gZfUxDBvCJWOoY7uTmNsA94qbgpFxXMTydRevlZoKiHSfAjBNGmUC9HnrqP73Rxy0atXjVLZceMbsYwguK9OtfqDWEIxlFpAvchGYzT0SnRmKUePbHDLoXaQJjWMgOtCdE0NsTPFx9AZmRuqIVCybLvYWgtKEa1c7hnqpmZgFRcUqXtNS8owblHEskzTGKYRjDCLu2pViBnjmfOXwPtgs97vZQWAbey3HqLJtkcEdNxM4hUGJzLyafVGKpeBqrYWoiR8XsKnTbMy7jlfZOuEQDJvHmt1sACxRGFvBZKe8qW49UhYNgLmdUpZCayJEnTwkg3hrKFxv5VQOLR2XpMrKViNBdM2cU9HsZpTjyXoE3qBl7tARnYkwGvC1Jdhu5mxLFazOSegqvMZ3RBUbyJ8pkPoKlfQXtgcNsw4WE0dY9iHa7FqVnmrzTL6CJGbXU2AoeIK5shxtlYwD3cOqpSNgXZejMFvBk0HRLJna9uCmWi1fyGTV54MbscOYPDqtNEx0AezCdKpZGLWvjHgXYrhTUS13i7oxMuJ5mbc9YwXt6FKLldNRzaH2PO0QEGCvRkseTJp9gWfMdybnq5UoXhZKLY84tSlMwJNFvA7X2OYZBeuGDr3cCVKhLxPSEJgMnUoW9iTdAzXkflRcN3ygqO7Hb1BTvWYLmKpfzsdcahEt90XJ4GuoCVFbq3r5YTwKpLIMmnzAeR8gZfUxDBvCJWOoY7uTmNsA94qbgpFxXMTydRevlZoKiHSfAjBNGmUC9HnrqP73Rxy0atXjVLZceMbsYwguK9OtfqDWEIxlFpAvchGYzT0SnRmKUePbHDLoXaQJjWMgOtCdE0NsTPFx9AZmRuqIVCybLvYWgtKEa1c7hnqpmZgFRcUqXtNS8owblHEskzTGKYRjDCLu2pViBnjmfOXwPtgs97vZQWAbey3HqLJtkcEdNxM4hUGJzLyafVGKpeBqrYWoiR8XsKnTbMy7jlfZOuEQDJvHmt1sACxRGFvBZKe8qW49UhYNgLmdUpZCayJEnTwkg3hrKFxv5VQOLR2XpMT9wsztdHbYlcfpo0GdWia7nqkS"
 
-
+#curl --resolve schaff:80:127.0.0.1 http://schaff:9090
+# curl --resolve schaaf:9090:127.0.0.1 http://schaaf:9090
 #------------------------------------------------------------------------------#
 #--------------                       PRINT                       -------------#
 #------------------------------------------------------------------------------#
@@ -28,7 +29,6 @@ SUCCESS := \n\
 🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑🐑\n\n\
 $(GREEN)Task at the end:$(X)\n\
 $(X)	🦄 ALLE TESTS MIT LEAK....\n\
-$(X)	🦄 Siege Tests 95,5% avaibkabde | check size and mnenory usage...()leaks no restarts on siege usage\n\
 $(X)	🦄 Wir sollten nochmal alle config operatoren und hostname durchchecken siehe webserv.hpp in location und serverblock\n\
 $(X)  \n\
 

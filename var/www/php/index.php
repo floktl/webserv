@@ -131,7 +131,7 @@
 			<input type="submit" value="Add">
 		</form>
 		<ul>
-			<?php foreach ($names as $entry): ?>
+			<?php foreach ($names as $entry):?>
 				<li>
 					<?php echo htmlspecialchars($entry['name']) . " (Age: " . htmlspecialchars($entry['age']) . ")"; ?>
 					<button class="deleteName" data-value="<?php echo htmlspecialchars($entry['name']); ?>" style="display: inline;">X</button>

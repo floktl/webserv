@@ -32,9 +32,6 @@ bool Server::matchLoc(const std::vector<Location>& locations,
 		foundMatch = true;
 	}
 
-	if (!foundMatch)
-		Logger::errorLog("No matching location found, including root location!");
-
 	return foundMatch;
 }
 
@@ -132,7 +129,6 @@ std::string Server::approveExtention(Context& ctx, std::string path_to_check)
 
 		ctx.multipart_fd_up_down = open(path_to_check.c_str(), O_RDONLY);
 		if (ctx.multipart_fd_up_down < 0) {
-			Logger::errorLog("Failed to open file for download: " + path_to_check);
 			updateErrorStatus(ctx, 500, "Internal Server Error");
 			return "";
 		}

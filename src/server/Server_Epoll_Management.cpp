@@ -5,7 +5,6 @@ bool Server::modEpoll(int epoll_fd, int fd, uint32_t events)
 {
 	if (fd <= 0)
 	{
-		Logger::errorLog("WARNING: Attempt to modify epoll for invalid fd: " + std::to_string(fd));
 		return true;
 	}
 	struct epoll_event ev;
@@ -24,12 +23,10 @@ bool Server::delFromEpoll(int epfd, int client_fd)
 {
 	if (epfd <= 0 || client_fd <= 0)
 	{
-		Logger::errorLog("WARNING: Attempt to delete invalid fd: " + std::to_string(client_fd));
 		return true;
 	}
 	if (findServerBlock(configData, client_fd))
 	{
-		Logger::errorLog("Prevented removal of server socket: " + std::to_string(client_fd));
 		return true;
 	}
 	auto ctx_it = globalFDS.context_map.find(client_fd);

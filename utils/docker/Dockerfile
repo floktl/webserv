@@ -32,6 +32,9 @@ RUN PHP_INI_DIR=$(php --ini | grep "Loaded Configuration File" | sed -e "s|.*:\s
 	echo "memory_limit = 6G" >> $(dirname $PHP_INI_DIR)/conf.d/99-upload-limits.ini && \
 	echo "max_execution_time = 3600" >> $(dirname $PHP_INI_DIR)/conf.d/99-upload-limits.ini && \
 	echo "max_input_time = 3600" >> $(dirname $PHP_INI_DIR)/conf.d/99-upload-limits.ini && \
+	echo "display_errors = On" >> $(dirname $PHP_INI_DIR)/conf.d/99-upload-limits.ini && \
+	echo "display_startup_errors = On" >> $(dirname $PHP_INI_DIR)/conf.d/99-upload-limits.ini && \
+	echo "error_reporting = E_ALL" >> $(dirname $PHP_INI_DIR)/conf.d/99-upload-limits.ini && \
 	# Also create the same file for php-cgi
 	PHP_CGI_DIR=$(dirname $PHP_INI_DIR | sed 's/cli/cgi/') && \
 	mkdir -p $PHP_CGI_DIR/conf.d/ && \
@@ -40,7 +43,10 @@ RUN PHP_INI_DIR=$(php --ini | grep "Loaded Configuration File" | sed -e "s|.*:\s
 	echo "post_max_size = 5G" >> $PHP_CGI_DIR/conf.d/99-upload-limits.ini && \
 	echo "memory_limit = 6G" >> $PHP_CGI_DIR/conf.d/99-upload-limits.ini && \
 	echo "max_execution_time = 3600" >> $PHP_CGI_DIR/conf.d/99-upload-limits.ini && \
-	echo "max_input_time = 3600" >> $PHP_CGI_DIR/conf.d/99-upload-limits.ini
+	echo "max_input_time = 3600" >> $PHP_CGI_DIR/conf.d/99-upload-limits.ini && \
+	echo "display_errors = On" >> $PHP_CGI_DIR/conf.d/99-upload-limits.ini && \
+	echo "display_startup_errors = On" >> $PHP_CGI_DIR/conf.d/99-upload-limits.ini && \
+	echo "error_reporting = E_ALL" >> $PHP_CGI_DIR/conf.d/99-upload-limits.ini
 
 WORKDIR /app
 

@@ -15,7 +15,6 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 		{
 			if (errno == EINTR)
 				break;
-			Logger::errorLog("Epoll error");
 			break;
 		}
 		else if (eventNum == 0)
@@ -84,7 +83,6 @@ bool Server::acceptNewConnection(int epoll_fd, int server_fd, std::vector<Server
 
 		if (setNonBlocking(client_fd) < 0)
 		{
-			Logger::errorLog("Failed to set non-blocking mode for client_fd: " + std::to_string(client_fd));
 			close(client_fd);
 			client_fd = -1;
 			continue;
@@ -157,7 +155,7 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 			ctx.multipart_fd_up_down = -1;
 			ctx.write_buffer.clear();
 		}
-		return Logger::errorLog("Read error");
+		return false;
 	}
 	if (bytes == 0 && !ctx.req.is_upload_complete)
 	{
@@ -172,9 +170,9 @@ bool Server::handleRead(Context& ctx, std::vector<ServerBlock>& configs)
 	if (!ctx.headers_complete)
 	{
 		if (!parseBareHeaders(ctx, configs))
-			return Logger::errorLog("Header parsing failed");
+			return false;
 		if (!determineType(ctx, configs))
-			return Logger::errorLog("Failed to determine request type on port: " + std::to_string(ctx.port));
+			return false;
 	}
 	if (ctx.headers_complete && ctx.is_multipart && !ctx.ready_for_ping_pong
 		&& (!parseContentDisposition(ctx) || !prepareUploadPingPong(ctx)))

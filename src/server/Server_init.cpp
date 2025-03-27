@@ -55,7 +55,6 @@ int Server::initEpoll()
 	int epoll_fd = epoll_create(1);
 	if (epoll_fd < 0)
 	{
-		Logger::errorLog("Failed to create epoll");
 		return -1;
 	}
 
@@ -66,25 +65,18 @@ int Server::initEpoll()
 		flags |= FD_CLOEXEC;
 		if (fcntl(epoll_fd, F_SETFD, flags) == -1)
 		{
-			Logger::errorLog("Failed to set FD_CLOEXEC");
 			close(epoll_fd);
 			return -1;
 		}
 	}
-	else
-		Logger::errorLog("Failed to get initial flags");
 
 	int verify_flags = fcntl(epoll_fd, F_GETFD);
 
 	if (verify_flags == -1)
 	{
-		Logger::errorLog("epoll_fd invalid after creation");
 		close(epoll_fd);
 		return -1;
 	}
-
-	if (!(verify_flags & FD_CLOEXEC))
-		Logger::errorLog("WARNING: FD_CLOEXEC not set in verification");
 
 	globalFDS.epoll_fd = epoll_fd;
 	return epoll_fd;

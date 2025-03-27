@@ -38,7 +38,6 @@ bool Server::parseBareHeaders(Context& ctx, std::vector<ServerBlock>& configs)
 
 	if (!server_match_found)
 	{
-		Logger::errorLog("No matching server block found - Closing connection");
 		delFromEpoll(ctx.epoll_fd, ctx.client_fd);
 		return false;
 	}
@@ -277,7 +276,6 @@ int extractPort(const std::string& header)
 					int port = std::stoi(port_str);
 					if (port <= 0 || port > 65535)
 					{
-						Logger::errorLog("Invalid port number: '" + port_str + "'");
 						return -1;
 					}
 					return port;

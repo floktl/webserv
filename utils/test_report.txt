@@ -10,6 +10,7 @@
 8800
 9090
 ✅ No restarts detected.
+⚠ smem not installed, skipping detailed memory check.
 📊 Siege Test Summary:
    ✅ Successful Transactions: 
    ❌ Failed Transactions: 

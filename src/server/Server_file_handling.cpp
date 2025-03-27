@@ -141,7 +141,7 @@ void appendContentAfterFirstBoundary(std::string buf, std::vector<char>& output,
 bool Server::extractFileContent(const std::string& boundary, const std::string& buf, std::vector<char>& output, Context& ctx)
 {
 	if (boundary.empty())
-		return Logger::errorLog("Empty boundary");
+		return false;
 
 	size_t boundaryPos = buf.find(boundary);
 	size_t content_end = buf.find(boundary + "--");
