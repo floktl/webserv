@@ -20,6 +20,7 @@ int Server::runEventLoop(int epoll_fd, std::vector<ServerBlock> &configs)
 		}
 		else if (eventNum == 0)
 		{
+			checkAndCleanupTimeouts();
 			continue;
 		}
 		for (int eventIter = 0; eventIter < eventNum; eventIter++)

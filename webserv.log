@@ -1,2 +1,1 @@
-[2025-03-26 16:48:38]  [ERROR] Failed to determine request type on port: 8080
-[2025-03-26 16:48:38]  [ERROR] ErrorHandler: Errorcode: 405 Method Not Allowed
+[2025-03-27 08:49:44]  [ERROR] ErrorHandler: Errorcode: 504 Gateway Timeout
